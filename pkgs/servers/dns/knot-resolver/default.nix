@@ -1,61 +1,73 @@
-{ stdenv, fetchurl, fetchpatch, pkgconfig, utillinux, hexdump, which
-, knot-dns, luajit, libuv, lmdb
-, cmocka, systemd, hiredis, libmemcached
-, gnutls, nettle
-, luajitPackages, makeWrapper
+{ stdenv, fetchurl
+# native deps.
+, runCommand, pkgconfig, meson, ninja, makeWrapper
+# build+runtime deps.
+, knot-dns, luajitPackages, libuv, gnutls, lmdb, systemd, dns-root-data
+# test-only deps.
+, cmocka, which, cacert
+, extraFeatures ? false /* catch-all if defaults aren't enough */
 }:
+let # un-indented, over the whole file
 
-let
-  inherit (stdenv.lib) optional;
-in
-stdenv.mkDerivation rec {
-  name = "knot-resolver-${version}";
-  version = "1.3.0";
+result = if extraFeatures then wrapped-full else unwrapped;
+
+inherit (stdenv.lib) optional optionals concatStringsSep;
+lua = luajitPackages;
+
+# FIXME: remove these usages once resolving
+# https://github.com/NixOS/nixpkgs/pull/63108#issuecomment-508670438
+exportLuaPathsFor = luaPkgs: ''
+  export LUA_PATH='${ concatStringsSep ";" (map lua.getLuaPath  luaPkgs)}'
+  export LUA_CPATH='${concatStringsSep ";" (map lua.getLuaCPath luaPkgs)}'
+'';
+
+unwrapped = stdenv.mkDerivation rec {
+  pname = "knot-resolver";
+  version = "4.2.1";
 
   src = fetchurl {
-    url = "http://secure.nic.cz/files/knot-resolver/${name}.tar.xz";
-    sha256 = "667002dc3ee0b0f755628997ef4f71be769a06fb8b9ccd935db329c8709c2af4";
+    url = "https://secure.nic.cz/files/knot-resolver/${pname}-${version}.tar.xz";
+    sha256 = "286e432762f8aa5e605e5e8fecf81815b55c4ed0be19a63e81fbc28171ae553b";
   };
+
+  # https://gitlab.labs.nic.cz/knot/knot-resolver/issues/496
+  postPatch = "sed '/prefill.test.lua/d' -i modules/meson.build";
 
   outputs = [ "out" "dev" ];
 
-  configurePhase = ":";
+  preConfigure = ''
+    patchShebangs scripts/
+  ''
+    + stdenv.lib.optionalString doInstallCheck (exportLuaPathsFor [ lua.cqueues lua.basexx ]);
 
-  nativeBuildInputs = [ pkgconfig which makeWrapper hexdump ];
+  nativeBuildInputs = [ pkgconfig meson ninja ];
 
-  buildInputs = [ knot-dns luajit libuv gnutls ]
-    ++ optional stdenv.isLinux lmdb # system lmdb causes some problems on Darwin
-    ## optional dependencies; TODO: libedit, dnstap?
-    ++ optional doInstallCheck cmocka
-    ++ optional stdenv.isLinux systemd # socket activation
-    ++ [
-      nettle # DNS cookies
-      hiredis libmemcached # additional cache backends
-      # http://knot-resolver.readthedocs.io/en/latest/build.html#requirements
-    ];
+  # http://knot-resolver.readthedocs.io/en/latest/build.html#requirements
+  buildInputs = [ knot-dns lua.lua libuv gnutls lmdb ]
+    ++ optional stdenv.isLinux systemd # passing sockets, sd_notify
+    ## optional dependencies; TODO: libedit, dnstap
+    ;
 
-  makeFlags = [ "PREFIX=$(out)" ];
-  CFLAGS = [ "-O2" "-DNDEBUG" ];
+  mesonFlags = [
+    "-Dkeyfile_default=${dns-root-data}/root.ds"
+    "-Droot_hints=${dns-root-data}/root.hints"
+    "-Dinstall_kresd_conf=disabled" # not really useful; examples are inside share/doc/
+    "--default-library=static" # not used by anyone
+  ]
+  ++ optional doInstallCheck "-Dunit_tests=enabled"
+  ++ optional (doInstallCheck && !stdenv.isDarwin) "-Dconfig_tests=enabled"
+    #"-Dextra_tests=enabled" # not suitable as in-distro tests; many deps, too.
+  ;
 
-  enableParallelBuilding = true;
-
-  doInstallCheck = true;
-  installCheckTarget = "check";
-  preInstallCheck = ''
-    export LD_LIBRARY_PATH="$out/lib"
+  postInstall = ''
+    rm "$out"/lib/libkres.a
   '';
 
-  # optional: to allow auto-bootstrapping root trust anchor via https
-  postInstall = with luajitPackages; ''
-    wrapProgram "$out/sbin/kresd" \
-      --set LUA_PATH '${
-        stdenv.lib.concatStringsSep ";"
-          (map getLuaPath [ luasec luasocket ])
-        }' \
-      --set LUA_CPATH '${
-        stdenv.lib.concatStringsSep ";"
-          (map getLuaCPath [ luasec luasocket ])
-        }'
+  # aarch64: see https://github.com/wahern/cqueues/issues/223
+  doInstallCheck = with stdenv; hostPlatform == buildPlatform && !hostPlatform.isAarch64;
+  installCheckInputs = [ cmocka which cacert ];
+  installCheckPhase = ''
+    meson test --print-errorlogs
   '';
 
   meta = with stdenv.lib; {
@@ -65,5 +77,39 @@ stdenv.mkDerivation rec {
     platforms = platforms.unix;
     maintainers = [ maintainers.vcunat /* upstream developer */ ];
   };
-}
+};
 
+# FIXME: revert this back after resolving
+# https://github.com/NixOS/nixpkgs/pull/63108#issuecomment-508670438
+wrapped-full =
+  with stdenv.lib;
+  with luajitPackages;
+  let
+    luaPkgs = [
+      luasec luasocket # trust anchor bootstrap, prefill module
+      luafilesystem # prefill module
+      http # for http module; brings lots of deps; some are useful elsewhere
+      cqueues fifo lpeg lpeg_patterns luaossl compat53 basexx binaryheap
+    ];
+  in runCommand unwrapped.name
+  {
+    nativeBuildInputs = [ makeWrapper ];
+    preferLocalBuild = true;
+    allowSubstitutes = false;
+  }
+  (exportLuaPathsFor luaPkgs
+  + ''
+    mkdir -p "$out"/{bin,share}
+    makeWrapper '${unwrapped}/bin/kresd' "$out"/bin/kresd \
+      --set LUA_PATH  "$LUA_PATH" \
+      --set LUA_CPATH "$LUA_CPATH"
+
+    ln -sr '${unwrapped}/share/man' "$out"/share/
+    ln -sr "$out"/{bin,sbin}
+
+    echo "Checking that 'http' module loads, i.e. lua search paths work:"
+    echo "modules.load('http')" > test-http.lua
+    echo -e 'quit()' | env -i "$out"/bin/kresd -a 127.0.0.1#53535 -c test-http.lua
+  '');
+
+in result

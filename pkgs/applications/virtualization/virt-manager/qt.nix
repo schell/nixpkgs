@@ -1,47 +1,43 @@
-{ stdenv, fetchFromGitHub, cmake, pkgconfig
-, qtbase, qtmultimedia, qtsvg, makeQtWrapper
-, lxqt, libvncserver, libvirt, pixman, spice_gtk, spice_protocol
+{ mkDerivation, lib, fetchFromGitHub, cmake, pkgconfig
+, qtbase, qtmultimedia, qtsvg, qttools, krdc
+, libvncserver, libvirt, pcre, pixman, qtermwidget, spice-gtk, spice-protocol
+, libselinux, libsepol, utillinux
 }:
 
-stdenv.mkDerivation rec {
-  name = "virt-manager-qt-${version}";
-  version = "0.43.70.2";
+mkDerivation rec {
+  pname = "virt-manager-qt";
+  version = "0.70.91";
 
   src = fetchFromGitHub {
     owner  = "F1ash";
     repo   = "qt-virt-manager";
-    rev    = "${version}";
-    sha256 = "06123bywzgs5y2yskqm8qypj9diym5xip2bdlghfhw30957pcxxg";
+    rev    = version;
+    sha256 = "1z2kq88lljvr24z1kizvg3h7ckf545h4kjhhrjggkr0w4wjjwr43";
   };
 
   cmakeFlags = [
     "-DBUILD_QT_VERSION=5"
+    "-DQTERMWIDGET_INCLUDE_DIRS=${qtermwidget}/include/qtermwidget5"
   ];
 
   buildInputs = [
-    qtbase qtmultimedia qtsvg lxqt.qtermwidget
-    libvirt libvncserver pixman spice_gtk spice_protocol
+    qtbase qtmultimedia qtsvg krdc
+    libvirt libvncserver pcre pixman qtermwidget spice-gtk spice-protocol
+    libselinux libsepol utillinux
   ];
 
-  nativeBuildInputs = [ cmake pkgconfig makeQtWrapper ];
+  nativeBuildInputs = [ cmake pkgconfig qttools ];
 
-  postFixup = ''
-    for f in $out/bin/* ; do
-      wrapQtProgram $f
-    done
-  '';
-
-  enableParallelBuilding = true;
-
-  meta = with stdenv.lib; {
-    homepage = http://f1ash.github.io/qt-virt-manager;
+  meta = with lib; {
+    homepage    = https://f1ash.github.io/qt-virt-manager;
     description = "Desktop user interface for managing virtual machines (QT)";
     longDescription = ''
       The virt-manager application is a desktop user interface for managing
       virtual machines through libvirt. It primarily targets KVM VMs, but also
       manages Xen and LXC (linux containers).
     '';
-    license = licenses.gpl2;
+    license     = licenses.gpl2;
     maintainers = with maintainers; [ peterhoeg ];
+    inherit (qtbase.meta) platforms;
   };
 }

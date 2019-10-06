@@ -1,15 +1,23 @@
-{ stdenv, fetchurl, pythonPackages }:
+{ stdenv, python, fetchpatch }:
 
-pythonPackages.buildPythonApplication rec {
-  version = "0.4.2";
-  name = "haxor-news-${version}";
+with python.pkgs;
 
-  src = fetchurl {
-    url = "https://github.com/donnemartin/haxor-news/archive/${version}.tar.gz";
-    sha256 = "0543k5ys044f2a1q8k36djnnq2h2dffnwbkva9snjjy30nlwwdgs";
+buildPythonApplication rec {
+  pname = "haxor-news";
+  version = "0.4.3";
+
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "5b9af8338a0f8b95a8133b66ef106553823813ac171c0aefa3f3f2dbeb4d7f88";
   };
 
-  propagatedBuildInputs = with pythonPackages; [
+  # allow newer click version
+  patches = fetchpatch {
+    url = "${meta.homepage}/commit/5b0d3ef1775756ca15b6d83fba1fb751846b5427.patch";
+    sha256 = "1551knh2f7yarqzcpip16ijmbx8kzdna8cihxlxx49ww55f5sg67";
+  };
+
+  propagatedBuildInputs = [
     click
     colorama
     requests
@@ -18,8 +26,16 @@ pythonPackages.buildPythonApplication rec {
     six
   ];
 
+  doCheck = false;
+
+  checkInputs = [ mock ];
+
+  checkPhase = ''
+    ${python.interpreter} -m unittest discover -s tests -v
+  '';
+
   meta = with stdenv.lib; {
-    homepage = "https://github.com/donnemartin/haxor-news";
+    homepage = https://github.com/donnemartin/haxor-news;
     description = "Browse Hacker News like a haxor";
     license = licenses.asl20;
     maintainers = with maintainers; [ matthiasbeyer ];

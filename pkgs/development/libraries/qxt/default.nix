@@ -1,7 +1,7 @@
 { stdenv, which, coreutils, fetchzip, qt4 }:
 
 stdenv.mkDerivation rec {
-  name = "qxt-${version}";
+  pname = "qxt";
   version = "0.6.2";
   
   src = fetchzip {
@@ -29,5 +29,6 @@ stdenv.mkDerivation rec {
     license = stdenv.lib.licenses.gpl2;
     platforms = stdenv.lib.platforms.linux;
     maintainers = with stdenv.lib.maintainers; [ forkk ];
+    broken = true;
   };
 }

@@ -1,13 +1,13 @@
 { stdenv, fetchzip }:
 
 stdenv.mkDerivation rec {
-  name = "kwm-${version}";
-  version = "4.0.4";
+  pname = "kwm";
+  version = "4.0.5";
 
   src = fetchzip {
     stripRoot = false;
     url = "https://github.com/koekeishiya/kwm/releases/download/v${version}/Kwm-${version}.zip";
-    sha256 = "07rf4ichq511w8qmvd6s602s7xcyjhjp73d5c615sj82cxvgirwc";
+    sha256 = "1ld1vblg3hmc6lpb8p2ljvisbkijjkijf4y87z5y1ia4k8pk7mxb";
   };
 
   # TODO: Build this properly once we have swiftc.

@@ -1,41 +1,68 @@
-{ stdenv, buildPythonPackage, fetchpatch, fetchPypi, python
-, nose, pillow
+{ stdenv
+, lib
+, buildPythonPackage
+, fetchPypi
+, fetchpatch
 , gfortran, glibcLocales
-, numpy, scipy
+, numpy, scipy, pytest, pillow
+, cython
+, joblib
+, llvmPackages
 }:
 
 buildPythonPackage rec {
   pname = "scikit-learn";
-  version = "0.18.1";
-  name = "${pname}-${version}";
+  version = "0.21.2";
+  # UnboundLocalError: local variable 'message' referenced before assignment
   disabled = stdenv.isi686;  # https://github.com/scikit-learn/scikit-learn/issues/5534
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1eddfc27bb37597a5d514de1299981758e660e0af56981c0bfdf462c9568a60c";
+    sha256 = "1nvj9j16y1hz9gm0qwzpnx2zmz55c63k1fai643migsyll9c7bqa";
   };
 
-  patches = [
-    # python 3.6 test fixes (will be part of 0.18.2)
-    (fetchpatch {
-       url = https://github.com/scikit-learn/scikit-learn/pull/8123/commits/b77f28a7163cb4909da1b310f1fb741bee3cabfe.patch;
-       sha256 = "1rp6kr6hiabb6s0vh7mkgr10qwrqlq3z1fhpi0s011hg434ckh19";
-     })
+  buildInputs = [
+    pillow
+    gfortran
+    glibcLocales
+  ] ++ lib.optionals stdenv.cc.isClang [
+    llvmPackages.openmp
   ];
 
-  buildInputs = [ nose pillow gfortran glibcLocales ];
-  propagatedBuildInputs = [ numpy scipy numpy.blas ];
+  nativeBuildInputs = [
+    cython
+  ];
+
+  propagatedBuildInputs = [
+    numpy
+    scipy
+    numpy.blas
+    joblib
+  ];
+  checkInputs = [ pytest ];
+
+  patches = [
+    # Fixes tests by changing threshold of a test-case that broke
+    # with numpy versions >= 1.17. This should be removed for versions > 0.21.2.
+	( fetchpatch {
+	  url = "https://github.com/scikit-learn/scikit-learn/commit/b730befc821caec5b984d9ff3aa7bc4bd7f4d9bb.patch";
+	  sha256 = "0z36m05mv6d494qwq0688rgwa7c4bbnm5s2rcjlrp29fwn3fy1bv";
+	})
+  ];
 
   LC_ALL="en_US.UTF-8";
 
+  doCheck = !stdenv.isAarch64;
+  # Skip test_feature_importance_regression - does web fetch
   checkPhase = ''
-    HOME=$TMPDIR OMP_NUM_THREADS=1 nosetests $out/${python.sitePackages}/sklearn/
+    cd $TMPDIR
+    HOME=$TMPDIR OMP_NUM_THREADS=1 pytest -k "not test_feature_importance_regression" --pyargs sklearn
   '';
 
   meta = with stdenv.lib; {
     description = "A set of python modules for machine learning and data mining";
     homepage = http://scikit-learn.org;
     license = licenses.bsd3;
-    maintainers = with maintainers; [ fridh ];
+    maintainers = with maintainers; [ ];
   };
 }

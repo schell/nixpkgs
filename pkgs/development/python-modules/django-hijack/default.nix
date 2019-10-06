@@ -2,15 +2,15 @@
   django, django_compat, django_nose
 }:
 buildPythonPackage rec {
-  name = "django-hijack-${version}";
-  version = "2.1.4";
+  pname = "django-hijack";
+  version = "2.1.10";
 
   # the pypi packages don't include everything required for the tests
   src = fetchFromGitHub {
     owner = "arteria";
     repo = "django-hijack";
     rev = "v${version}";
-    sha256 = "1wbm6l8mzpkj4wsj4fyfamzpzi3day2v1cva5j89v4dn4403jq21";
+    sha256 = "01fwkjdzvw0yx2spwi7zc1yy64ndq1y72bfmk7kxnq5x803m2ak6";
   };
 
   checkInputs = [ django_nose ];
@@ -23,7 +23,7 @@ buildPythonPackage rec {
     # source directory
     mkdir testbase
     pushd testbase
-    cp ../runtests.py .
+    mv ../runtests.py .
     ${python.interpreter} runtests.py hijack
     popd
 

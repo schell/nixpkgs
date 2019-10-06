@@ -1,27 +1,31 @@
-{ stdenv, fetchurl, qtbase, qtsvg, qttools, qmakeHook, makeQtWrapper }:
+{ mkDerivation, lib, fetchurl, qtbase, qttools, qmake }:
 
-stdenv.mkDerivation rec {
-  name = "qt5ct-${version}";
-  version = "0.33";
+let inherit (lib) getDev; in
+
+mkDerivation rec {
+  pname = "qt5ct";
+  version = "0.41";
 
   src = fetchurl {
-    url = "mirror://sourceforge/qt5ct/qt5ct-${version}.tar.bz2";
-    sha256 = "0by0wz40rl9gxvwbd85j0y5xy9mjab1cya96rv48x677v95lhm9f";
+    url = "mirror://sourceforge/${pname}/${pname}-${version}.tar.bz2";
+    sha256 = "1p2p6116wg5bc0hcbi2sygwlgk0g9idxpci0qdh3p4lb1plk0h7j";
   };
 
-  nativeBuildInputs = [ makeQtWrapper qmakeHook qttools ];
+  nativeBuildInputs = [ qmake qttools ];
 
-  buildInputs = [ qtbase qtsvg ];
+  buildInputs = [ qtbase ];
+
+  qmakeFlags = [
+    "LRELEASE_EXECUTABLE=${getDev qttools}/bin/lrelease"
+  ];
 
   preConfigure = ''
-    qmakeFlags="$qmakeFlags PLUGINDIR=$out/lib/qt5/plugins"
+    qmakeFlags+=" PLUGINDIR=$out/$qtPluginPrefix"
   '';
 
-  preFixup = ''
-    wrapQtProgram $out/bin/qt5ct
-  '';
+  enableParallelBuilding = true;
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Qt5 Configuration Tool";
     homepage = https://www.opendesktop.org/content/show.php?content=168066;
     platforms = platforms.linux;

@@ -1,28 +1,23 @@
-{stdenv, fetchurl, fetchFromGitHub, cmake, luajit, kernel, zlib, ncurses, perl, jsoncpp, libb64, openssl, curl, jq, gcc, fetchpatch}:
+{ stdenv, fetchFromGitHub, cmake, kernel
+, luajit, zlib, ncurses, perl, jsoncpp, libb64, openssl, curl, jq, gcc, elfutils, tbb, c-ares, protobuf, grpc
+}:
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "sysdig-${version}";
-  version = "0.16.0";
+  pname = "sysdig";
+  version = "0.26.4";
 
   src = fetchFromGitHub {
     owner = "draios";
     repo = "sysdig";
     rev = version;
-    sha256 = "1h3f9nkc5fkvks6va0maq377m9qxnsf4q3f2dc14rdzfvnzidy06";
+    sha256 = "1v2j1ns17wyj7xl91p6wy1iwfx2fnn8af9nm939skc6229m87zzn";
   };
 
-  patches = [
-    (fetchpatch {
-       # Sysdig fails to run on linux kernels with unified cgroups enabled
-       url = https://github.com/draios/sysdig/files/909689/0001-Fix-for-linux-kernels-with-cgroup-v2-API-enabled.patch.txt;
-       sha256 = "10nmisifa500hzpa3899rs837bcal72pnqidxmrnr1js187z8j84";
-    })
-  ];
-
+  nativeBuildInputs = [ cmake perl ];
   buildInputs = [
-    cmake zlib luajit ncurses perl jsoncpp libb64 openssl curl jq gcc
-  ];
+    zlib luajit ncurses jsoncpp libb64 openssl curl jq gcc elfutils tbb c-ares protobuf grpc
+  ] ++ optional (kernel != null) kernel.moduleBuildDependencies;
 
   hardeningDisable = [ "pic" ];
 
@@ -38,28 +33,14 @@ stdenv.mkDerivation rec {
   ];
 
   preConfigure = ''
+    cmakeFlagsArray+=(-DCMAKE_EXE_LINKER_FLAGS="-ltbb -lcurl")
+
     export INSTALL_MOD_PATH="$out"
   '' + optionalString (kernel != null) ''
     export KERNELDIR="${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
   '';
 
-  libPath = makeLibraryPath [
-    zlib
-    luajit
-    ncurses
-    jsoncpp
-    curl
-    jq
-    openssl
-    libb64
-    gcc
-    stdenv.cc.cc
-  ];
-
-  postInstall = optionalString (!stdenv.isDarwin) ''
-    patchelf --set-rpath "$libPath" "$out/bin/sysdig"
-    patchelf --set-rpath "$libPath" "$out/bin/csysdig"
-  '' + optionalString (kernel != null) ''
+  postInstall = optionalString (kernel != null) ''
     make install_driver
     kernel_dev=${kernel.dev}
     kernel_dev=''${kernel_dev#/nix/store/}
@@ -75,9 +56,11 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "A tracepoint-based system tracing tool for Linux (with clients for other OSes)";
-    license = licenses.gpl2;
+    license = with licenses; [ asl20 gpl2 mit ];
     maintainers = [maintainers.raskin];
-    platforms = platforms.linux ++ platforms.darwin;
+    platforms = ["x86_64-linux"] ++ platforms.darwin;
+    broken = kernel != null && versionOlder kernel.version "4.14";
+    homepage = "https://sysdig.com/opensource/";
     downloadPage = "https://github.com/draios/sysdig/releases";
   };
 }

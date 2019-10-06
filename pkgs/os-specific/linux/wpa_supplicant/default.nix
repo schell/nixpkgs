@@ -1,16 +1,16 @@
-{ stdenv, fetchpatch, fetchurl, lib, openssl, pkgconfig, libnl
-, dbus_libs ? null, readline ? null, pcsclite ? null
+{ stdenv, fetchurl, openssl, pkgconfig, libnl
+, dbus, readline ? null, pcsclite ? null
 }:
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  version = "2.6";
+  version = "2.9";
 
-  name = "wpa_supplicant-${version}";
+  pname = "wpa_supplicant";
 
   src = fetchurl {
-    url = "http://hostap.epitest.fi/releases/${name}.tar.gz";
-    sha256 = "0l0l5gz3d5j9bqjsbjlfcv4w4jwndllp9fmyai4x9kg6qhs6v4xl";
+    url = "https://w1.fi/releases/${pname}-${version}.tar.gz";
+    sha256 = "05qzak1mssnxcgdrafifxh9w86a4ha69qabkg4bsigk499xyxggw";
   };
 
   # TODO: Patch epoll so that the dbus actually responds
@@ -47,12 +47,13 @@ stdenv.mkDerivation rec {
     CONFIG_HS20=y
     CONFIG_P2P=y
     CONFIG_TDLS=y
+    CONFIG_BGSCAN_SIMPLE=y
   '' + optionalString (pcsclite != null) ''
     CONFIG_EAP_SIM=y
     CONFIG_EAP_AKA=y
     CONFIG_EAP_AKA_PRIME=y
     CONFIG_PCSC=y
-  '' + optionalString (dbus_libs != null) ''
+  '' + optionalString (dbus != null) ''
     CONFIG_CTRL_IFACE_DBUS=y
     CONFIG_CTRL_IFACE_DBUS_NEW=y
     CONFIG_CTRL_IFACE_DBUS_INTRO=y
@@ -63,23 +64,22 @@ stdenv.mkDerivation rec {
   '');
 
   preBuild = ''
+    for manpage in wpa_supplicant/doc/docbook/wpa_supplicant.conf* ; do
+      substituteInPlace "$manpage" --replace /usr/share/doc $out/share/doc
+    done
     cd wpa_supplicant
     cp -v defconfig .config
     echo "$extraConfig" >> .config
     cat -n .config
     substituteInPlace Makefile --replace /usr/local $out
     export NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE \
-      -I$(echo "${libnl.dev}"/include/libnl*/) \
-      -I${pcsclite}/include/PCSC/"
+      -I$(echo "${stdenv.lib.getDev libnl}"/include/libnl*/) \
+      -I${stdenv.lib.getDev pcsclite}/include/PCSC/"
   '';
 
-  buildInputs = [ openssl libnl dbus_libs readline pcsclite ];
+  buildInputs = [ openssl libnl dbus readline pcsclite ];
 
   nativeBuildInputs = [ pkgconfig ];
-
-  patches = [
-    ./build-fix.patch
-  ];
 
   postInstall = ''
     mkdir -p $out/share/man/man5 $out/share/man/man8
@@ -91,13 +91,14 @@ stdenv.mkDerivation rec {
     cp -v dbus/dbus-wpa_supplicant.conf $out/etc/dbus-1/system.d
     cp -v "systemd/"*.service $out/etc/systemd/system
     rm $out/share/man/man8/wpa_priv.8
+    install -Dm444 wpa_supplicant.conf $out/share/doc/wpa_supplicant/wpa_supplicant.conf.example
   '';
 
   meta = with stdenv.lib; {
     homepage = http://hostap.epitest.fi/wpa_supplicant/;
     description = "A tool for connecting to WPA and WPA2-protected wireless networks";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ marcweber wkennington ];
+    maintainers = with maintainers; [ marcweber ];
     platforms = platforms.linux;
   };
 }

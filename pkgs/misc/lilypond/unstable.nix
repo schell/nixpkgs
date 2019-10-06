@@ -1,20 +1,23 @@
-{ stdenv, fetchurl, guile, rsync, lilypond }:
+{ fetchgit, lilypond, ghostscript, gyre-fonts }:
 
-with stdenv.lib;
+let
 
-overrideDerivation lilypond (p: rec {
-  majorVersion = "2.19";
-  minorVersion = "24";
-  version="${majorVersion}.${minorVersion}";
-  name = "lilypond-${version}";
+  version = "2.19.83";
 
-  src = fetchurl {
-    url = "http://download.linuxaudio.org/lilypond/sources/v${majorVersion}/lilypond-${version}.tar.gz";
-    sha256 = "0wd57swrfc2nvkj10ipdbhq6gpnckiafg2b2kpd8aydsyp248iln";
+in
+
+lilypond.overrideAttrs (oldAttrs: {
+  inherit version;
+
+  src = fetchgit {
+    url = "https://git.savannah.gnu.org/r/lilypond.git";
+    rev = "release/${version}-1";
+    sha256 = "1ycyx9x76d79jh7wlwyyhdjkyrwnhzqpw006xn2fk35s0jrm2iz0";
   };
 
-  configureFlags = [ "--disable-documentation" "--with-fonts-dir=${p.urwfonts}"];
-
-  buildInputs = p.buildInputs ++ [ rsync ];
-
+  configureFlags = [
+    "--disable-documentation"
+    "--with-urwotf-dir=${ghostscript}/share/ghostscript/fonts"
+    "--with-texgyre-dir=${gyre-fonts}/share/fonts/truetype/"
+  ];
 })

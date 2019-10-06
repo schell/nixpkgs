@@ -1,12 +1,12 @@
 { stdenv, fetchurl, pkgconfig, popt, libuuid, liburcu, lttng-ust, kmod, libxml2 }:
 
 stdenv.mkDerivation rec {
-  name = "lttng-tools-${version}";
-  version = "2.9.3";
+  pname = "lttng-tools";
+  version = "2.10.7";
 
   src = fetchurl {
-    url = "https://lttng.org/files/lttng-tools/${name}.tar.bz2";
-    sha256 = "0kmj0ya5625mn2khbnghhsdmjr66xs0mhrvbrsdvrp3pm6mbmrm6";
+    url = "https://lttng.org/files/lttng-tools/${pname}-${version}.tar.bz2";
+    sha256 = "04hkga0hnyjmv42mxj3njaykqmq9x4abd5qfyds5r62x1khfnwgd";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Tracing tools (kernel + user space) for Linux";
-    homepage = http://lttng.org/;
+    homepage = https://lttng.org/;
     license = licenses.lgpl21;
     platforms = platforms.linux;
     maintainers = [ maintainers.bjornfor ];

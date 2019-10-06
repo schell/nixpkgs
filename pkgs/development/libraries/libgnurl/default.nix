@@ -1,29 +1,39 @@
-{ stdenv, fetchurl, perl, zlib, gnutls, gss, openssl, libssh2, libidn, libpsl, openldap }:
+{ stdenv, fetchurl, libtool, groff, perl, pkgconfig, python2, zlib, gnutls,
+  libidn2, libunistring, nghttp2 }:
 
 stdenv.mkDerivation rec {
-  version = "7.48.0";
-
-  name = "libgnurl-${version}";
+  pname = "libgnurl";
+  version = "7.66.0";
 
   src = fetchurl {
-    url = "https://gnunet.org/sites/default/files/gnurl-7_48_0.tar.bz2";
-    sha256 = "14gch4rdibrc8qs4mijsczxvl45dsclf234g17dk6c8nc2s4bm0a";
+    url = "mirror://gnu/gnunet/gnurl-${version}.tar.gz";
+    sha256 = "03bkzcld384z7i3zh3k9k3pr0xpyqbcr8cxjqya1zqs5lk7i55x5";
   };
 
-  buildInputs = [ perl gnutls gss openssl zlib libidn libssh2 libpsl openldap ];
+  nativeBuildInputs = [ libtool groff perl pkgconfig python2 ];
 
-  preConfigure = ''
-    sed -e 's|/usr/bin|/no-such-path|g' -i.bak configure
-  '';
+  buildInputs = [ gnutls zlib libidn2 libunistring nghttp2 ];
 
   configureFlags = [
-    "--with-zlib"
-    "--with-gssapi"
-    "--with-libssh2"
-    "--with-libidn"
-    "--with-libpsl"
-    "--enable-ldap"
-    "--enable-ldaps"
+    "--disable-ntlm-wb"
+    "--without-ca-bundle"
+    "--with-ca-fallback"
+    # below options will cause errors if enabled
+    "--disable-ftp"
+    "--disable-tftp"
+    "--disable-file"
+    "--disable-ldap"
+    "--disable-dict"
+    "--disable-rtsp"
+    "--disable-telnet"
+    "--disable-pop3"
+    "--disable-imap"
+    "--disable-smb"
+    "--disable-smtp"
+    "--disable-gopher"
+    "--without-ssl" # disables only openssl, not ssl in general
+    "--without-libpsl"
+    "--without-librtmp"
   ];
 
   meta = with stdenv.lib; {
@@ -31,5 +41,6 @@ stdenv.mkDerivation rec {
     homepage    = https://gnunet.org/gnurl;
     maintainers = with maintainers; [ falsifian vrthra ];
     platforms = platforms.linux;
+    license = licenses.curl;
   };
 }

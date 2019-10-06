@@ -1,14 +1,14 @@
 { stdenv, fetchurl, pkgconfig, gpsd, libcap, libnl }:
 
 let
-  ver = "2017.1";
+  ver = "2019.3";
 in
 stdenv.mkDerivation rec {
   name = "alfred-${ver}";
 
   src = fetchurl {
-    url = "http://downloads.open-mesh.org/batman/releases/batman-adv-${ver}/${name}.tar.gz";
-    sha256 = "1c6zq8j0nb1wm9zzlzc2bn8a500pvqbn2vv9hrv6nvq7il2silzq";
+    url = "https://downloads.open-mesh.org/batman/releases/batman-adv-${ver}/${name}.tar.gz";
+    sha256 = "0rj7vyir4m63b69fgrz06mqlw7nivjfc8mdv19l02xs9vqh7khx4";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -19,7 +19,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    homepage = http://www.open-mesh.org/projects/batman-adv/wiki/Wiki;
+    homepage = https://www.open-mesh.org/projects/batman-adv/wiki/Wiki;
     description = "B.A.T.M.A.N. routing protocol in a linux kernel module for layer 2, information distribution tool";
     license = stdenv.lib.licenses.gpl2;
     maintainers = with stdenv.lib.maintainers; [ fpletz ];

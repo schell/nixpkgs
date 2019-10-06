@@ -1,7 +1,7 @@
-{ stdenv, buildGoPackage, fetchFromGitHub, fetchgx }:
+{ stdenv, buildGoPackage, fetchFromGitHub }:
 
 buildGoPackage rec {
-  name = "madonctl-${version}";
+  pname = "madonctl";
   version = "1.1.0";
 
   goPackagePath = "github.com/McKael/madonctl";
@@ -26,6 +26,6 @@ buildGoPackage rec {
     homepage = https://github.com/McKael/madonctl;
     license = licenses.mit;
     platforms = platforms.unix;
-    maintainers = with maintainers; [ matthiasbeyer ];
+    maintainers = with maintainers; [ ];
   };
 }

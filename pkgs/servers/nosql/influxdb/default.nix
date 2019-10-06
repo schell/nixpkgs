@@ -1,28 +1,30 @@
 { lib, buildGoPackage, fetchFromGitHub, }:
 
 buildGoPackage rec {
-  name = "influxdb-${version}";
-  version = "1.0.2";
+  pname = "influxdb";
+  version = "1.7.6";
 
   src = fetchFromGitHub {
     owner = "influxdata";
-    repo = "influxdb";
+    repo = pname;
     rev = "v${version}";
-    sha256 = "0z8y995gm2hpxny7l5nx5fjc5c26hfgvghwmzva8d1mrlnapcsyc";
+    sha256 = "07abzhmsgj7krmhf7jis50a4fc4w29h48nyzgvrll5lz3cax979q";
   };
+
+  buildFlagsArray = [ ''-ldflags=
+    -X main.version=${version}
+  '' ];
 
   goPackagePath = "github.com/influxdata/influxdb";
 
   excludedPackages = "test";
 
-  # Generated with the nix2go
-  goDeps = ./. + builtins.toPath "/deps-${version}.nix";
+  goDeps = ./deps.nix;
 
   meta = with lib; {
     description = "An open-source distributed time series database";
     license = licenses.mit;
-    homepage = https://influxdb.com/;
+    homepage = https://influxdata.com/;
     maintainers = with maintainers; [ offline zimbatm ];
-    platforms = platforms.linux;
   };
 }

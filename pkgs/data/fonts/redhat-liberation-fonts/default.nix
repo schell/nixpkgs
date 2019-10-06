@@ -1,24 +1,30 @@
-{stdenv, fetchurl, fontforge, python2}:
+{ stdenv, fetchFromGitHub, fontforge, python3 }:
 
 let
-  inherit (python2.pkgs) fonttools;
+  inherit (python3.pkgs) fonttools;
 
   common =
-    {version, url, sha256, buildInputs}:
+    { version, repo, sha256, nativeBuildInputs, postPatch ? null }:
     stdenv.mkDerivation rec {
-      name = "liberation-fonts-${version}";
-      src = fetchurl {
-        inherit url sha256;
+      pname = "liberation-fonts";
+      inherit version;
+
+      src = fetchFromGitHub {
+        owner = "liberationfonts";
+        rev = version;
+        inherit repo sha256;
       };
 
-      inherit buildInputs;
+      inherit nativeBuildInputs postPatch;
 
       installPhase = ''
-        mkdir -p $out/share/fonts/truetype
-        cp -v $( find . -name '*.ttf') $out/share/fonts/truetype
+        find . -name '*.ttf' -exec install -m444 -Dt $out/share/fonts/truetype {} \;
 
-        mkdir -p "$out/doc/${name}"
-        cp -v AUTHORS ChangeLog COPYING License.txt README "$out/doc/${name}" || true
+        install -m444 -Dt $out/share/doc/${pname}-${version} AUTHORS     || true
+        install -m444 -Dt $out/share/doc/${pname}-${version} ChangeLog   || true
+        install -m444 -Dt $out/share/doc/${pname}-${version} COPYING     || true
+        install -m444 -Dt $out/share/doc/${pname}-${version} License.txt || true
+        install -m444 -Dt $out/share/doc/${pname}-${version} README      || true
       '';
 
       meta = with stdenv.lib; {
@@ -36,37 +42,29 @@ let
         '';
 
         license = licenses.ofl;
-        homepage = https://fedorahosted.org/liberation-fonts/;
+        homepage = https://github.com/liberationfonts;
         maintainers = [
           maintainers.raskin
         ];
-        platforms = platforms.unix;
       };
     };
 
 in {
-  liberation_ttf_v1_from_source = common rec {
-    version = "1.07.4";
-    url = "https://fedorahosted.org/releases/l/i/liberation-fonts/liberation-fonts-${version}.tar.gz";
-    sha256 = "01jlg88q2s6by7qv6fmnrlx0lwjarrjrpxv811zjz6f2im4vg65d";
-    buildInputs = [ fontforge fonttools ];
+  liberation_ttf_v1 = common {
+    repo = "liberation-1.7-fonts";
+    version = "1.07.5";
+    nativeBuildInputs = [ fontforge ];
+    sha256 = "1ffl10mf78hx598sy9qr5m6q2b8n3mpnsj73bwixnd4985gsz56v";
   };
-  liberation_ttf_v1_binary = common rec {
-    version = "1.07.4";
-    url = "https://fedorahosted.org/releases/l/i/liberation-fonts/liberation-fonts-ttf-${version}.tar.gz";
-    sha256 = "0p7frz29pmjlk2d0j2zs5kfspygwdnpzxkb2hwzcfhrafjvf59v1";
-    buildInputs = [ ];
-  };
-  liberation_ttf_v2_from_source = common rec {
-    version = "2.00.1";
-    url = "https://fedorahosted.org/releases/l/i/liberation-fonts/liberation-fonts-${version}.tar.gz";
-    sha256 = "1ymryvd2nw4jmw4w5y1i3ll2dn48rpkqzlsgv7994lk6qc9cdjvs";
-    buildInputs = [ fontforge fonttools ];
-  };
-  liberation_ttf_v2_binary = common rec {
-    version = "2.00.1";
-    url = "https://fedorahosted.org/releases/l/i/liberation-fonts/liberation-fonts-ttf-${version}.tar.gz";
-    sha256 = "010m4zfqan4w04b6bs9pm3gapn9hsb18bmwwgp2p6y6idj52g43q";
-    buildInputs = [ ];
+  liberation_ttf_v2 = common {
+    repo = "liberation-fonts";
+    version = "2.00.4";
+    nativeBuildInputs = [ fontforge fonttools ];
+    postPatch = ''
+      substituteInPlace scripts/setisFixedPitch-fonttools.py --replace \
+        'font = ttLib.TTFont(fontfile)' \
+        'font = ttLib.TTFont(fontfile, recalcTimestamp=False)'
+    '';
+    sha256 = "14bn1zlhyr4qaz5z2sx4h115pnbd41ix1vky8fxm2lx76xrjjiaa";
   };
 }

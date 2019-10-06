@@ -1,21 +1,16 @@
-{ kdeApp
-, kdeWrapper
+{ mkDerivation
 , lib
 , extra-cmake-modules
+, breeze-icons
+, breeze-qt5
 , kdoctools
-, qtscript
-, kactivities
 , kconfig
 , kcrash
 , kguiaddons
 , kiconthemes
 , ki18n
 , kinit
-, kio
-, kio-extras
-, kwindowsystem
 , kdbusaddons
-, plasma-framework
 , knotifications
 , knewstuff
 , karchive
@@ -23,32 +18,38 @@
 , kplotting
 , ktextwidgets
 , mlt
-, shared_mime_info
+, shared-mime-info
 , libv4l
 , kfilemetadata
-, ffmpeg
+, ffmpeg-full
+, frei0r
 , phonon-backend-gstreamer
+, qtdeclarative
 , qtquickcontrols
+, qtscript
+, qtwebkit
+, rttr
+, kpurpose
+, kdeclarative
 }:
 
-let
-unwrapped = kdeApp {
+mkDerivation {
   name = "kdenlive";
-  patches = [
-    ./kdenlive-cmake-concurrent-module.patch
-  ];
   nativeBuildInputs = [
     extra-cmake-modules
     kdoctools
   ];
   buildInputs = [
-    qtscript
+    breeze-icons
+    breeze-qt5
     kconfig
     kcrash
+    kdbusaddons
+    kfilemetadata
     kguiaddons
+    ki18n
     kiconthemes
     kinit
-    kdbusaddons
     knotifications
     knewstuff
     karchive
@@ -56,30 +57,28 @@ unwrapped = kdeApp {
     kplotting
     ktextwidgets
     mlt
-    shared_mime_info
-    libv4l
-    ffmpeg
-  ];
-  propagatedBuildInputs = [
-    kactivities
-    ki18n
-    kio
-    kio-extras
-    kwindowsystem
-    kfilemetadata
-    plasma-framework
     phonon-backend-gstreamer
+    qtdeclarative
     qtquickcontrols
+    qtscript
+    qtwebkit
+    shared-mime-info
+    libv4l
+    ffmpeg-full
+    frei0r
+    rttr
+    kpurpose
+    kdeclarative
   ];
-  enableParallelBuilding = true;
+  patches = [ ./mlt-path.patch ];
+  inherit mlt;
+  postPatch =
+    # Module Qt5::Concurrent must be included in `find_package` before it is used.
+    ''
+      sed -i CMakeLists.txt -e '/find_package(Qt5 REQUIRED/ s|)| Concurrent)|'
+      substituteAllInPlace src/kdenlivesettings.kcfg
+    '';
   meta = {
     license = with lib.licenses; [ gpl2Plus ];
   };
-};
-in
-kdeWrapper
-{
-  inherit unwrapped;
-  targets = [ "bin/kdenlive" ];
-  paths = [ kinit ];
 }

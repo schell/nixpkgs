@@ -1,30 +1,24 @@
-{stdenv, fetchurl, unzip}:
+{ lib, fetchzip }:
 
-stdenv.mkDerivation rec {
-  name = "hasklig-${version}";
+let
   version = "1.1";
+in fetchzip {
+  name = "hasklig-${version}";
 
-  src = fetchurl {
-    url = "https://github.com/i-tu/Hasklig/releases/download/${version}/Hasklig-${version}.zip";
-    sha256 = "1hwmdbygallw2kjk0v3a3dl7w6b21wii3acrl0w3ibn05g1cxv4q";
-  };
+  url = "https://github.com/i-tu/Hasklig/releases/download/${version}/Hasklig-${version}.zip";
 
-  buildInputs = [ unzip ];
-
-  sourceRoot = ".";
-
-  phases = [ "unpackPhase" "installPhase" ];
-
-  installPhase = ''
-    mkdir -p $out/share/fonts/opentype
-    cp *.otf $out/share/fonts/opentype
+  postFetch = ''
+    unzip $downloadedFile
+    install -m444 -Dt $out/share/fonts/opentype *.otf
   '';
 
-  meta = with stdenv.lib; {
-    homepage = "https://github.com/i-tu/Hasklig";
+  sha256 = "0xxyx0nkapviqaqmf3b610nq17k20afirvc72l32pfspsbxz8ybq";
+
+  meta = with lib; {
+    homepage = https://github.com/i-tu/Hasklig;
     description = "A font with ligatures for Haskell code based off Source Code Pro";
     license = licenses.ofl;
     platforms = platforms.all;
-    maintainers = with maintainers; [ davidrusu profpatsch ];
+    maintainers = with maintainers; [ davidrusu Profpatsch ];
   };
 }

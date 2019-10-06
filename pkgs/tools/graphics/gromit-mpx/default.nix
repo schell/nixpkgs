@@ -1,24 +1,25 @@
-{ stdenv, fetchFromGitHub, autoreconfHook, autoconf, automake, pkgconfig
+{ stdenv, fetchFromGitHub, cmake, pkgconfig
 , gtk, glib, pcre, libappindicator, libpthreadstubs, libXdmcp
-, libxkbcommon, epoxy, at_spi2_core, dbus, libdbusmenu-glib
+, libxkbcommon, epoxy, at-spi2-core, dbus, libdbusmenu
 }:
 
 stdenv.mkDerivation rec {
-  name = "gromit-mpx-${version}";
-  version = "1.2";
+  pname = "gromit-mpx";
+  version = "1.3";
 
   src = fetchFromGitHub {
     owner = "bk138";
     repo = "gromit-mpx";
-    rev = "${version}";
+    rev = version;
     sha256 = "1dkmp5rhzp56sz9cfxill2pkdz2anwb8kkxkypvk2xhqi64cvkrs";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    autoconf automake autoreconfHook pkgconfig
+    cmake
     gtk glib pcre libappindicator libpthreadstubs
-    libXdmcp libxkbcommon epoxy at_spi2_core
-    dbus libdbusmenu-glib
+    libXdmcp libxkbcommon epoxy at-spi2-core
+    dbus libdbusmenu
   ];
 
   meta = with stdenv.lib; {

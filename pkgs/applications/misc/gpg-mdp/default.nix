@@ -3,7 +3,8 @@
 let version = "0.7.4";
 in stdenv.mkDerivation {
   # mdp renamed to gpg-mdp because there is a mdp package already.
-  name = "gpg-mdp-${version}";
+  pname = "gpg-mdp";
+  inherit version;
   meta = {
     homepage = https://tamentis.com/projects/mdp/;
     license = [stdenv.lib.licenses.isc];
@@ -19,11 +20,11 @@ in stdenv.mkDerivation {
       --replace "alias echo=/bin/echo" ""
 
     substituteInPlace ./src/config.c \
-      --replace "/usr/bin/gpg" "${gnupg}/bin/gpg2" \
+      --replace "/usr/bin/gpg" "${gnupg}/bin/gpg" \
       --replace "/usr/bin/vi" "vi"
 
     substituteInPlace ./mdp.1 \
-      --replace "/usr/bin/gpg" "${gnupg}/bin/gpg2"
+      --replace "/usr/bin/gpg" "${gnupg}/bin/gpg"
   '';
   # we add symlinks to the binary and man page with the name 'gpg-mdp', in case
   # the completely unrelated program also named 'mdp' is already installed.

@@ -1,21 +1,28 @@
-{ stdenv, fetchurl, pkgconfig, glib, fuse, curl, glib_networking
-, asciidoc, wrapGAppsHook }:
+{ stdenv, fetchFromGitHub, autoreconfHook, pkgconfig, glib, fuse, curl, glib-networking
+, asciidoc, libxml2, docbook_xsl, docbook_xml_dtd_45, libxslt, wrapGAppsHook }:
 
 stdenv.mkDerivation rec {
-  name = "megatools-${version}";
-  version = "1.9.98";
+  pname = "megatools";
+  version = "1.10.2";
 
-  src = fetchurl {
-    url = "http://megatools.megous.com/builds/${name}.tar.gz";
-    sha256 = "0vx1farp0dpg4zwvxdbfdnzjk9qx3sn109p1r1zl3g3xsaj221cv";
+  src = fetchFromGitHub {
+    owner = "megous";
+    repo = "megatools";
+    rev = version;
+    sha256 = "001hw8j36ld03wwaphq3xdaazf2dpl36h84k8xmk524x8vlia8lk";
   };
 
-  nativeBuildInputs = [ pkgconfig wrapGAppsHook asciidoc ];
-  buildInputs = [ glib glib_networking fuse curl ];
+  nativeBuildInputs = [
+    autoreconfHook pkgconfig wrapGAppsHook asciidoc libxml2
+    docbook_xsl docbook_xml_dtd_45 libxslt
+  ];
+  buildInputs = [ glib glib-networking fuse curl ];
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     description = "Command line client for Mega.co.nz";
-    homepage = http://megatools.megous.com/;
+    homepage = https://megatools.megous.com/;
     license = licenses.gpl2Plus;
     maintainers = [ maintainers.viric maintainers.AndersonTorres ];
     platforms = platforms.linux;

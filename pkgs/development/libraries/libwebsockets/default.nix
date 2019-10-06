@@ -1,27 +1,47 @@
-{ fetchgit, stdenv, cmake, openssl, zlib }:
+{ fetchFromGitHub, stdenv, cmake, openssl, zlib, libuv }:
 
-stdenv.mkDerivation rec {
-  name = "libwebsockets-1.4";
+let
+  generic = { version, sha256 }: stdenv.mkDerivation rec {
+    pname = "libwebsockets";
+    inherit version;
 
-  src = fetchgit {
-    url = "git://git.libwebsockets.org/libwebsockets";
-    rev = "16fb0132cec0fcced29bce6d86eaf94a9beb9785";
-    sha256 = "0gk4dgx125nz7wl59bx0kgxxg261r9kyxvdff5ld98slr9f08d0l";
+    src = fetchFromGitHub {
+      owner = "warmcat";
+      repo = "libwebsockets";
+      rev = "v${version}";
+      inherit sha256;
+    };
+
+    buildInputs = [ openssl zlib libuv ];
+
+    nativeBuildInputs = [ cmake ];
+
+    cmakeFlags = [ "-DLWS_WITH_PLUGINS=ON" ];
+
+    meta = with stdenv.lib; {
+      description = "Light, portable C library for websockets";
+      longDescription = ''
+        Libwebsockets is a lightweight pure C library built to
+        use minimal CPU and memory resources, and provide fast
+        throughput in both directions.
+      '';
+      homepage = "https://libwebsockets.org/";
+      license = licenses.lgpl21;
+      platforms = platforms.all;
+    };
   };
 
-  buildInputs = [ cmake openssl zlib ];
-
-  meta = {
-    description = "Light, portable C library for websockets";
-    longDescription = ''
-      Libwebsockets is a lightweight pure C library built to
-      use minimal CPU and memory resources, and provide fast
-      throughput in both directions.
-    '';
-    homepage = https://libwebsockets.org/trac/libwebsockets;
-    # See http://git.libwebsockets.org/cgi-bin/cgit/libwebsockets/tree/LICENSE
-    license = stdenv.lib.licenses.gpl2Plus;
-    maintainers = [ ];
-    platforms = stdenv.lib.platforms.all;
+in
+rec {
+  libwebsockets_3_1 = generic {
+    sha256 = "1w1wz6snf3cmcpa3f4dci2nz9za2f5rrylxl109id7bcb36xhbdl";
+    version = "3.1.0";
   };
+
+  libwebsockets_3_2 = generic {
+    version = "3.2.0";
+    sha256 = "0ac5755h3w1pl6cznqbvg63dwkqy544fqlhvqyp7s11hgs7jx6l8";
+  };
+
+  libwebsockets = libwebsockets_3_2;
 }

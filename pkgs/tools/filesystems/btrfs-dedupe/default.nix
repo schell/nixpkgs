@@ -3,7 +3,7 @@
 with rustPlatform;
 
 buildRustPackage rec {
-  name = "btrfs-dedupe-${version}";
+  pname = "btrfs-dedupe";
   version = "1.1.0";
 
 
@@ -12,12 +12,12 @@ buildRustPackage rec {
     sha256 = "0qy1g4crhfgs2f5cmrsjv6qscg3r66gb8n6sxhimm9ksivhjyyjp";
   };
 
-  depsSha256 = "04jlz7nzsmg86i73w75i8rmlbk635xrg8m1dfac8h17dwb29yj6a";
+  cargoSha256 = "1sz3fswb76rnk7x4kpl1rnj2yxbhpx6q8kv8xxiqdr7qyphpi98r";
 
   buildInputs = [ lzo zlib ];
 
   meta = with stdenv.lib; {
-    homepage = "https://gitlab.wellbehavedsoftware.com/well-behaved-software/btrfs-dedupe";
+    homepage = https://gitlab.wellbehavedsoftware.com/well-behaved-software/btrfs-dedupe;
     description = "BTRFS deduplication utility";
     license = licenses.mit;
     platforms = [ "x86_64-linux" ];

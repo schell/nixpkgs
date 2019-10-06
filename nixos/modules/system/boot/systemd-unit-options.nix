@@ -6,7 +6,7 @@ with import ./systemd-lib.nix { inherit config lib pkgs; };
 let
   checkService = checkUnitConfig "Service" [
     (assertValueOneOf "Type" [
-      "simple" "forking" "oneshot" "dbus" "notify" "idle"
+      "exec" "simple" "forking" "oneshot" "dbus" "notify" "idle"
     ])
     (assertValueOneOf "Restart" [
       "no" "on-success" "on-failure" "on-abnormal" "on-abort" "always"
@@ -35,21 +35,40 @@ in rec {
       description = ''
         If set to false, this unit will be a symlink to
         /dev/null. This is primarily useful to prevent specific
-        template instances (e.g. <literal>serial-getty@ttyS0</literal>)
-        from being started.
+        template instances
+        (e.g. <literal>serial-getty@ttyS0</literal>) from being
+        started. Note that <literal>enable=true</literal> does not
+        make a unit start by default at boot; if you want that, see
+        <literal>wantedBy</literal>.
       '';
     };
 
     requiredBy = mkOption {
       default = [];
       type = types.listOf types.str;
-      description = "Units that require (i.e. depend on and need to go down with) this unit.";
+      description = ''
+        Units that require (i.e. depend on and need to go down with)
+        this unit. The discussion under <literal>wantedBy</literal>
+        applies here as well: inverse <literal>.requires</literal>
+        symlinks are established.
+      '';
     };
 
     wantedBy = mkOption {
       default = [];
       type = types.listOf types.str;
-      description = "Units that want (i.e. depend on) this unit.";
+      description = ''
+        Units that want (i.e. depend on) this unit. The standard way
+        to make a unit start by default at boot is to set this option
+        to <literal>[ "multi-user.target" ]</literal>. That's despite
+        the fact that the systemd.unit(5) manpage says this option
+        goes in the <literal>[Install]</literal> section that controls
+        the behaviour of <literal>systemctl enable</literal>. Since
+        such a process is stateful and thus contrary to the design of
+        NixOS, setting this option instead causes the equivalent
+        inverse <literal>.wants</literal> symlink to be present,
+        establishing the same desired relationship in a stateless way.
+      '';
     };
 
     aliases = mkOption {
@@ -191,6 +210,15 @@ in rec {
       '';
     };
 
+    startLimitIntervalSec = mkOption {
+       type = types.int;
+       description = ''
+         Configure unit start rate limiting. Units which are started
+         more than burst times within an interval time interval are
+         not permitted to start any more.
+       '';
+    };
+
   };
 
 
@@ -198,7 +226,7 @@ in rec {
 
     environment = mkOption {
       default = {};
-      type = types.attrs; # FIXME
+      type = with types; attrsOf (nullOr (oneOf [ str path package ]));
       example = { PATH = "/foo/bar/bin"; LANG = "nl_NL.UTF-8"; };
       description = "Environment variables passed to the service's processes.";
     };
@@ -375,7 +403,7 @@ in rec {
         Each attribute in this set specifies an option in the
         <literal>[Timer]</literal> section of the unit.  See
         <citerefentry><refentrytitle>systemd.timer</refentrytitle>
-        <manvolnum>7</manvolnum></citerefentry> and
+        <manvolnum>5</manvolnum></citerefentry> and
         <citerefentry><refentrytitle>systemd.time</refentrytitle>
         <manvolnum>7</manvolnum></citerefentry> for details.
       '';

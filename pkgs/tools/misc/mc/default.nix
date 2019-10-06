@@ -2,16 +2,21 @@
 , libX11, libICE, perl, zip, unzip, gettext, slang, libssh2, openssl}:
 
 stdenv.mkDerivation rec {
-  name = "mc-${version}";
-  version = "4.8.19";
+  pname = "mc";
+  version = "4.8.23";
 
   src = fetchurl {
-    url = "http://www.midnight-commander.org/downloads/${name}.tar.xz";
-    sha256 = "1pzjq4nfxl2aakxipdjs5hq9n14374ly1l00s40kd2djnnxmd7pb";
+    url = "http://www.midnight-commander.org/downloads/${pname}-${version}.tar.xz";
+    sha256 = "077z7phzq3m1sxyz7li77lyzv4rjmmh3wp2vy86pnc4387kpqzyx";
   };
 
-  buildInputs = [ pkgconfig perl glib slang zip unzip file gettext libX11 libICE
-    libssh2 openssl ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ e2fsprogs gpm ];
+  nativeBuildInputs = [ pkgconfig ];
+
+  buildInputs = [
+    perl glib slang zip unzip file gettext libX11 libICE libssh2 openssl
+  ] ++ stdenv.lib.optionals (!stdenv.isDarwin) [ e2fsprogs gpm ];
+
+  enableParallelBuilding = true;
 
   configureFlags = [ "--enable-vfs-smb" ];
 

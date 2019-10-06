@@ -2,8 +2,8 @@
 , python27, python2Packages
 }:
 
-stdenv.mkDerivation rec {
-  name    = "metamorphose2-${version}";
+stdenv.mkDerivation {
+  pname = "metamorphose2";
   version = "0.9.0beta";
 
   # exif-py vendored via submodule
@@ -37,7 +37,7 @@ stdenv.mkDerivation rec {
     description = "a graphical mass renaming program for files and folders";
     homepage    = "https://github.com/metamorphose/metamorphose2";
     license     = with licenses; gpl3Plus;
-    maintainer  = with maintainers; [ ramkromberg ];
+    maintainers = with maintainers; [ ramkromberg ];
     platforms   = with platforms; linux;
   };
 }

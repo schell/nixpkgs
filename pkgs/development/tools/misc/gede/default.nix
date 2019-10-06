@@ -1,31 +1,33 @@
-{stdenv, fetchurl, ctags, qt4, python}:
+{ stdenv, fetchurl, makeWrapper, python, qmake, ctags, gdb }:
 
 stdenv.mkDerivation rec {
+  pname = "gede";
+  version = "2.14.1";
 
-  version = "2.0.3";
-  name = "gede-${version}";
   src = fetchurl {
-    url = "http://gede.acidron.com/uploads/source/${name}.tar.xz";
-    sha256 = "1znlmkjgrmjl79q73xaa9ybp1xdc3k4h4ynv3jj5z8f92gjnj3kk";
+    url = "http://gede.acidron.com/uploads/source/${pname}-${version}.tar.xz";
+    sha256 = "1z7577zwz7h03d58as93hyx99isi3p4i3rhxr8l01zgi65mz0mr9";
   };
 
-  buildInputs = [ ctags qt4 python ];
-  patches = [ ./build.patch ];
+  nativeBuildInputs = [ qmake makeWrapper python ];
 
-  unpackPhase = ''
-    tar xf ${src}
-    cd ${name}
+  buildInputs = [ ctags ];
+
+  dontUseQmakeConfigure = true;
+
+  buildPhase = ":";
+
+  installPhase = ''
+    python build.py install --verbose --prefix="$out"
+    wrapProgram $out/bin/gede \
+      --prefix PATH : ${stdenv.lib.makeBinPath [ ctags gdb ]}
   '';
-  configurePhase = "";
-  buildPhase = "";
-  installPhase = "./build.py install --prefix=$out";
 
   meta = with stdenv.lib; {
     description = "Graphical frontend (GUI) to GDB";
-    homepage = "http://gede.acidron.com";
+    homepage = http://gede.acidron.com;
     license = licenses.bsd2;
-    platforms = platforms.unix;
+    platforms = platforms.linux;
     maintainers = with maintainers; [ juliendehos ];
   };
 }
-

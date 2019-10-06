@@ -1,7 +1,7 @@
 { stdenv, fetchhg, fetchpatch, cmake, qt4, fftw, graphicsmagick_q16,
   lcms2, lensfun, pkgconfig, libjpeg, exiv2, liblqr1 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "photivo-2014-01-25";
 
   src = fetchhg {
@@ -18,6 +18,7 @@ stdenv.mkDerivation rec {
       name = "lensfun-0.3.patch";
       sha256 = "0ys45x4r4bjjlx0zpd5d56rgjz7k8gxili4r4k8zx3zfka4a3zwv";
     })
+    ./gcc6.patch
   ];
 
   postPatch = '' # kinda icky
@@ -34,7 +35,8 @@ stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
-      platforms = platforms.linux;
-      maintainers = [ maintainers.mornfall ];
+    platforms = platforms.linux;
+    license = licenses.gpl3;
+    broken = true; # exiv2 0.27.1 FTBFS
   };
 }

@@ -48,6 +48,7 @@ in {
       requires = [ "keybase.service" ];
       after = [ "keybase.service" ];
       path = [ "/run/wrappers" ];
+      unitConfig.ConditionUser = "!@system";
       serviceConfig = {
         ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p ${cfg.mountPoint}";
         ExecStart = "${pkgs.kbfs}/bin/kbfsfuse ${toString cfg.extraFlags} ${cfg.mountPoint}";
@@ -55,8 +56,11 @@ in {
         Restart = "on-failure";
         PrivateTmp = true;
       };
+      wantedBy = [ "default.target" ];
     };
 
     services.keybase.enable = true;
+
+    environment.systemPackages = [ pkgs.kbfs ];
   };
 }

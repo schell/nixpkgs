@@ -2,7 +2,7 @@
 
 pythonPackages.buildPythonApplication rec {
 
-  name = "odpdown-${version}";
+  pname = "odpdown";
   version = "0.4.1";
 
   src = fetchurl {
@@ -11,6 +11,10 @@ pythonPackages.buildPythonApplication rec {
   };
 
   propagatedBuildInputs = with pythonPackages; [ libreoffice lpod lxml mistune pillow pygments ];
+
+  checkInputs = with pythonPackages; [
+    nose
+  ];
 
   meta = with stdenv.lib; {
     homepage = https://github.com/thorstenb/odpdown;

@@ -1,25 +1,14 @@
-{ fetchurl, stdenv, cmake, fetchpatch }:
+{ fetchurl, stdenv, cmake }:
 
 stdenv.mkDerivation rec {
-  name = "cmocka-${version}";
-  version = "1.0.1";
+  pname = "cmocka";
+  majorVersion = "1.1";
+  version = "${majorVersion}.5";
 
   src = fetchurl {
-    url = "https://cmocka.org/files/1.0/cmocka-${version}.tar.xz";
-    sha256 = "0fvm6rdalqcxckbddch8ycdw6n2ckldblv117n09chi2l7bm0q5k";
+    url = "https://cmocka.org/files/${majorVersion}/cmocka-${version}.tar.xz";
+    sha256 = "1dm8pdvkyfa8dsbz9bpq7wwgixjij4sii9bbn5sgvqjm5ljdik7h";
   };
-
-  patches = [
-    # This fixes the build for clang-3.7.0 and thus Darwin.
-    # See https://open.cryptomilk.org/issues/43 for more info.
-    #
-    # The patch is already merged to upstream, so it should be removed
-    # here on next release.
-    (fetchpatch {
-      url = "https://git.cryptomilk.org/projects/cmocka.git/patch/?id=1b595a80934fa95234fb290913cfe533f740d965";
-      sha256 = "1fg8xwb1mrrmw4dqa65ghnvgfdkpi0lv4j2gq0lm9ayvsi3v00vp";
-    })
-  ];
 
   nativeBuildInputs = [ cmake ];
 

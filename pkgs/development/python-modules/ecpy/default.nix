@@ -1,22 +1,22 @@
-{ stdenv, fetchPypi, buildPythonPackage, hidapi
-, pycrypto, pillow, protobuf, future, ecpy
-}:
+{ lib, fetchPypi, buildPythonPackage, isPy3k, future }:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "ECPy";
-  version = "0.8.1";
+  version = "0.10.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0ab60sx4bbsmccwmdvz1023r0cbzi4phar4ipzn5npdj5gw1ny4l";
+    sha256 = "8889122d3a8bc1a08b4bda42c073dd22305d770b7876356de806ff91748983bd";
   };
 
-  buildInputs = [ hidapi pycrypto pillow protobuf future ];
+  propagatedBuildInputs = lib.optional (!isPy3k) future;
 
-  meta = with stdenv.lib; {
+  # No tests implemented
+  doCheck = false;
+
+  meta = with lib; {
     description = "Pure Pyhton Elliptic Curve Library";
-    homepage = "https://github.com/ubinity/ECPy";
+    homepage = https://github.com/ubinity/ECPy;
     license = licenses.asl20;
   };
 }

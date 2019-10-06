@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, mono, gtk-sharp-2_0, pkgconfig, makeWrapper, gnome2, gtk2 }:
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   version = "git-2014-08-20";
-  name = "supertux-editor-${version}";
+  pname = "supertux-editor";
 
   src = fetchFromGitHub {
     owner = "SuperTux";
@@ -10,7 +10,8 @@ stdenv.mkDerivation rec {
     sha256 = "08y5haclgxvcii3hpdvn1ah8qd0f3n8xgxxs8zryj02b8n7cz3vx";
   };
 
-  buildInputs = [mono gtk-sharp-2_0 pkgconfig makeWrapper gnome2.libglade gtk2 ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [mono gtk-sharp-2_0 makeWrapper gnome2.libglade gtk2 ];
 
   installPhase = ''
     mkdir -p $out/bin $out/lib/supertux-editor

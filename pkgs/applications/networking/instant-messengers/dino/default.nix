@@ -1,60 +1,68 @@
 { stdenv, fetchFromGitHub
-, vala, cmake, wrapGAppsHook, pkgconfig, gettext
-, gobjectIntrospection, gnome3, glib, gdk_pixbuf, gtk3, glib_networking
+, vala, cmake, ninja, wrapGAppsHook, pkgconfig, gettext
+, gobject-introspection, gnome3, glib, gdk-pixbuf, gtk3, glib-networking
 , xorg, libXdmcp, libxkbcommon
-, libnotify
+, libnotify, libsoup, libgee
 , libgcrypt
 , epoxy
-, at_spi2_core
+, at-spi2-core
 , sqlite
 , dbus
 , gpgme
 , pcre
+, qrencode
+, icu
  }:
 
-stdenv.mkDerivation rec {
-  name = "dino-unstable-2017-05-31";
+stdenv.mkDerivation {
+  name = "dino-unstable-2019-09-12";
 
   src = fetchFromGitHub {
     owner = "dino";
     repo = "dino";
-    rev = "2480c1ec26a8e0ccef3ea76e3c29566221405ffb";
-    sha256 = "0wdjj38gbr2j6yklna3pd8nsfpdfp1j936dy8s49pzayw4pxs2g2";
+    rev = "c8f2b80978706c4c53deb7ddfb8188c751bcb291";
+    sha256 = "17lc6xiarb174g1hgjfh1yjrr0l2nzc3kba8xp5niwakbx7qicqr";
     fetchSubmodules = true;
   };
 
   nativeBuildInputs = [
     vala
     cmake
+    ninja
     pkgconfig
     wrapGAppsHook
+    gettext
   ];
 
   buildInputs = [
-    gobjectIntrospection
-    glib_networking
+    qrencode
+    gobject-introspection
+    glib-networking
     glib
-    gnome3.libgee
-    gnome3.defaultIconTheme
+    libgee
+    gnome3.adwaita-icon-theme
     sqlite
-    gdk_pixbuf
+    gdk-pixbuf
     gtk3
     libnotify
     gpgme
     libgcrypt
+    libsoup
     pcre
     xorg.libxcb
     xorg.libpthreadstubs
     libXdmcp
     libxkbcommon
     epoxy
-    at_spi2_core
+    at-spi2-core
     dbus
-    gettext
+    icu
   ];
 
+  enableParallelBuilding = true;
+
   meta = with stdenv.lib; {
-    description = "Modern Jabber/XMPP Client using GTK+/Vala";
+    description = "Modern Jabber/XMPP Client using GTK/Vala";
     homepage = https://github.com/dino/dino;
     license = licenses.gpl3;
     platforms = platforms.linux;

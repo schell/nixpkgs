@@ -1,7 +1,7 @@
 { stdenv, fetchurl, wxGTK30, openssl, curl }:
 
 stdenv.mkDerivation rec {
-  name = "hakuneko-${version}";
+  pname = "hakuneko";
   version = "1.4.2";
 
   src = fetchurl {
@@ -18,8 +18,11 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "Manga downloader";
-    homepage = http://sourceforge.net/projects/hakuneko/;
+    homepage = https://sourceforge.net/projects/hakuneko/;
     license = stdenv.lib.licenses.mit;
     platforms = stdenv.lib.platforms.linux;
+
+    # This project was abandoned upstream.
+    broken = true;
   };
 }

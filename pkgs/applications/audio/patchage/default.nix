@@ -1,9 +1,9 @@
-{ stdenv, alsaLib, boost, dbus_glib, fetchsvn, ganv, glibmm
-, gtkmm2, libjack2, pkgconfig, python2
+{ stdenv, alsaLib, boost, dbus-glib, fetchsvn, ganv, glibmm
+, gtkmm2, libjack2, pkgconfig, python2, wafHook
 }:
 
-stdenv.mkDerivation rec {
-  name = "patchage-${version}";
+stdenv.mkDerivation {
+  pname = "patchage";
   version = "1.0.1";
   src = fetchsvn {
     url = http://svn.drobilla.net/lad/trunk/patchage/;
@@ -12,13 +12,9 @@ stdenv.mkDerivation rec {
   };
 
   buildInputs = [
-    alsaLib boost dbus_glib ganv glibmm gtkmm2 libjack2
-    pkgconfig python2
+    alsaLib boost dbus-glib ganv glibmm gtkmm2 libjack2
+    pkgconfig python2 wafHook
   ];
-
-  configurePhase = "python waf configure --prefix=$out";
-  buildPhase = "python waf build";
-  installPhase = "python waf install";
 
   meta = {
     description = "Modular patch bay for Jack and ALSA systems";

@@ -1,18 +1,18 @@
 { stdenv, fetchFromGitLab, pkgconfig, cmake, gettext, cairo, pango, pcre
-, glib , imlib2, gtk2, libXinerama , libXrender, libXcomposite, libXdamage
-, libX11 , libXrandr, librsvg, libpthreadstubs , libXdmcp
-, libstartup_notification , hicolor_icon_theme, wrapGAppsHook
+, glib, imlib2, gtk2, libXinerama, libXrender, libXcomposite, libXdamage
+, libX11, libXrandr, librsvg, libpthreadstubs, libXdmcp
+, libstartup_notification, hicolor-icon-theme, wrapGAppsHook
 }:
 
 stdenv.mkDerivation rec {
-  name = "tint2-${version}";
-  version = "0.14.5";
+  pname = "tint2";
+  version = "16.7";
 
   src = fetchFromGitLab {
     owner = "o9000";
     repo = "tint2";
     rev = version;
-    sha256 = "1nfvcw95wggih7pxh53cx4nlamny73nh88ggfh6a0ajjhafrd2j2";
+    sha256 = "1937z0kixb6r82izj12jy4x8z4n96dfq1hx05vcsvsg1sx3wxgb0";
   };
 
   enableParallelBuilding = true;
@@ -21,27 +21,21 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ cairo pango pcre glib imlib2 gtk2 libXinerama libXrender
     libXcomposite libXdamage libX11 libXrandr librsvg libpthreadstubs
-    libXdmcp libstartup_notification hicolor_icon_theme ];
+    libXdmcp libstartup_notification hicolor-icon-theme ];
 
-  preConfigure = ''
-    substituteInPlace CMakeLists.txt --replace /etc $out/etc
-  '';
-
-  prePatch = ''
-    for f in ./src/tint2conf/properties.c \
-             ./src/launcher/apps-common.c \
-             ./src/launcher/icon-theme-common.c \
-             ./themes/*tint2rc
+  postPatch = ''
+    for f in ./src/launcher/apps-common.c \
+             ./src/launcher/icon-theme-common.c
     do
       substituteInPlace $f --replace /usr/share/ /run/current-system/sw/share/
     done
   '';
 
-  meta = {
+  meta = with stdenv.lib; {
     homepage = https://gitlab.com/o9000/tint2;
     description = "Simple panel/taskbar unintrusive and light (memory, cpu, aestetic)";
-    license = stdenv.lib.licenses.gpl2;
-    platforms = stdenv.lib.platforms.unix;
-    maintainers = [ stdenv.lib.maintainers.romildo ];
+    license = licenses.gpl2;
+    platforms = platforms.linux;
+    maintainers = [ maintainers.romildo ];
   };
 }

@@ -1,22 +1,18 @@
 { lib
-, fetchurl
+, fetchPypi
 , buildPythonPackage
-, pytestrunner
 , pythonOlder
 }:
 
-let
+buildPythonPackage rec {
   pname = "async-timeout";
-  version = "1.2.1";
-in buildPythonPackage rec {
-  name = "${pname}-${version}";
+  version = "3.0.1";
 
-  src = fetchurl {
-    url = "mirror://pypi/${builtins.substring 0 1 pname}/${pname}/${name}.tar.gz";
-    sha256 = "380e9bfd4c009a14931ffe487499b0906b00b3378bb743542cfd9fbb6d8e4657";
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "0c3c816a028d47f659d6ff5c745cb2acf1f966da1fe5c19c77a70282b25f4c5f";
   };
 
-  buildInputs = [ pytestrunner ];
   # Circular dependency on aiohttp
   doCheck = false;
 

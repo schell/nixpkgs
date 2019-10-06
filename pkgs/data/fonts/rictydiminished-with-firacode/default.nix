@@ -1,7 +1,7 @@
 { stdenv, fetchgit, fontforge, pythonFull }:
 
 stdenv.mkDerivation rec {
-  name = "rictydiminished-with-firacode-${version}";
+  pname = "rictydiminished-with-firacode";
   version = "0.0.1";
   src = fetchgit {
     url = "https://github.com/hakatashi/RictyDiminished-with-FiraCode.git";
@@ -11,19 +11,25 @@ stdenv.mkDerivation rec {
   };
 
   buildPhase = ''
+    substituteInPlace apply-feature.py --replace \
+      'ricty = ttLib.TTFont(options.in_font)' \
+      'ricty = ttLib.TTFont(options.in_font, recalcTimestamp=False)'
+    substituteInPlace build-py3.py --replace \
+      'datetime.date.today()' \
+      'datetime.date.fromtimestamp(float(os.environ["SOURCE_DATE_EPOCH"]))'
+
     make
   '';
 
   installPhase = ''
-    mkdir -p $out/share/fonts/rictydiminished-with-firacode
-    cp *.ttf $out/share/fonts/rictydiminished-with-firacode
+    install -m444 -Dt $out/share/fonts/rictydiminished-with-firacode *.ttf
   '';
 
   nativeBuildInputs = [
     fontforge
     (pythonFull.withPackages (ps: [
       ps.jinja2
-      ps."3to2"
+      ps.py3to2
       ps.fonttools
     ]))
   ];

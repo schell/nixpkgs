@@ -1,26 +1,45 @@
-{ stdenv, fetchurl
-, openssl, qt4, mesa, zlib, pkgconfig, libav
+{ stdenv, mkDerivation, fetchurl, autoPatchelfHook
+, ffmpeg, openssl, qtbase, zlib, pkgconfig
 }:
 
-stdenv.mkDerivation rec {
-  name = "makemkv-${ver}";
-  ver = "1.10.5";
-  builder = ./builder.sh;
-
+let
+  version = "1.14.5";
+  # Using two URLs as the first one will break as soon as a new version is released
   src_bin = fetchurl {
-    url = "http://www.makemkv.com/download/makemkv-bin-${ver}.tar.gz";
-    sha256 = "00jym62yga4m146lbz6dwdy6rgrwbc0kgmpcarri0prdwjsb8l6x";
+    urls = [
+      "http://www.makemkv.com/download/makemkv-bin-${version}.tar.gz"
+      "http://www.makemkv.com/download/old/makemkv-bin-${version}.tar.gz"
+    ];
+    sha256 = "1rnkx0h149n3pawmk8d234x5w1xw4kady9pgrcc5aw6krbx38nis";
   };
-
   src_oss = fetchurl {
-    url = "http://www.makemkv.com/download/makemkv-oss-${ver}.tar.gz";
-    sha256 = "0kanj0mh09sn5wlc4jl5ykbhdq1kpwjhmh1ck990dhkxb2m3rvaa";
+    urls = [
+      "http://www.makemkv.com/download/makemkv-oss-${version}.tar.gz"
+      "http://www.makemkv.com/download/old/makemkv-oss-${version}.tar.gz"
+    ];
+    sha256 = "1jg10mslcl0sfwdd9p7hy9zfvk0xc7qhdakiv1kbilsl42bgaxyi";
   };
+in mkDerivation {
+  pname = "makemkv";
+  inherit version;
 
-  buildInputs = [openssl qt4 mesa zlib pkgconfig libav];
+  srcs = [ src_bin src_oss ];
 
-  libPath = stdenv.lib.makeLibraryPath [stdenv.cc.cc openssl mesa qt4 zlib ]
-          + ":" + stdenv.cc.cc + "/lib64";
+  sourceRoot = "makemkv-oss-${version}";
+
+  nativeBuildInputs = [ autoPatchelfHook pkgconfig ];
+
+  buildInputs = [ ffmpeg openssl qtbase zlib ];
+
+  installPhase = ''
+    runHook preInstall
+
+    install -Dm555 -t $out/bin           out/makemkv ../makemkv-bin-${version}/bin/amd64/makemkvcon
+    install -D     -t $out/lib           out/lib{driveio,makemkv,mmbd}.so.*
+    install -D     -t $out/share/MakeMKV ../makemkv-bin-${version}/src/share/*
+
+    runHook postInstall
+  '';
 
   meta = with stdenv.lib; {
     description = "Convert blu-ray and dvd to mkv";
@@ -35,6 +54,7 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.unfree;
     homepage = http://makemkv.com;
+    platforms = [ "x86_64-linux" ];
     maintainers = [ maintainers.titanous ];
   };
 }

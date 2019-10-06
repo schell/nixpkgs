@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, libav, libkeyfinder }:
 
 stdenv.mkDerivation rec {
-  name = "keyfinder-cli-${version}";
+  pname = "keyfinder-cli";
   version = "2015-09-13";
 
   src = fetchFromGitHub {
@@ -27,6 +27,5 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

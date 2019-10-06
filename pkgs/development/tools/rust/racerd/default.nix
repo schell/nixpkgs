@@ -1,33 +1,38 @@
-{ stdenv, fetchgit, rustPlatform, makeWrapper }:
+{ stdenv, fetchFromGitHub, rustPlatform, makeWrapper , Security }:
 
 with rustPlatform;
 
 buildRustPackage rec {
-  name = "racerd-${version}";
-  version = "2016-12-24";
-  src = fetchgit {
-    url = "git://github.com/jwilm/racerd.git";
-    rev = "dc090ea11d550cd513416d21227d558dbfd2fcb6";
-    sha256 = "0jfryb1b32m6bn620gd7y670cfipaswj1cppzkybm4xg6abqh07b";
+  pname = "racerd";
+  version = "unstable-2019-09-02";
+  src = fetchFromGitHub {
+    owner = "jwilm";
+    repo = "racerd";
+    rev = "e3d380b9a1d3f3b67286d60465746bc89fea9098";
+    sha256 = "13jqdvjk4savcl03mrn2vzgdsd7vxv2racqbyavrxp2cm9h6cjln";
   };
+
+  # a nightly compiler is required unless we use this cheat code.
+  RUSTC_BOOTSTRAP=1;
 
   doCheck = false;
 
-  depsSha256 = "1vv6fyisi11bcajxkq3ihpl59yh504xmnsr222zj15hmivn0jwf2";
+  cargoSha256 = "07130587drrdkrk7aqb8pl8i3p485qr6xh1m86630ydlnb9z6s6i";
 
-  buildInputs = [ makeWrapper ];
+  buildInputs = [ makeWrapper ]
+                ++ stdenv.lib.optional stdenv.isDarwin Security;
 
-  RUST_SRC_PATH = ''${rustPlatform.rust.rustc.src}/src'';
+  RUST_SRC_PATH = rustPlatform.rustcSrc;
 
   installPhase = ''
     mkdir -p $out/bin
     cp -p target/release/racerd $out/bin/
-    wrapProgram $out/bin/racerd --set RUST_SRC_PATH "$RUST_SRC_PATH"
+    wrapProgram $out/bin/racerd --set-default RUST_SRC_PATH "$RUST_SRC_PATH"
   '';
 
   meta = with stdenv.lib; {
     description = "JSON/HTTP Server based on racer for adding Rust support to editors and IDEs";
-    homepage = "https://github.com/jwilm/racerd";
+    homepage = https://github.com/jwilm/racerd;
     license = licenses.asl20;
     platforms = platforms.all;
   };

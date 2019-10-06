@@ -3,15 +3,16 @@
 , libX11, libXt, libXpm }:
 
 stdenv.mkDerivation rec {
-  name = "rxvt-${version}";
+  pname = "rxvt";
   version = "2.7.10";
 
   src = fetchurl {
-    url = "mirror://sourceforge/rxvt/${name}.tar.gz";
+    url = "mirror://sourceforge/rxvt/${pname}-${version}.tar.gz";
     sha256 = "0jfl71gz3k7zh3kxdb8lxi06kajjnx7bq1rxjgk680l209jxask1";
   };
 
-  buildInputs = [ pkgconfig libtool libX11 libXt libXpm ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ libtool libX11 libXt libXpm ];
 
   configurePhase = ''
     LIBTOOL=${libtool}/bin/libtool ./configure --prefix=$out --enable-everything --enable-smart-resize --enable-256-color

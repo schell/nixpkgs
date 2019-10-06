@@ -1,25 +1,24 @@
-{ stdenv, fetchFromGitHub, ocaml, findlib, camlidl, gmp, mpfr }:
+{ stdenv, fetchFromGitHub, perl, ocaml, findlib, camlidl, gmp, mpfr }:
 
 stdenv.mkDerivation rec {
   name = "ocaml${ocaml.version}-mlgmpidl-${version}";
-  version = "1.2.4";
+  version = "1.2.10";
   src = fetchFromGitHub {
     owner = "nberth";
     repo = "mlgmpidl";
     rev = version;
-    sha256 = "09f9rk2bavhb7cdwjpibjf8bcjk59z85ac9dr8nvks1s842dp65s";
+    sha256 = "181vpqx8zdairq645b8qpkzj4fnkb508iavk7sqzskag1s8613qn";
   };
 
-  buildInputs = [ gmp mpfr ocaml findlib camlidl ];
+  buildInputs = [ perl gmp mpfr ocaml findlib camlidl ];
 
-  configurePhase = ''
-    cp Makefile.config.model Makefile.config
-    sed -i Makefile.config \
-      -e 's|^MLGMPIDL_PREFIX.*$|MLGMPIDL_PREFIX = $out|' \
-      -e 's|^GMP_PREFIX.*$|GMP_PREFIX = ${gmp.dev}|' \
-      -e 's|^MPFR_PREFIX.*$|MPFR_PREFIX = ${mpfr.dev}|' \
-      -e 's|^CAMLIDL_DIR.*$|CAMLIDL_DIR = ${camlidl}/lib/ocaml/${ocaml.version}/site-lib/camlidl|'
-    echo HAS_NATIVE_PLUGINS = 1 >> Makefile.config
+  prefixKey = "-prefix ";
+  configureFlags = [
+    "--gmp-prefix ${gmp.dev}"
+    "--mpfr-prefix ${mpfr.dev}"
+  ];
+
+  postConfigure = ''
     sed -i Makefile \
       -e 's|^	/bin/rm |	rm |'
   '';

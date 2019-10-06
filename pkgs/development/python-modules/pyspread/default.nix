@@ -17,13 +17,12 @@
 }:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "pyspread";
-  version = "1.1";
+  version = "1.1.3";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0m1a4zvzrfrnc42j8mrbm7747w03nzyl9z02wjagccmlhi6nd9hx";
+    sha256 = "6e5d0eb49750eed7734852e15727e190270880c75dcc5f6c8fb1bfdaa59c48fc";
   };
 
   propagatedBuildInputs = [ numpy wxPython matplotlib pycairo python-gnupg xlrd xlwt jedi pyenchant basemap pygtk ];

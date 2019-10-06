@@ -1,10 +1,10 @@
 { stdenv, fetchFromGitHub, ocaml, findlib
-, ocamlbuild, topkg, opam
+, ocamlbuild, topkg
 , uri, xmlm, omd, ezjsonm }:
 
 stdenv.mkDerivation rec {
   version = "2.2.0";
-  name = "ocaml-cow-${version}";
+  pname = "ocaml-cow";
 
   src = fetchFromGitHub {
     owner  = "mirage";
@@ -13,9 +13,7 @@ stdenv.mkDerivation rec {
     sha256 = "0snhabg7rfrrcq2ksr3qghiawd61cw3y4kp6rl7vs87j4cnk3kr2";
   };
 
-  createFindlibDestdir = true;
-
-  buildInputs = [ ocaml opam ocamlbuild findlib topkg ];
+  buildInputs = [ ocaml ocamlbuild findlib topkg ];
   propagatedBuildInputs = [ xmlm uri ezjsonm omd ];
 
   inherit (topkg) buildPhase installPhase;

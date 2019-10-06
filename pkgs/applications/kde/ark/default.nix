@@ -1,47 +1,39 @@
 {
-  kdeApp, lib, config, kdeWrapper,
+  mkDerivation, lib, config,
 
-  extra-cmake-modules, kdoctools, makeWrapper,
+  extra-cmake-modules, kdoctools,
 
-  karchive, kconfig, kcrash, kdbusaddons, ki18n, kiconthemes, khtml, kio,
-  kservice, kpty, kwidgetsaddons, libarchive, kitemmodels,
+  breeze-icons, karchive, kconfig, kcrash, kdbusaddons, ki18n,
+  kiconthemes, kitemmodels, khtml, kio, kparts, kpty, kservice, kwidgetsaddons,
+
+  libarchive, libzip,
 
   # Archive tools
-  p7zip, unzipNLS, zip,
+  p7zip, lrzip,
 
   # Unfree tools
   unfreeEnableUnrar ? false, unrar,
 }:
 
 let
-  unwrapped =
-    kdeApp {
-      name = "ark";
-      nativeBuildInputs = [
-        extra-cmake-modules kdoctools makeWrapper
-      ];
-      propagatedBuildInputs = [
-        khtml ki18n kio karchive kconfig kcrash kdbusaddons kiconthemes kservice
-        kpty kwidgetsaddons libarchive kitemmodels
-      ];
-      postInstall =
-        let
-          PATH =
-            lib.makeBinPath
-            ([ p7zip unzipNLS zip ] ++ lib.optional unfreeEnableUnrar unrar);
-        in ''
-          wrapProgram "$out/bin/ark" \
-              --prefix PATH : "${PATH}"
-        '';
-      meta = {
-        license = with lib.licenses;
-          [ gpl2 lgpl3 ] ++ lib.optional unfreeEnableUnrar unfree;
-        maintainers = [ lib.maintainers.ttuegel ];
-      };
-    };
+  extraTools = [ p7zip lrzip ] ++ lib.optional unfreeEnableUnrar unrar;
 in
-kdeWrapper
-{
-  inherit unwrapped;
-  targets = [ "bin/ark" ];
+
+mkDerivation {
+  name = "ark";
+  meta = {
+    license = with lib.licenses;
+      [ gpl2 lgpl3 ] ++ lib.optional unfreeEnableUnrar unfree;
+    maintainers = [ lib.maintainers.ttuegel ];
+  };
+
+  outputs = [ "out" "dev" ];
+  nativeBuildInputs = [ extra-cmake-modules kdoctools ];
+  buildInputs = [ libarchive libzip ] ++ extraTools;
+  propagatedBuildInputs = [
+    breeze-icons karchive kconfig kcrash kdbusaddons khtml ki18n kiconthemes kio
+    kitemmodels kparts kpty kservice kwidgetsaddons
+  ];
+
+  qtWrapperArgs = [ "--prefix" "PATH" ":" (lib.makeBinPath extraTools) ];
 }

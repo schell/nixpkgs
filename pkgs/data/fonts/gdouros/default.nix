@@ -1,62 +1,37 @@
-{stdenv, fetchurl, unzip, lib }:
+{ fetchzip, lib }:
+
 let
   fonts = {
-    symbola = { version = "9.00"; file = "Symbola.zip"; sha256 = "0d9zrlvzh8inhr17p99banr0dmrvkwxbk3q7zhqqx2z4gf2yavc5";
-                description = "Basic Latin, Greek, Cyrillic and many Symbol blocks of Unicode"; };
-    aegyptus = { version = "6.00"; file = "Aegyptus.zip"; sha256 = "10mr54ja9b169fhqfkrw510jybghrpjx7a8a7m38k5v39ck8wz6v";
-                 description = "Egyptian Hieroglyphs, Coptic, Meroitic"; };
-    akkadian = { version = "7.13"; file = "Akkadian.zip"; sha256 = "1jd2fb6jnwpdwgkidsi2pnw0nk2cpya8k85299w591sqslfkxyij";
-                 description = "Sumero-Akkadian Cuneiform"; };
-    anatolian = { version = "5.02"; file = "Anatolian.zip"; sha256 = "0arm58sijzk0bqmfb70k1sjvq79wgw16hx3j2g4l8qz4sv05bp8l";
-                  description = "Anatolian Hieroglyphs"; };
-    maya = { version = "4.14"; file = "Maya.zip"; sha256 = "0l97racgncrhb96mfbsx8dr5n4j289iy0nnwhxf9b21ns58a9x4f";
-             description = "Maya Hieroglyphs"; };
-    unidings = { version = "8.00"; file = "Unidings.zip"; sha256 = "1i0z3mhgj4680188lqpmk7rx3yiz4l7yybb4wq6zk35j75l28irm";
-                 description = "Glyphs and Icons for blocks of The Unicode Standard"; };
-    musica = { version = "3.12"; file = "Musica.zip"; sha256 = "079vyb0mpxvlcf81d5pqh9dijkcvidfbcyvpbgjpmgzzrrj0q210";
-               description = "Musical Notation"; };
-    analecta = { version = "5.00"; file = "Analecta.zip"; sha256 = "0rphylnz42fqm1zpx5jx60k294kax3sid8r2hx3cbxfdf8fnpb1f";
-                 description = "Coptic, Gothic, Deseret"; };
-    # the following are also available from http://users.teilar.gr/~g1951d/
-    # but not yet packaged:
-    #  - Aroania
-    #  - Anaktoria
-    #  - Alexander
-    #  - Avdira
-    #  - Asea
-    #  - Aegean
+    aegan     = { version = "10.00"; file = "Aegean.zip";       sha256 = "0k47nhzw4vx771ch3xx8mf6xx5vx0hg0cif5jdlmdaz4h2c3rawz"; description = "Aegean"; };
+    aegyptus  = { version =  "8.00"; file = "Aegyptus.zip";     sha256 = "13h2pi641k9vxgqi9l11mjya10ym9ln54wrkwxx6gxq63zy7y5mj"; description = "Egyptian Hieroglyphs, Coptic, Meroitic"; };
+    akkadian  = { version =  "7.18"; file = "Akkadian.zip";     sha256 = "1bplcvszbdrk85kqipn9lzhr62647wjibz1p8crzjvsw6f9ymxy3"; description = "Sumero-Akkadian Cuneiform"; };
+    assyrian  = { version =  "2.00"; file = "AssyrianFont.zip"; sha256 = "0vdvb24vsnmwzd6bw14akqg0hbvsk8avgnbwk9fkybn1f801475k"; description = "Neo-Assyrian in Unicode with OpenType"; };
+    eemusic   = { version =  "2.00"; file = "EEMusic.zip";      sha256 = "1y9jf105a2b689m7hdjmhhr7z5j0qd2w6dmb3iic9bwaczlrjy7j"; description = "Byzantine Musical Notation in Unicode with OpenType"; };
+    maya      = { version =  "4.18"; file = "Maya.zip";         sha256 = "08z2ch0z2c43fjfg5m4yp3l1dp0cbk7lv5i7wzsr3cr9kr59wpi9"; description = "Maya Hieroglyphs"; };
+    symbola   = { version = "12.00"; file = "Symbola.zip";      sha256 = "1i3xra33xkj32vxs55xs2afrqyc822nk25669x78px5g5qd8gypm"; description = "Basic Latin, Greek, Cyrillic and many Symbol blocks of Unicode"; };
+    textfonts = { version =  "9.00"; file = "Textfonts.zip";    sha256 = "0wzxz4j4fgk81b88d58715n1wvq2mqmpjpk4g5hi3vk77y2zxc4d"; description = "Aroania, Anaktoria, Alexander, Avdira and Asea"; };
+    unidings  = { version =  "9.19"; file = "Unidings.zip";     sha256 = "1bybzgdqhmq75hb12n3pjrsdcpw1a6sgryx464s68jlq4zi44g78"; description = "Glyphs and Icons for blocks of The Unicode Standard"; };
   };
-  mkpkg = name_: {version, file, sha256, description}:
-    stdenv.mkDerivation rec {
-      name = "${name_}-${version}";
 
-      src = fetchurl {
-        url = "http://users.teilar.gr/~g1951d/${file}";
-        inherit sha256;
-      };
+  mkpkg = name_: {version, file, sha256, description}: fetchzip rec {
+    name = "${name_}-${version}";
+    url = "http://users.teilar.gr/~g1951d/${file}";
+    postFetch = ''
+      mkdir -p $out/share/{fonts,doc}
+      unzip -j $downloadedFile \*.ttf                 -d $out/share/fonts/truetype
+      unzip -j $downloadedFile \*.docx \*.pdf \*.xlsx -d "$out/share/doc/${name}" || true  # unpack docs if any
+      rmdir "$out/share/doc/${name}" $out/share/doc                               || true  # remove dirs if empty
+    '';
+    inherit sha256;
 
-      buildInputs = [ unzip ];
-
-      sourceRoot = ".";
-
-      installPhase = ''
-        mkdir -p $out/share/fonts/truetype
-        cp -v *.ttf $out/share/fonts/truetype/
-
-        mkdir -p "$out/doc/${name}"
-        cp -v *.docx *.pdf *.xlsx "$out/doc/${name}/"
-      '';
-
-      meta = {
-        inherit description;
-        # In lieu of a license:
-        # Fonts in this site are offered free for any use;
-        # they may be installed, embedded, opened, edited, modified, regenerated, posted, packaged and redistributed.
-        license = stdenv.lib.licenses.free;
-        homepage = http://users.teilar.gr/~g1951d/;
-        platforms = stdenv.lib.platforms.unix;
-      };
+    meta = {
+      inherit description;
+      # In lieu of a license:
+      # Fonts in this site are offered free for any use;
+      # they may be installed, embedded, opened, edited, modified, regenerated, posted, packaged and redistributed.
+      license = lib.licenses.free;
+      homepage = http://users.teilar.gr/~g1951d/;
     };
-
+  };
 in
-lib.mapAttrs mkpkg fonts
+  lib.mapAttrs mkpkg fonts

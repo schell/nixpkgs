@@ -1,10 +1,13 @@
 { callPackage, fetchurl }:
 
+# To upgrade pick the hydra job of the nixops revision that you want to upgrade
+# to from: https://hydra.nixos.org/job/nixops/master/tarball
+# Then copy the URL to the tarball.
+
 callPackage ./generic.nix (rec {
-  version = "2017-05-22";
+  version = "1.7pre2764_932bf43";
   src = fetchurl {
-    # Sadly hydra doesn't offer download links
-    url = "https://static.domenkozar.com/nixops-1.5.1pre2169_8f4a67c.tar.bz2";
-    sha256 = "0rma5npgkhlknmvm8z0ps54dsr07za1f32p6d6na3nis784h0slw";
+    url = "https://hydra.nixos.org/build/92372343/download/2/nixops-${version}.tar.bz2";
+    sha256 = "f35bf81bf2805473ea54248d0ee92d163d00a1992f3f75d17e8cf430db1f9919";
   };
 })

@@ -1,61 +1,71 @@
-{ lib
-, fetchFromGitHub
-, python
-, transmission
-, deluge
-, config
-}:
+{ lib, python3 }:
 
-with python.pkgs;
+# Flexget have been a trouble maker in the past,
+# if you see flexget breaking when updating packages, don't worry.
+# The current state is that we have no active maintainers for this package.
+# -- Mic92
 
-buildPythonApplication rec {
-  version = "2.10.40";
-  name = "FlexGet-${version}";
+let
+  python' = python3.override { inherit packageOverrides; };
 
-  src = fetchFromGitHub {
-    owner = "Flexget";
-    repo = "Flexget";
-    rev = version;
-    sha256 = "0hh21yv1lvdfi198snwjabfsdh04fnpjszpgg28wvg5pd1qq8lqv";
+  packageOverrides = self: super: {
+    guessit = super.guessit.overridePythonAttrs (old: rec {
+      version = "3.0.3";
+      src = old.src.override {
+        inherit version;
+        sha256 = "1q06b3k31bfb8cxjimpf1rkcrwnc596a9cppjw15minvdangl32r";
+      };
+    });
   };
 
-  doCheck = true;
-  # test_regexp requires that HOME exist, test_filesystem requires a
-  # unicode-capable filesystem (and setting LC_ALL doesn't work).
-  # setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+in
+
+with python'.pkgs;
+
+buildPythonApplication rec {
+  pname = "FlexGet";
+  version = "2.21.19";
+
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "1xkxd5p4ps0dnwns64zzlvs252wx0f9fy5b6000gyql7y5cma3kj";
+  };
+
   postPatch = ''
-    sed -i '/def test_non_ascii/i\    import pytest\
-        @pytest.mark.skip' flexget/tests/test_filesystem.py
+    # remove dependency constraints
+    sed 's/==\([0-9]\.\?\)\+//' -i requirements.txt
 
-    substituteInPlace requirements.txt --replace "guessit<=2.0.4" "guessit"
+    # "zxcvbn-python" was renamed to "zxcvbn", and we don't have the former in
+    # nixpkgs. See: https://github.com/NixOS/nixpkgs/issues/62110
+    substituteInPlace requirements.txt --replace "zxcvbn-python" "zxcvbn"
   '';
 
-  # Disable 3 failing tests caused by guessit upgrade
-  # https://github.com/Flexget/Flexget/issues/1804
-  checkPhase = ''
-    export HOME=.
-    py.test --disable-pytest-warnings -k "not test_date_options and not test_ep_as_quality and not testFromGroup"
-  '';
+  # ~400 failures
+  doCheck = false;
 
-  buildInputs = [ pytest mock vcrpy pytest-catchlog boto3 ];
   propagatedBuildInputs = [
+    # See https://github.com/Flexget/Flexget/blob/master/requirements.in
     feedparser sqlalchemy pyyaml
-    beautifulsoup4 html5lib PyRSS2Gen pynzb
-    rpyc jinja2 requests dateutil jsonschema
-    pathpy guessit APScheduler
+    beautifulsoup4 html5lib
+    PyRSS2Gen pynzb rpyc jinja2
+    requests dateutil jsonschema
+    pathpy guessit rebulk APScheduler
     terminaltables colorclass
-    cherrypy flask flask-restful flask-restplus_0_8
-    flask-compress flask_login flask-cors
-    pyparsing safe future zxcvbn-python ]
-  ++ lib.optional (pythonOlder "3.4") pathlib
-  # enable deluge and transmission plugin support, if they're installed
-  ++ lib.optional (config.deluge or false) deluge
-  ++ lib.optional (transmission != null) transmissionrpc;
+    cherrypy flask flask-restful
+    flask-restplus flask-compress
+    flask_login flask-cors
+    pyparsing zxcvbn future
+    progressbar
+    # Optional requirements
+    deluge-client
+    # Plugins
+    transmissionrpc
+  ] ++ lib.optional (pythonOlder "3.4") pathlib;
 
-  meta = {
-    homepage = http://flexget.com/;
+  meta = with lib; {
+    homepage    = https://flexget.com/;
     description = "Multipurpose automation tool for content like torrents";
-    license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ domenkozar tari ];
+    license     = licenses.mit;
+    maintainers = with maintainers; [ ];
   };
 }

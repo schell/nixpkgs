@@ -1,16 +1,17 @@
-{ fetchurl, stdenv, libxml2, freetype, mesa, glew, qt4
+{ fetchurl, stdenv, libxml2, freetype, libGLU_combined, glew, qt4
 , cmake, makeWrapper, libjpeg, python }:
 
-let version = "4.9.0"; in
+let version = "5.2.1"; in
 stdenv.mkDerivation rec {
-  name = "tulip-${version}";
+  pname = "tulip";
+  inherit version;
 
   src = fetchurl {
-    url = "mirror://sourceforge/auber/${name}_src.tar.gz";
-    sha256 = "0phc7972brvm0v6lfk4ghq9b2b4jsj6c15xlbgnvhhcxhc99wba3";
+    url = "mirror://sourceforge/auber/${pname}-${version}_src.tar.gz";
+    sha256 = "0bqmqy6sri87a8xv5xf7ffaq5zin4hiaa13g0l64b84i7yckfwky";
   };
 
-  buildInputs = [ libxml2 freetype glew mesa qt4 libjpeg python ];
+  buildInputs = [ libxml2 freetype glew libGLU_combined qt4 libjpeg python ];
 
   nativeBuildInputs = [ cmake makeWrapper ];
 
@@ -33,6 +34,6 @@ stdenv.mkDerivation rec {
     license = stdenv.lib.licenses.gpl3Plus;
 
     maintainers = [ ];
-    platforms = stdenv.lib.platforms.gnu;  # arbitrary choice
+    platforms = stdenv.lib.platforms.gnu ++ stdenv.lib.platforms.linux;  # arbitrary choice
   };
 }

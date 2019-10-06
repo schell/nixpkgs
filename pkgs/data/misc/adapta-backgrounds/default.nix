@@ -1,23 +1,23 @@
-{ stdenv, fetchFromGitHub, autoreconfHook }:
+{ stdenv, fetchFromGitHub, meson, ninja, pkgconfig, glib }:
 
 stdenv.mkDerivation rec {
-  name = "adapta-backgrounds-${version}";
-  version = "0.4.0.6";
+  pname = "adapta-backgrounds";
+  version = "0.5.3.1";
 
   src = fetchFromGitHub {
     owner = "adapta-project";
     repo = "adapta-backgrounds";
     rev = version;
-    sha256 = "1yqxrwhjl6g92wm52kalbns41i2l5g45qbd4185b22crhbrn5x79";
+    sha256 = "04hmbmzf97rsii8gpwy3wkljy5xhxmlsl34d63s6hfy05knclydj";
   };
 
-  nativeBuildInputs = [ autoreconfHook  ];
+  nativeBuildInputs = [ meson ninja pkgconfig glib ];
 
   meta = with stdenv.lib; {
-    description = "A wallpaper collection for adapta-project";
-    homepage = https://github.com/adapta-project/adapta-backgrounds;
-    license = with licenses; [ gpl2 cc-by-sa-30 ];
+    description = "Wallpaper collection for adapta-project";
+    homepage = "https://github.com/adapta-project/adapta-backgrounds";
+    license = with licenses; [ gpl2 cc-by-sa-40 ];
     platforms = platforms.all;
-    maintainers = [ maintainers.romildo ];
+    maintainers = with maintainers; [ romildo ];
   };
 }

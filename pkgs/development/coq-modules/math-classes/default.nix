@@ -1,23 +1,30 @@
-{ stdenv, fetchFromGitHub, coq }:
+{ stdenv, fetchFromGitHub, coq, bignums }:
 
-stdenv.mkDerivation {
-  name = "coq${coq.coq-version}-math-classes-2016-06-08";
+stdenv.mkDerivation rec {
+
+  name = "coq${coq.coq-version}-math-classes-${version}";
+  version = "8.9.1";
 
   src = fetchFromGitHub {
-    owner  = "math-classes";
-    repo   = "math-classes";
-    rev    = "751e63b260bd2f78b280f2566c08a18034bd40b3";
-    sha256 = "0kjc2wzb6n9hcqb2ijx2pckn8jk5g09crrb87yb4s9m0mrw79smr";
+    owner = "coq-community";
+    repo = "math-classes";
+    rev = version;
+    sha256 = "1lw89js07m1wcaycpnyd85sf0snil2rrsfmry9lna2x66ah1mzn5";
   };
 
-  buildInputs = [ coq ];
+  buildInputs = [ coq bignums ];
   enableParallelBuilding = true;
   installFlags = "COQLIB=$(out)/lib/coq/${coq.coq-version}/";
 
   meta = with stdenv.lib; {
     homepage = https://math-classes.github.io;
     description = "A library of abstract interfaces for mathematical structures in Coq.";
-    maintainers = with maintainers; [ siddharthist ];
+    maintainers = with maintainers; [ siddharthist jwiegley ];
     platforms = coq.meta.platforms;
   };
+
+  passthru = {
+    compatibleCoqVersions = v: builtins.elem v [ "8.6" "8.7" "8.8" "8.9" "8.10" ];
+  };
+
 }

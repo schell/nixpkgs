@@ -1,9 +1,10 @@
-{stdenv, subversion, glibcLocales, sshSupport ? false, openssh ? null}:
-{url, rev ? "HEAD", md5 ? "", sha256 ? "",
- ignoreExternals ? false, ignoreKeywords ? false, name ? null}:
+{stdenvNoCC, subversion, glibcLocales, sshSupport ? true, openssh ? null}:
+{url, rev ? "HEAD", md5 ? "", sha256 ? ""
+, ignoreExternals ? false, ignoreKeywords ? false, name ? null
+, preferLocalBuild ? true }:
 
 let
-  repoName = with stdenv.lib;
+  repoName = with stdenvNoCC.lib;
     let
       fst = head;
       snd = l: head (tail l);
@@ -28,10 +29,10 @@ in
 if md5 != "" then
   throw "fetchsvn does not support md5 anymore, please use sha256"
 else
-stdenv.mkDerivation {
+stdenvNoCC.mkDerivation {
   name = name_;
   builder = ./builder.sh;
-  buildInputs = [ subversion glibcLocales ];
+  nativeBuildInputs = [ subversion glibcLocales ];
 
   outputHashAlgo = "sha256";
   outputHashMode = "recursive";
@@ -39,6 +40,6 @@ stdenv.mkDerivation {
 
   inherit url rev sshSupport openssh ignoreExternals ignoreKeywords;
 
-  impureEnvVars = stdenv.lib.fetchers.proxyImpureEnvVars;
-  preferLocalBuild = true;
+  impureEnvVars = stdenvNoCC.lib.fetchers.proxyImpureEnvVars;
+  inherit preferLocalBuild;
 }

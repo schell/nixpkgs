@@ -8,7 +8,6 @@
 buildPythonPackage rec {
   pname = "mplleaflet";
   version = "0.0.5";
-  name = "${pname}-${version}";
 
   propagatedBuildInputs = [ jinja2 six ];
 
@@ -22,7 +21,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "Convert Matplotlib plots into Leaflet web maps";
-    homepage = http://github.com/jwass/mplleaflet;
+    homepage = https://github.com/jwass/mplleaflet;
     license = with lib.licenses; [ bsd3 ];
   };
 }

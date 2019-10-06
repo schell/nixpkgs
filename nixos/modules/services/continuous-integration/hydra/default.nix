@@ -28,6 +28,7 @@ let
 
   serverEnv = env //
     { HYDRA_TRACKER = cfg.tracker;
+      XDG_CACHE_HOME = "${baseDir}/www/.cache";
       COLUMNS = "80";
       PGPASSFILE = "${baseDir}/pgpass-www"; # grrr
     } // (optionalAttrs cfg.debugServer { DBIC_TRACE = "1"; });
@@ -42,7 +43,7 @@ in
   ###### interface
   options = {
 
-    services.hydra = rec {
+    services.hydra = {
 
       enable = mkOption {
         type = types.bool;
@@ -193,11 +194,11 @@ in
 
   config = mkIf cfg.enable {
 
-    users.extraGroups.hydra = {
+    users.groups.hydra = {
       gid = config.ids.gids.hydra;
     };
 
-    users.extraUsers.hydra =
+    users.users.hydra =
       { description = "Hydra";
         group = "hydra";
         createHome = true;
@@ -206,7 +207,7 @@ in
         uid = config.ids.uids.hydra;
       };
 
-    users.extraUsers.hydra-queue-runner =
+    users.users.hydra-queue-runner =
       { description = "Hydra queue runner";
         group = "hydra";
         useDefaultShell = true;
@@ -214,7 +215,7 @@ in
         uid = config.ids.uids.hydra-queue-runner;
       };
 
-    users.extraUsers.hydra-www =
+    users.users.hydra-www =
       { description = "Hydra web server";
         group = "hydra";
         useDefaultShell = true;
@@ -225,14 +226,14 @@ in
 
     services.hydra.extraConfig =
       ''
-        using_frontend_proxy 1
-        base_uri ${cfg.hydraURL}
-        notification_sender ${cfg.notificationSender}
-        max_servers 25
+        using_frontend_proxy = 1
+        base_uri = ${cfg.hydraURL}
+        notification_sender = ${cfg.notificationSender}
+        max_servers = 25
         ${optionalString (cfg.logo != null) ''
-          hydra_logo ${cfg.logo}
+          hydra_logo = ${cfg.logo}
         ''}
-        gc_roots_dir ${cfg.gcRootsDir}
+        gc_roots_dir = ${cfg.gcRootsDir}
         use-substitutes = ${if cfg.useSubstitutes then "1" else "0"}
       '';
 
@@ -270,10 +271,11 @@ in
 
           ${optionalString haveLocalDB ''
             if ! [ -e ${baseDir}/.db-created ]; then
-              ${config.services.postgresql.package}/bin/createuser hydra
-              ${config.services.postgresql.package}/bin/createdb -O hydra hydra
+              ${pkgs.sudo}/bin/sudo -u ${config.services.postgresql.superUser} ${config.services.postgresql.package}/bin/createuser hydra
+              ${pkgs.sudo}/bin/sudo -u ${config.services.postgresql.superUser} ${config.services.postgresql.package}/bin/createdb -O hydra hydra
               touch ${baseDir}/.db-created
             fi
+            echo "create extension if not exists pg_trgm" | ${pkgs.sudo}/bin/sudo -u ${config.services.postgresql.superUser} -- ${config.services.postgresql.package}/bin/psql hydra
           ''}
 
           if [ ! -e ${cfg.gcRootsDir} ]; then
@@ -308,6 +310,7 @@ in
         requires = [ "hydra-init.service" ];
         after = [ "hydra-init.service" ];
         environment = serverEnv;
+        restartTriggers = [ hydraConf ];
         serviceConfig =
           { ExecStart =
               "@${cfg.package}/bin/hydra-server hydra-server -f -h '${cfg.listenHost}' "
@@ -324,6 +327,7 @@ in
         requires = [ "hydra-init.service" ];
         after = [ "hydra-init.service" "network.target" ];
         path = [ cfg.package pkgs.nettools pkgs.openssh pkgs.bzip2 config.nix.package ];
+        restartTriggers = [ hydraConf ];
         environment = env // {
           PGPASSFILE = "${baseDir}/pgpass-queue-runner"; # grrr
           IN_SYSTEMD = "1"; # to get log severity levels
@@ -344,7 +348,8 @@ in
       { wantedBy = [ "multi-user.target" ];
         requires = [ "hydra-init.service" ];
         after = [ "hydra-init.service" "network.target" ];
-        path = [ cfg.package pkgs.nettools ];
+        path = with pkgs; [ cfg.package nettools jq ];
+        restartTriggers = [ hydraConf ];
         environment = env;
         serviceConfig =
           { ExecStart = "@${cfg.package}/bin/hydra-evaluator hydra-evaluator";
@@ -372,6 +377,23 @@ in
         serviceConfig =
           { ExecStart = "@${cfg.package}/bin/hydra-send-stats hydra-send-stats";
             User = "hydra";
+          };
+      };
+
+    systemd.services.hydra-notify =
+      { wantedBy = [ "multi-user.target" ];
+        requires = [ "hydra-init.service" ];
+        after = [ "hydra-init.service" ];
+        restartTriggers = [ hydraConf ];
+        environment = env // {
+          PGPASSFILE = "${baseDir}/pgpass-queue-runner";
+        };
+        serviceConfig =
+          { ExecStart = "@${cfg.package}/bin/hydra-notify hydra-notify";
+            # FIXME: run this under a less privileged user?
+            User = "hydra-queue-runner";
+            Restart = "always";
+            RestartSec = 5;
           };
       };
 
@@ -412,6 +434,8 @@ in
         hydra-users hydra-queue-runner hydra
         hydra-users hydra-www hydra
         hydra-users root hydra
+        # The postgres user is used to create the pg_trgm extension for the hydra database
+        hydra-users postgres postgres
       '';
 
     services.postgresql.authentication = optionalString haveLocalDB

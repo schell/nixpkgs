@@ -1,38 +1,32 @@
-{stdenv, fetchurl, fetchFromGitHub, ucl, zlib, perl}:
+{ stdenv, fetchurl, ucl, zlib, perl }:
 
 stdenv.mkDerivation rec {
-  name = "upx-${version}";
-  version = "3.93";
-  src = fetchFromGitHub {
-    owner = "upx";
-    repo = "upx";
-    rev = "v${version}";
-    sha256 = "03ah23q85hx3liqyyj4vm8vip2d47bijsimagqd39q762a2rin3i";
+  pname = "upx";
+  version = "3.95";
+  src = fetchurl {
+    url = "https://github.com/upx/upx/releases/download/v${version}/${pname}-${version}-src.tar.xz";
+    sha256 = "14jmgy7hvx4zqra20w8260wrcxmjf2h6ba2yrw7pcp18im35a3rv";
   };
+
+  CXXFLAGS = "-Wno-unused-command-line-argument";
 
   buildInputs = [ ucl zlib perl ];
 
-  lzmaSrc = fetchFromGitHub {
-    owner = "upx";
-    repo = "upx-lzma-sdk";
-    rev = "v${version}";
-    sha256 = "16vj1c5bl04pzma0sr4saqk80y2iklyslzmrb4rm66aifa365zqj";
-  };
-
-  preConfigure = "
+  preConfigure = ''
     export UPX_UCLDIR=${ucl}
-    cp -a $lzmaSrc/* src/lzma-sdk
-    export UPX_LZMADIR=`pwd`/src/lzma-sdk
-    cd src
-  ";
+  '';
 
-  buildPhase = "make CHECK_WHITESPACE=true";
-  installPhase = "mkdir -p $out/bin ; cp upx.out $out/bin/upx";
+  makeFlags = [ "-C" "src" "CHECK_WHITESPACE=true" ];
 
-  meta = {
+  installPhase = ''
+    mkdir -p $out/bin
+    cp src/upx.out $out/bin/upx
+  '';
+
+  meta = with stdenv.lib; {
     homepage = https://upx.github.io/;
     description = "The Ultimate Packer for eXecutables";
-    license = stdenv.lib.licenses.gpl2Plus;
-    platforms = stdenv.lib.platforms.unix;
+    license = licenses.gpl2Plus;
+    platforms = platforms.unix;
   };
 }

@@ -1,23 +1,19 @@
-{ stdenv, fetchurl, unzip }:
+{ stdenv, fetchzip }:
 
-stdenv.mkDerivation rec {
+let
+  version = "2";
+in fetchzip {
   name = "fira-code-${version}";
-  version = "1.204";
 
-  src = fetchurl {
-    url = "https://github.com/tonsky/FiraCode/releases/download/${version}/FiraCode_${version}.zip";
-    sha256 = "17wky221b3igrqhmxgmqiyv1xdfn0nw471vzhpkrvv1w2w1w1k18";
-  };
+  url = "https://github.com/tonsky/FiraCode/releases/download/${version}/FiraCode_${version}.zip";
 
-  sourceRoot = "otf";
-
-  buildInputs = [ unzip ];
-  phases = [ "unpackPhase" "installPhase" ];
-
-  installPhase = ''
-    mkdir -p $out/share/fonts/opentype
-    cp -v *.otf $out/share/fonts/opentype
+  postFetch = ''
+    mkdir -p $out/share/fonts
+    unzip -j $downloadedFile \*.otf -d $out/share/fonts/opentype
+    unzip -j $downloadedFile \*.ttf -d $out/share/fonts/truetype
   '';
+
+  sha256 = "0kg9lrrjr6wrd4r96y0rnslnaw2276558a369qdvalwb3q1gi8d2";
 
   meta = with stdenv.lib; {
     homepage = https://github.com/tonsky/FiraCode;

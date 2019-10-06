@@ -13,14 +13,15 @@ stdenv.mkDerivation rec {
   };
 
   outputs = [ "out" "dev" ];
+  patches = [ ./garcon-10967.patch ./garcon-12700.patch ];
 
-  buildInputs = [ pkgconfig intltool glib libxfce4util gtk libxfce4ui ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ intltool glib libxfce4util gtk libxfce4ui ];
 
   meta = with stdenv.lib; {
-    homepage = http://www.xfce.org/;
+    homepage = https://www.xfce.org/;
     description = "Xfce menu support library";
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
   };
 }
-

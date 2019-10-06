@@ -1,25 +1,13 @@
-{ stdenv, fetchurl, pkgconfig, intltool, gnome3, wrapGAppsHook }:
+{ stdenv, fetchurl, pkgconfig, intltool, isocodes, gnome3, gtk3, wrapGAppsHook }:
 
 stdenv.mkDerivation rec {
-  name = "mate-desktop-${version}";
-  version = "${major-ver}.${minor-ver}";
-  major-ver = "1.18";
-  minor-ver = "0";
+  pname = "mate-desktop";
+  version = "1.22.2";
 
   src = fetchurl {
-    url = "http://pub.mate-desktop.org/releases/${major-ver}/${name}.tar.xz";
-    sha256 = "12iv2y4dan962fs7vkkxbjkp77pbvjnwfa43ggr0zkdsc3ydjbbg";
+    url = "http://pub.mate-desktop.org/releases/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "18w5r9p3bqpvxqqy2am7z686xf65cz5vhj247kki8s2yvvap6rlh";
   };
-
-  propagatedUserEnvPkgs = [
-    gnome3.gnome_themes_standard
-  ];
-
-  buildInputs = [
-    gnome3.dconf
-    gnome3.gtk
-    gnome3.defaultIconTheme
-  ];
 
   nativeBuildInputs = [
     pkgconfig
@@ -27,10 +15,17 @@ stdenv.mkDerivation rec {
     wrapGAppsHook
   ];
 
+  buildInputs = [
+    gnome3.dconf
+    gtk3
+    isocodes
+  ];
+
   meta = with stdenv.lib; {
     description = "Library with common API for various MATE modules";
-    homepage = "http://mate-desktop.org";
+    homepage = https://mate-desktop.org;
     license = licenses.gpl2;
-    platforms = platforms.unix;
+    platforms = platforms.linux;
+    maintainers = [ maintainers.romildo ];
   };
 }

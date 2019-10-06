@@ -1,13 +1,12 @@
 { stdenv, fetchurl, autoreconfHook, yacc, flex}:
 
-
 stdenv.mkDerivation rec {
-  version = "2.0.0";
-  name = "sshguard-${version}";
+  version = "2.4.0";
+  pname = "sshguard";
 
   src = fetchurl {
-    url = "mirror://sourceforge/sshguard/sshguard-2.0.0.tar.gz";
-    sha256 = "e87c6c4a6dddf06f440ea76464eb6197869c0293f0a60ffa51f8a6a0d7b0cb06";
+    url = "mirror://sourceforge/sshguard/${pname}-${version}.tar.gz";
+    sha256 = "1h6n2xyh58bshplbdqlr9rbnf3lz7nydnq5m2hkq15is3c4s8p06";
   };
 
   doCheck = true;
@@ -15,8 +14,6 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ autoreconfHook yacc flex ];
 
   configureFlags = [ "--sysconfdir=/etc" ];
-
-  patches = [ ./0001-Remove-the-unnecessary-from-ipset-cmds.patch ];
 
   meta = with stdenv.lib; {
     description = "SSHGuard protects hosts from brute-force attacks";

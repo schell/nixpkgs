@@ -1,36 +1,44 @@
-{ stdenv, fetchurl, unzip, jre }:
+{ stdenv, jdk, jre, coursier, makeWrapper }:
 
-stdenv.mkDerivation rec {
-  version = "0.6.8";
+let
   baseName = "scalafmt";
+  version = "2.0.1";
+  deps = stdenv.mkDerivation {
+    name = "${baseName}-deps-${version}";
+    buildCommand = ''
+      export COURSIER_CACHE=$(pwd)
+      ${coursier}/bin/coursier fetch org.scalameta:scalafmt-cli_2.12:${version} > deps
+      mkdir -p $out/share/java
+      cp $(< deps) $out/share/java/
+    '';
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash     = "1k5qn0w6hqql8yqhlma67ilp8hf0xwxwkzvwg8bkky1jvsapjsl5";
+  };
+in
+stdenv.mkDerivation {
   name = "${baseName}-${version}";
 
-  src = fetchurl {
-    url = "https://github.com/scalameta/scalafmt/releases/download/v${version}/${baseName}.tar.gz";
-    sha256 = "1iaanrxk5lhxx1zj9gbxzgqbnyy1azfrab984mga7di5z1hs02s2";
-  };
+  nativeBuildInputs = [ makeWrapper ];
+  buildInputs = [ jdk deps ];
 
-  unpackPhase = "tar xvzf $src";
+  doCheck = true;
+
+  phases = [ "installPhase" "checkPhase" ];
 
   installPhase = ''
-    mkdir -p "$out/bin"
-    mkdir -p "$out/lib"
+    makeWrapper ${jre}/bin/java $out/bin/${baseName} \
+      --add-flags "-cp $CLASSPATH org.scalafmt.cli.Cli"
+  '';
 
-    cp cli/target/scala-2.11/scalafmt.jar "$out/lib/${name}.jar"
-
-    cat > "$out/bin/${baseName}" << EOF
-    #!${stdenv.shell}
-    exec ${jre}/bin/java -jar "$out/lib/${name}.jar" "\$@"
-    EOF
-
-    chmod a+x "$out/bin/${baseName}"
+  checkPhase = ''
+    $out/bin/${baseName} --version | grep -q "${version}"
   '';
 
   meta = with stdenv.lib; {
     description = "Opinionated code formatter for Scala";
-    homepage = http://scalafmt.org;
+    homepage = http://scalameta.org/scalafmt;
     license = licenses.asl20;
-    platforms = platforms.linux;
     maintainers = [ maintainers.markus1189 ];
   };
 }

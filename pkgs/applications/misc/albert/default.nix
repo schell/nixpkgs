@@ -1,25 +1,31 @@
-{ stdenv, fetchFromGitHub, qtbase, qtsvg, qtx11extras, makeQtWrapper, muparser, cmake }:
+{ mkDerivation, lib, fetchFromGitHub, makeWrapper, qtbase,
+  qtdeclarative, qtsvg, qtx11extras, muparser, cmake, python3,
+  qtcharts }:
 
-stdenv.mkDerivation rec {
-  name    = "albert-${version}";
-  version = "0.11.3";
+mkDerivation rec {
+  pname = "albert";
+  version = "0.16.1";
 
   src = fetchFromGitHub {
     owner  = "albertlauncher";
     repo   = "albert";
     rev    = "v${version}";
-    sha256 = "0ddz6h1334b9kqy1lfi7qa21znm3l0b9h0d4s62llxdasv103jh5";
+    sha256 = "04sr35fqz66i24lv7r2p9qfqxs55i8xpj7aam0v9yakcr33lf55a";
+    fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [ cmake makeQtWrapper ];
+  nativeBuildInputs = [ cmake makeWrapper ];
 
-  buildInputs = [ qtbase qtsvg qtx11extras muparser ];
+  buildInputs = [ qtbase qtdeclarative qtsvg qtx11extras muparser python3 qtcharts ];
 
   enableParallelBuilding = true;
 
+  # We don't have virtualbox sdk so disable plugin
+  cmakeFlags = [ "-DBUILD_VIRTUALBOX=OFF" "-DCMAKE_INSTALL_LIBDIR=libs" ];
+
   postPatch = ''
-    sed -i "/QStringList dirs = {/a    \"$out/lib\"," \
-      src/lib/albert/src/albert/extensionmanager.cpp
+    sed -i "/QStringList dirs = {/a    \"$out/libs\"," \
+      src/app/main.cpp
   '';
 
   preBuild = ''
@@ -31,15 +37,11 @@ stdenv.mkDerivation rec {
     rm "$out/lib"
   '';
 
-  fixupPhase = ''
-    wrapQtProgram $out/bin/albert
-  '';
-
-  meta = with stdenv.lib; {
+  meta = with lib; {
     homepage    = https://albertlauncher.github.io/;
     description = "Desktop agnostic launcher";
     license     = licenses.gpl3Plus;
-    maintainers = with maintainers; [ ericsagnes ];
+    maintainers = with maintainers; [ ericsagnes synthetica ];
     platforms   = platforms.linux;
   };
 }

@@ -1,40 +1,49 @@
-{ stdenv, fetchurl, gettext, gtk3, python2Packages
-, gdk_pixbuf, libnotify, gst_all_1
-, libgnome_keyring3 ? null, networkmanager ? null
+{ stdenv, fetchurl, gettext, gtk3, pythonPackages
+, gdk-pixbuf, libnotify, gst_all_1
+, libgnome-keyring3
+, wrapGAppsHook, gnome3
+# otherwise passwords are stored unencrypted
+, withGnomeKeyring ? true
 }:
 
-python2Packages.buildPythonApplication rec {
-  name = "mailnag-${version}";
-  version = "1.1.0";
+let
+  inherit (pythonPackages) python;
+in pythonPackages.buildPythonApplication rec {
+  pname = "mailnag";
+  version = "1.3.0";
 
   src = fetchurl {
     url = "https://github.com/pulb/mailnag/archive/v${version}.tar.gz";
-    sha256 = "0li4kvxjmbz3nqg6bysgn2wdazqrd7gm9fym3rd7148aiqqwa91r";
+    sha256 = "0cp5pad6jzd5c14pddbi9ap5bi78wjhk1x2p0gbblmvmcasw309s";
   };
 
   buildInputs = [
-    gettext gtk3 python2Packages.pygobject3 python2Packages.dbus-python
-    python2Packages.pyxdg gdk_pixbuf libnotify gst_all_1.gstreamer
+    gtk3 gdk-pixbuf libnotify gst_all_1.gstreamer
     gst_all_1.gst-plugins-base gst_all_1.gst-plugins-good
-    gst_all_1.gst-plugins-bad libgnome_keyring3 networkmanager
+    gst_all_1.gst-plugins-bad
+    gnome3.adwaita-icon-theme
+  ] ++ stdenv.lib.optional withGnomeKeyring libgnome-keyring3;
+
+  nativeBuildInputs = [
+    gettext
+    wrapGAppsHook
   ];
 
-  preFixup = ''
-    for script in mailnag mailnag-config; do
-      wrapProgram $out/bin/$script \
-        --set GDK_PIXBUF_MODULE_FILE "$GDK_PIXBUF_MODULE_FILE" \
-        --prefix GI_TYPELIB_PATH : "$GI_TYPELIB_PATH" \
-        --prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "$GST_PLUGIN_SYSTEM_PATH_1_0" \
-        --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH:$out/share" \
-        --prefix PYTHONPATH : "$PYTHONPATH"
-    done
-  '';
+  propagatedBuildInputs = with pythonPackages; [
+    pygobject3 dbus-python pyxdg
+  ];
+
+  buildPhase = "";
+
+  installPhase = "${python}/bin/python setup.py install --prefix=$out";
+
+  doCheck = false;
 
   meta = with stdenv.lib; {
     description = "An extensible mail notification daemon";
     homepage = https://github.com/pulb/mailnag;
     license = licenses.gpl2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ jgeerds ];
+    maintainers = with maintainers; [ ];
   };
 }

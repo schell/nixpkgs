@@ -3,7 +3,8 @@
 let version = "1.5.0";
 in
 stdenv.mkDerivation {
-  name = "pidgin-latex-${version}";
+  pname = "pidgin-latex";
+  inherit version;
 
   src = fetchurl {
     url = "mirror://sourceforge/pidgin-latex/pidgin-latex_${version}.tar.bz2";
@@ -23,7 +24,7 @@ stdenv.mkDerivation {
   };
 
   meta = with stdenv.lib; {
-    homepage = "http://sourceforge.net/projects/pidgin-latex/";
+    homepage = https://sourceforge.net/projects/pidgin-latex/;
     description = "LaTeX rendering plugin for Pidgin IM";
     license = licenses.gpl2;
     platforms = platforms.linux;

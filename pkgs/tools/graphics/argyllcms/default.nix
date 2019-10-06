@@ -1,17 +1,18 @@
 { stdenv, fetchzip, jam, unzip, libX11, libXxf86vm, libXrandr, libXinerama
 , libXrender, libXext, libtiff, libjpeg, libpng, libXScrnSaver, writeText
-, libXdmcp, libXau, lib, openssl, zlib }:
+, libXdmcp, libXau, lib, openssl }:
 let
-  version = "1.8.3";
+  version = "2.1.1";
  in
 stdenv.mkDerivation rec {
-  name = "argyllcms-${version}";
+  pname = "argyllcms";
+  inherit version;
 
   src = fetchzip {
     # Kind of flacky URL, it was reaturning 406 and inconsistent binaries for a
     # while on me. It might be good to find a mirror
-    url = "http://www.argyllcms.com/Argyll_V${version}_src.zip";
-    sha256 = "00ggh47qzb3xyl8rnppwxa6j113lr38aiwvsfyxwgs51aqmvq7bd";
+    url = "https://www.argyllcms.com/Argyll_V${version}_src.zip";
+    sha256 = "0zq3fipky44xg536kdhg9bchi6s9ka7n1q73fwf9ja766s8rj99m";
 
     # The argyllcms web server doesn't like curl ...
     curlOpts = "--user-agent 'Mozilla/5.0'";
@@ -84,6 +85,8 @@ stdenv.mkDerivation rec {
     substituteInPlace Makefile --replace "-j 3" "-j $NIX_BUILD_CORES"
     # Remove tiff, jpg and png to be sure the nixpkgs-provided ones are used
     rm -rf tiff jpg png
+
+    unset AR
   '';
 
   buildInputs = [
@@ -113,7 +116,7 @@ stdenv.mkDerivation rec {
     homepage = http://www.argyllcms.com;
     description = "Color management system (compatible with ICC)";
     license = licenses.gpl3;
-    maintainers = [ maintainers.rickynils ];
+    maintainers = [];
     platforms = platforms.linux;
   };
 }

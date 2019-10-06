@@ -1,27 +1,53 @@
-{ stdenv, fetchFromGitHub, python2Packages }:
+{ stdenv, fetchFromGitHub, python2Packages, help2man, installShellFiles }:
 
-python2Packages.buildPythonApplication rec {
-  name = "crudini-${version}";
-  version = "0.9";
+let
+  # py3 is supposedly working in version 0.9.3 but the tests fail so stick to py2
+  pypkgs = python2Packages;
+
+in
+pypkgs.buildPythonApplication rec {
+  pname = "crudini";
+  version = "0.9.3";
 
   src = fetchFromGitHub {
     owner  = "pixelb";
     repo   = "crudini";
     rev    = version;
-    sha256 = "0x9z9lsygripj88gadag398pc9zky23m16wmh8vbgw7ld1nhkiav";
+    sha256 = "0298hvg0fpk0m0bjpwryj3icksbckwqqsr9w1ain55wf5s0v24k3";
   };
 
-  propagatedBuildInputs = with python2Packages; [ iniparse ];
+  nativeBuildInputs = [ help2man installShellFiles ];
+
+  propagatedBuildInputs = with pypkgs; [ iniparse ];
+
+  postPatch = ''
+    substituteInPlace crudini-help \
+      --replace ./crudini $out/bin/crudini
+    substituteInPlace tests/test.sh \
+      --replace ..: $out/bin:
+  '';
+
+  postInstall = ''
+    # this just creates the man page
+    make all
+
+    install -Dm444 -t $out/share/doc/${pname} README EXAMPLES
+    installManPage *.1
+  '';
 
   checkPhase = ''
-    patchShebangs .
+    runHook preCheck
+
     pushd tests >/dev/null
-    ./test.sh
+    bash ./test.sh
+    popd >/dev/null
+
+    runHook postCheck
   '';
 
   meta = with stdenv.lib; {
     description = "A utility for manipulating ini files ";
-    homepage = http://www.pixelbeat.org/programs/crudini/;
+    homepage = "https://www.pixelbeat.org/programs/crudini/";
     license = licenses.gpl2;
     maintainers = with maintainers; [ peterhoeg ];
   };

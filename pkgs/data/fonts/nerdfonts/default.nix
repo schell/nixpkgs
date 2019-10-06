@@ -1,18 +1,18 @@
-{ stdenv, fetchFromGitHub, bash, which, withFont ? "" }:
+{ stdenv, fetchFromGitHub, which, withFont ? "" }:
 
 stdenv.mkDerivation rec {
-  version = "1.0.0";
-  name = "nerdfonts-${version}";
+  version = "2.0.0";
+  pname = "nerdfonts";
   src = fetchFromGitHub {
     owner = "ryanoasis";
     repo = "nerd-fonts";
     rev = version;
-    sha256 = "1kz4hhshi3lsaja20kg258jc220q1b6nhwiyv0w433m0kvsgzdqd";
+    sha256 = "09i467hyskvzj2wn5sj6shvc9pb0a0rx5iknjkkkbg1ng3bla7nm";
   };
   dontPatchShebangs = true;
   buildInputs = [ which ];
   patchPhase = ''
-    sed -i -e 's|/bin/bash|${bash}/bin/bash|g' install.sh
+    patchShebangs install.sh
     sed -i -e 's|font_dir="\$HOME/.local/share/fonts|font_dir="$out/share/fonts/truetype|g' install.sh
   '';
   installPhase = ''
@@ -27,10 +27,9 @@ stdenv.mkDerivation rec {
       number of additional glyphs from popular 'iconic fonts' such as Font
       Awesome, Devicons, Octicons, and others.
     '';
-    homepage = "https://github.com/ryanoasis/nerd-fonts";
+    homepage = https://github.com/ryanoasis/nerd-fonts;
     license = licenses.mit;
-    maintainers = with maintainers; [ garbas ];
-    platforms = with platforms; unix;
+    maintainers = with maintainers; [ ];
     hydraPlatforms = []; # 'Output limit exceeded' on Hydra
   };
 }

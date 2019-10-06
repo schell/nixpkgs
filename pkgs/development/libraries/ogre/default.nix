@@ -1,19 +1,21 @@
 { fetchurl, stdenv, lib
-, cmake, mesa
-, freetype, freeimage, zziplib, randrproto, libXrandr
+, cmake, libGLU_combined
+, freetype, freeimage, zziplib, xorgproto, libXrandr
 , libXaw, freeglut, libXt, libpng, boost, ois
-, xproto, libX11, libXmu, libSM, pkgconfig
-, libXxf86vm, xf86vidmodeproto, libICE
-, renderproto, libXrender
+, libX11, libXmu, libSM, pkgconfig
+, libXxf86vm, libICE
+, unzip
+, libXrender
 , withNvidiaCg ? false, nvidia_cg_toolkit
 , withSamples ? false }:
 
-stdenv.mkDerivation {
-  name = "ogre-1.9-hg-20160322";
+stdenv.mkDerivation rec {
+  pname = "ogre";
+  version = "1.12.1";
 
   src = fetchurl {
-     url = "https://bitbucket.org/sinbad/ogre/get/v1-9.tar.gz";
-     sha256 = "0w3argjy1biaxwa3c80zxxgll67wjp8czd83p87awlcvwzdk5mz9";
+     url = "https://github.com/OGRECave/ogre/archive/v${version}.zip";
+     sha256 = "1iv6k0dwdzg5nnzw2mcgcl663q4f7p2kj7nhs8afnsikrzxxgsi4";
   };
 
   cmakeFlags = [ "-DOGRE_BUILD_SAMPLES=${toString withSamples}" ]
@@ -24,17 +26,19 @@ stdenv.mkDerivation {
   enableParallelBuilding = true;
 
   buildInputs =
-   [ cmake mesa
-     freetype freeimage zziplib randrproto libXrandr
+   [ cmake libGLU_combined
+     freetype freeimage zziplib xorgproto libXrandr
      libXaw freeglut libXt libpng boost ois
-     xproto libX11 libXmu libSM pkgconfig
-     libXxf86vm xf86vidmodeproto libICE
-     renderproto libXrender
+     libX11 libXmu libSM pkgconfig
+     libXxf86vm libICE
+     libXrender
    ] ++ lib.optional withNvidiaCg nvidia_cg_toolkit;
+
+  nativeBuildInputs = [ unzip ];
 
   meta = {
     description = "A 3D engine";
-    homepage = http://www.ogre3d.org/;
+    homepage = https://www.ogre3d.org/;
     maintainers = [ stdenv.lib.maintainers.raskin ];
     platforms = stdenv.lib.platforms.linux;
     license = stdenv.lib.licenses.mit;

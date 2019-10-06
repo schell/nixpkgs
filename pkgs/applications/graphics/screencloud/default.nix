@@ -1,8 +1,8 @@
-{ stdenv, fetchurl, fetchFromGitHub, cmake, qt4, quazip, qt-mobility, qxt, pythonPackages, glib }:
+{ stdenv, fetchFromGitHub, cmake, qt4, quazip, qt-mobility, qxt, pythonPackages }:
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "screencloud-${version}";
+  pname = "screencloud";
   version = "1.2.0";
 
   # API Keys. According to the author of the AUR package, these are only used
@@ -43,7 +43,9 @@ stdenv.mkDerivation rec {
     "-DCONSUMER_SECRET_SCREENCLOUD=${consumerSecret}"
   ];
 
-  sourceRoot = "screencloud-v${version}-src/screencloud";
+  setSourceRoot = ''
+    sourceRoot=$(echo */screencloud)
+  '';
 
   preConfigure = ''
     # This needs to be set in preConfigure instead of cmakeFlags in order to

@@ -1,25 +1,37 @@
-{ stdenv, lib, buildGoPackage, fetchFromGitHub }:
+{ stdenv, buildGoPackage, fetchFromGitHub }:
 
 buildGoPackage rec {
-  name = "elvish-${version}";
-  version = "0.5";
+  pname = "elvish";
+  version = "0.12";
 
   goPackagePath = "github.com/elves/elvish";
+  excludedPackages = [ "website" ];
+  buildFlagsArray = ''
+    -ldflags=
+      -X ${goPackagePath}/buildinfo.Version=${version}
+  '';
 
   src = fetchFromGitHub {
-    repo = "elvish";
     owner = "elves";
-    rev = version;
-    sha256 = "1dk5f8a2wpgd5cw45ippvx46fxk0yap64skfpzpiqz8bkbnrwbz6";
+    repo = pname;
+    rev = "v${version}";
+    sha256 = "1vvbgkpnrnb5aaak4ks45wl0cyp0vbry8bpxl6v2dpmq9x0bscpp";
   };
 
-  goDeps = ./deps.nix;
-
   meta = with stdenv.lib; {
-    description = "A Novel unix shell in go language";
-    homepage = https://github.com/elves/elvish;
+    description = "A friendly and expressive command shell";
+    longDescription = ''
+      Elvish is a friendly interactive shell and an expressive programming
+      language. It runs on Linux, BSDs, macOS and Windows. Despite its pre-1.0
+      status, it is already suitable for most daily interactive use.
+    '';
+    homepage = https://elv.sh/;
     license = licenses.bsd2;
-    maintainers = with maintainers; [ vrthra ];
-    platforms = with platforms; linux;
+    maintainers = with maintainers; [ vrthra AndersonTorres ];
+    platforms = with platforms; linux ++ darwin;
+  };
+
+  passthru = {
+    shellPath = "/bin/elvish";
   };
 }

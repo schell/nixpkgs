@@ -1,63 +1,23 @@
-{
-  stdenv,
-  cmake, doxygen, pkgconfig, autoreconfHook,
-  curl,
-  fetchgit,
-  grantlee,
-  libgit2,
-  libusb,
-  libssh2,
-  libxml2,
-  libxslt,
-  libzip,
-  qtbase, qtconnectivity, qtquickcontrols, qtscript, qtsvg, qttools, qtwebkit,
-  sqlite
+{ stdenv, fetchurl, fetchFromGitHub, autoreconfHook, cmake, wrapQtAppsHook, pkgconfig, qmake
+, curl, grantlee, libgit2, libusb, libssh2, libxml2, libxslt, libzip, zlib
+, qtbase, qtconnectivity, qtlocation, qtsvg, qttools, qtwebkit, libXcomposite
 }:
 
 let
-  version = "4.6.0";
+  version = "4.8.2";
 
-  libmarble = stdenv.mkDerivation rec {
-    name = "libmarble-ssrf-${version}";
+  libdc = stdenv.mkDerivation {
+    pname = "libdivecomputer-ssrf";
+    inherit version;
 
-    src = fetchgit {
-      url    = "git://git.subsurface-divelog.org/marble";
-      rev    = "refs/tags/v${version}";
-      sha256 = "1dm2hdk6y36ls7pxbzkqmyc46hdy2cd5f6pkxa6nfrbhvk5f31zd";
-    };
-
-    buildInputs = [ qtbase qtquickcontrols qtscript qtwebkit ];
-    nativeBuildInputs = [ doxygen pkgconfig cmake ];
-
-    enableParallelBuilding = true;
-
-    cmakeFlags = [
-      "-DQTONLY=TRUE"
-      "-DQT5BUILD=ON"
-      "-DBUILD_MARBLE_TESTS=NO"
-      "-DWITH_DESIGNER_PLUGIN=NO"
-      "-DBUILD_MARBLE_APPS=NO"
-    ];
-
-    meta = with stdenv.lib; {
-      description = "Qt library for a slippy map with patches from the Subsurface project";
-      homepage = http://subsurface-divelog.org;
-      license = licenses.lgpl21;
-      maintainers = with maintainers; [ mguentner ];
-      platforms = platforms.all;
-    };
-  };
-
-  libdc = stdenv.mkDerivation rec {
-    name = "libdivecomputer-ssrf-${version}";
-
-    src = fetchgit {
-      url    = "git://subsurface-divelog.org/libdc";
-      rev    = "refs/tags/v${version}";
-      sha256 = "0s82c8bvqph9c9chwzd76iwrw968w7lgjm3pj4hmad1jim67bs6n";
+    src = fetchurl {
+      url = "https://subsurface-divelog.org/downloads/libdivecomputer-subsurface-branch-${version}.tgz";
+      sha256 = "167qan59raibmilkc574gdqxfjg2f5ww2frn86xzk2kn4qg8190w";
     };
 
     nativeBuildInputs = [ autoreconfHook ];
+
+    buildInputs = [ zlib ];
 
     enableParallelBuilding = true;
 
@@ -70,31 +30,70 @@ let
     };
   };
 
-in stdenv.mkDerivation rec {
-  name = "subsurface-${version}";
+  googlemaps = stdenv.mkDerivation rec {
+    pname = "googlemaps";
 
-  src = fetchgit {
-    url    = "git://git.subsurface-divelog.org/subsurface";
-    rev    = "refs/tags/v${version}";
-    sha256 = "1rk5n52p6cnyjrgi7ybhmvh7y31zxrjny0mqpnc1wql69f90h94c";
+    version = "2017-12-18";
+
+    src = fetchFromGitHub {
+      owner = "vladest";
+      repo = "googlemaps";
+      rev = "79f3511d60dc9640de02a5f24656094c8982b26d";
+      sha256 = "11334w0bnfb97sv23vvj2b5hcwvr0171hxldn91jms9y12l5j15d";
+    };
+
+    nativeBuildInputs = [ qmake ];
+
+    buildInputs = [ qtbase qtlocation libXcomposite ];
+
+    pluginsSubdir = "lib/qt-${qtbase.qtCompatVersion}/plugins";
+
+    installPhase = ''
+      mkdir -p $out $(dirname ${pluginsSubdir}/geoservices)
+      mkdir -p ${pluginsSubdir}/geoservices
+      mv *.so ${pluginsSubdir}/geoservices
+      mv lib $out/
+    '';
+
+    enableParallelBuilding = true;
+
+    meta = with stdenv.lib; {
+      inherit (src.meta) homepage;
+      description = "QtLocation plugin for Google maps tile API";
+      maintainers = with maintainers; [ orivej ];
+      license = licenses.mit;
+      platforms = platforms.all;
+    };
+  };
+
+in stdenv.mkDerivation {
+  pname = "subsurface";
+  inherit version;
+
+  src = fetchurl {
+    url = "https://subsurface-divelog.org/downloads/Subsurface-${version}.tgz";
+    sha256 = "1fzrq6rqb6pzs36wxar2453cl509dqpcy9w7nq4gw7b1v2331wfy";
   };
 
   buildInputs = [
-    libdc libmarble
+    libdc googlemaps
     curl grantlee libgit2 libssh2 libusb libxml2 libxslt libzip
     qtbase qtconnectivity qtsvg qttools qtwebkit
   ];
-  nativeBuildInputs = [ cmake pkgconfig ];
 
-  enableParallelBuilding = false; # subsurfacewebservices.h dependency on ui_webservices.h
+  nativeBuildInputs = [ cmake wrapQtAppsHook pkgconfig ];
 
   cmakeFlags = [
-    "-DMARBLE_LIBRARIES=${libmarble}/lib/libssrfmarblewidget.so"
+    "-DLIBDC_FROM_PKGCONFIG=ON"
     "-DNO_PRINTING=OFF"
   ];
 
+  enableParallelBuilding = true;
+
+  passthru = { inherit version libdc googlemaps; };
+
   meta = with stdenv.lib; {
-    description = "Subsurface is an open source divelog program that runs on Windows, Mac and Linux";
+    description = "A divelog program";
     longDescription = ''
       Subsurface can track single- and multi-tank dives using air, Nitrox or TriMix.
       It allows tracking of dive locations including GPS coordinates (which can also

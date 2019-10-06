@@ -1,16 +1,16 @@
 { stdenv, fetchurl, config, makeWrapper
 , gconf
 , alsaLib
-, at_spi2_atk
+, at-spi2-atk
 , atk
 , cairo
 , cups
 , curl
-, dbus_glib
-, dbus_libs
+, dbus-glib
+, dbus
 , fontconfig
 , freetype
-, gdk_pixbuf
+, gdk-pixbuf
 , glib
 , glibc
 , gst-plugins-base
@@ -21,17 +21,20 @@
 , libX11
 , libXScrnSaver
 , libXcomposite
+, libXcursor
 , libXdamage
 , libXext
 , libXfixes
+, libXi
 , libXinerama
 , libXrender
 , libXt
-, libcanberra_gtk2
+, libxcb
+, libcanberra-gtk2
 , libgnome
 , libgnomeui
-, defaultIconTheme
-, mesa
+, gnome3
+, libGLU_combined
 , nspr
 , nss
 , pango
@@ -41,15 +44,14 @@
 , gnused
 , gnugrep
 , gnupg
+, runtimeShell
 }:
 
-assert stdenv.isLinux;
-
 # imports `version` and `sources`
-with (import ./sources.nix);
+with (import ./release_sources.nix);
 
 let
-  arch = if stdenv.system == "i686-linux"
+  arch = if stdenv.hostPlatform.system == "i686-linux"
     then "linux-i686"
     else "linux-x86_64";
 
@@ -72,7 +74,7 @@ stdenv.mkDerivation {
   inherit name;
 
   src = fetchurl {
-    url = "http://download-installer.cdn.mozilla.net/pub/thunderbird/releases/${version}/${source.arch}/${source.locale}/thunderbird-${version}.tar.bz2";
+    url = "https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/${version}/${source.arch}/${source.locale}/thunderbird-${version}.tar.bz2";
     inherit (source) sha512;
   };
 
@@ -82,16 +84,16 @@ stdenv.mkDerivation {
     [ stdenv.cc.cc
       gconf
       alsaLib
-      at_spi2_atk
+      at-spi2-atk
       atk
       cairo
       cups
       curl
-      dbus_glib
-      dbus_libs
+      dbus-glib
+      dbus
       fontconfig
       freetype
-      gdk_pixbuf
+      gdk-pixbuf
       glib
       glibc
       gst-plugins-base
@@ -102,16 +104,19 @@ stdenv.mkDerivation {
       libX11
       libXScrnSaver
       libXcomposite
+      libXcursor
       libXdamage
       libXext
       libXfixes
+      libXi
       libXinerama
       libXrender
       libXt
-      libcanberra_gtk2
+      libxcb
+      libcanberra-gtk2
       libgnome
       libgnomeui
-      mesa
+      libGLU_combined
       nspr
       nss
       pango
@@ -119,7 +124,7 @@ stdenv.mkDerivation {
       stdenv.cc.cc
     ];
 
-  buildInputs = [ gtk3 defaultIconTheme ];
+  buildInputs = [ gtk3 gnome3.adwaita-icon-theme ];
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -154,15 +159,18 @@ stdenv.mkDerivation {
       Categories=Application;Network;
       EOF
 
+      # SNAP_NAME: https://github.com/NixOS/nixpkgs/pull/61980
       wrapProgram "$out/bin/thunderbird" \
         --argv0 "$out/bin/.thunderbird-wrapped" \
         --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH:" \
-        --suffix XDG_DATA_DIRS : "$XDG_ICON_DIRS"
+        --suffix XDG_DATA_DIRS : "$XDG_ICON_DIRS" \
+        --set SNAP_NAME "thunderbird"
     '';
 
   passthru.updateScript = import ./../../browsers/firefox-bin/update.nix {
-    inherit name writeScript xidel coreutils gnused gnugrep curl gnupg;
+    inherit name writeScript xidel coreutils gnused gnugrep curl gnupg runtimeShell;
     baseName = "thunderbird";
+    channel = "release";
     basePath = "pkgs/applications/networking/mailreaders/thunderbird-bin";
     baseUrl = "http://archive.mozilla.org/pub/thunderbird/releases/";
   };

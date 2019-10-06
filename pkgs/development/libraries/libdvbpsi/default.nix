@@ -1,12 +1,12 @@
 {stdenv, fetchurl}:
 
 stdenv.mkDerivation rec {
-  name = "libdvbpsi-${version}";
-  version = "0.2.2";
+  pname = "libdvbpsi";
+  version = "1.3.3";
 
   src = fetchurl {
-    url = "http://get.videolan.org/libdvbpsi/${version}/${name}.tar.bz2";
-    sha256 = "1lry2swxqm8mhq0a4rjnc819ngsf2pxnfjajb57lml7yr12j79ls";
+    url = "http://get.videolan.org/libdvbpsi/${version}/${pname}-${version}.tar.bz2";
+    sha256 = "04h1l3vrkrdsrvkgzcr51adk10g6hxcxvgjphyyxz718ry5rkd82";
   };
 
   meta = {

@@ -1,28 +1,32 @@
-{ stdenv, pkgs, fetchgit, pkgconfig, attr, libuuid, libscrypt, libsodium, keyutils, liburcu, zlib, libaio }:
+{ stdenv, fetchgit, pkgconfig, attr, libuuid, libscrypt, libsodium, keyutils
+, liburcu, zlib, libaio, zstd, lz4 }:
 
-stdenv.mkDerivation rec {
-  name = "bcachefs-tools-unstable-2016-05-13";
+stdenv.mkDerivation {
+  pname = "bcachefs-tools";
+  version = "2019-10-01";
 
   src = fetchgit {
     url = "https://evilpiepirate.org/git/bcachefs-tools.git";
-    rev = "565b4a74d6c25c78b0d2b82d9529595fc6269308";
-    sha256 = "1wnis26hq67vxqkxzck6wm6caq4c1rfmy9blmmgkzlhdd2nzisbx";
+    rev = "7f69c4161c31b8f43723a9ccad1a9a358f4e2e70";
+    sha256 = "0v4b8h99cd434v349y8vmhj2igf0ryky7svd20ar1fr7da580kvj";
   };
 
-  buildInputs = [ pkgconfig attr libuuid libscrypt libsodium keyutils liburcu zlib libaio ];
+  enableParallelBuilding = true;
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ attr libuuid libscrypt libsodium keyutils liburcu zlib libaio zstd lz4 ];
+  installFlags = [ "PREFIX=${placeholder "out"}" ];
 
-  preConfigure = ''
-    substituteInPlace cmd_migrate.c --replace /usr/include/dirent.h ${stdenv.glibc.dev}/include/dirent.h
+  preInstall = ''
+    substituteInPlace Makefile \
+      --replace "INITRAMFS_DIR=/etc/initramfs-tools" \
+                "INITRAMFS_DIR=${placeholder "out"}/etc/initramfs-tools"
   '';
-
-  installFlags = [ "PREFIX=$(out)" ];
 
   meta = with stdenv.lib; {
     description = "Tool for managing bcachefs filesystems";
-    homepage = "http://bcachefs.org/";
+    homepage = https://bcachefs.org/;
     license = licenses.gpl2;
-    maintainers = with maintainers; [ davidak ];
+    maintainers = with maintainers; [ davidak chiiruno ];
     platforms = platforms.linux;
   };
 }
-

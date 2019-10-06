@@ -1,7 +1,10 @@
 { lib
+, bokeh
 , buildPythonPackage
 , fetchPypi
+, fsspec
 , pytest
+, pythonOlder
 , cloudpickle
 , numpy
 , toolz
@@ -12,16 +15,18 @@
 
 buildPythonPackage rec {
   pname = "dask";
-  version = "0.14.3";
-  name = "${pname}-${version}";
+  version = "2.2.0";
+
+  disabled = pythonOlder "3.5";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "9bf007f9cedc08f73089f0621ff65ec0882fc0a834acef56830dfd2872908211";
+    sha256 = "0wkiqkckwy7fv6m86cs3m3g6jdikkkw84ki9hiwp60xpk5xngnf0";
   };
 
   checkInputs = [ pytest ];
-  propagatedBuildInputs = [ cloudpickle  numpy toolz dill pandas partd ];
+  propagatedBuildInputs = [
+    bokeh cloudpickle dill fsspec numpy pandas partd toolz ];
 
   checkPhase = ''
     py.test dask
@@ -32,7 +37,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "Minimal task scheduling abstraction";
-    homepage = "http://github.com/ContinuumIO/dask/";
+    homepage = https://github.com/ContinuumIO/dask/;
     license = lib.licenses.bsd3;
     maintainers = with lib.maintainers; [ fridh ];
   };

@@ -1,34 +1,7 @@
-{fetchFromGitHub, stdenv, fontforge, perl, FontTTF}:
+{ fetchFromGitHub, stdenv, fontforge, perl, perlPackages }:
 
-let version = "2.37" ; in
-
-stdenv.mkDerivation rec {
-  name = "dejavu-fonts-${version}";
-  buildInputs = [fontforge perl FontTTF];
-
-  src = fetchFromGitHub {
-    owner = "dejavu-fonts";
-    repo = "dejavu-fonts";
-    rev = "version_${stdenv.lib.replaceStrings ["."] ["_"] version}";
-    sha256 = "1xknlg2h287dx34v2n5r33bpcl4biqf0cv7nak657rjki7s0k4bk";
-  };
-
-  outputs = [ "out" "minimal" ];
-
-  buildFlags = "full-ttf";
-
-  preBuild = "patchShebangs scripts";
-
-  installPhase = ''
-    mkdir -p $out/share/fonts/truetype
-    for i in $(find build -name '*.ttf'); do
-        cp $i $out/share/fonts/truetype;
-    done;
-  '' + ''
-    local fname=share/fonts/truetype/DejaVuSans.ttf
-    moveToOutput "$fname" "$minimal"
-    ln -s "$minimal/$fname" "$out/$fname"
-  '';
+let
+  version = "2.37";
 
   meta = {
     description = "A typeface family based on the Bitstream Vera fonts";
@@ -47,6 +20,46 @@ stdenv.mkDerivation rec {
     # See http://dejavu-fonts.org/wiki/License for details
     license = stdenv.lib.licenses.free;
 
-    platforms = stdenv.lib.platforms.unix;
+    platforms = stdenv.lib.platforms.all;
   };
+
+  full-ttf = stdenv.mkDerivation {
+    pname = "dejavu-fonts-full";
+    inherit version;
+    nativeBuildInputs = [fontforge perl perlPackages.IOString perlPackages.FontTTF];
+
+    src = fetchFromGitHub {
+      owner = "dejavu-fonts";
+      repo = "dejavu-fonts";
+      rev = "version_${stdenv.lib.replaceStrings ["."] ["_"] version}";
+      sha256 = "1xknlg2h287dx34v2n5r33bpcl4biqf0cv7nak657rjki7s0k4bk";
+    };
+
+    buildFlags = "full-ttf";
+
+    preBuild = "patchShebangs scripts";
+
+    installPhase = "install -m444 -Dt $out/share/fonts/truetype build/*.ttf";
+
+    inherit meta;
+  };
+
+  minimal = stdenv.mkDerivation {
+    pname = "dejavu-fonts-minimal";
+    inherit version;
+    buildCommand = ''
+      install -m444 -Dt $out/share/fonts/truetype ${full-ttf}/share/fonts/truetype/DejaVuSans.ttf
+    '';
+    inherit meta;
+  };
+in stdenv.mkDerivation {
+  pname = "dejavu-fonts";
+  inherit version;
+  buildCommand = ''
+    install -m444 -Dt $out/share/fonts/truetype ${full-ttf}/share/fonts/truetype/*.ttf
+    ln -s --relative --force --target-directory=$out/share/fonts/truetype ${minimal}/share/fonts/truetype/DejaVuSans.ttf
+  '';
+  inherit meta;
+
+  passthru = { inherit minimal full-ttf; };
 }

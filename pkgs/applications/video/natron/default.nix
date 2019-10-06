@@ -1,7 +1,7 @@
 { lib, stdenv, fetchurl, qt4, pkgconfig, boost, expat, cairo, python2Packages,
   cmake, flex, bison, pango, librsvg, librevenge, libxml2, libcdr, libzip,
-  poppler, imagemagick, glew, openexr, ffmpeg, opencolorio, openimageio,
-  qmake4Hook, libpng, mesa_noglu, lndir }:
+  poppler, imagemagick, openexr, ffmpeg, opencolorio, openimageio,
+  qmake4Hook, libpng, libGL, lndir }:
 
 let
   minorVersion = "2.1";
@@ -12,7 +12,7 @@ let
   };
   seexpr = stdenv.mkDerivation rec {
     version = "1.0.1";
-    name = "seexpr-${version}";
+    pname = "seexpr";
     src = fetchurl {
       url = "https://github.com/wdas/SeExpr/archive/rel-${version}.tar.gz";
       sha256 = "1ackh0xs4ip7mk34bam8zd4qdymkdk0dgv8x0f2mf6gbyzzyh7lp";
@@ -20,14 +20,14 @@ let
     nativeBuildInputs = [ cmake ];
     buildInputs = [ libpng flex bison ];
   };
-  buildPlugin = { pluginName, sha256, buildInputs, preConfigure ? "" }:
+  buildPlugin = { pluginName, sha256, nativeBuildInputs ? [], buildInputs ? [], preConfigure ? "" }:
     stdenv.mkDerivation {
       name = "openfx-${pluginName}-${version}";
       src = fetchurl {
         url = "https://github.com/MrKepzie/Natron/releases/download/${version}/openfx-${pluginName}-${version}.tar.xz";
         inherit sha256;
       };
-      inherit buildInputs;
+      inherit nativeBuildInputs buildInputs;
       preConfigure = ''
         makeFlagsArray+=("CONFIG=release")
         makeFlagsArray+=("PLUGINPATH=$out/Plugins/OFX/Natron")
@@ -50,8 +50,9 @@ let
     ({
       pluginName = "arena";
       sha256 = "0qba13vn9qdfax7nqlz1ps27zspr5kh795jp1xvbmwjzjzjpkqkf";
+      nativeBuildInputs = [ pkgconfig ];
       buildInputs = [
-        pkgconfig pango librsvg librevenge libcdr opencolorio libxml2 libzip
+        pango librsvg librevenge libcdr opencolorio libxml2 libzip
         poppler imagemagick
       ];
       preConfigure = ''
@@ -65,8 +66,9 @@ let
     ({
       pluginName = "io";
       sha256 = "0s196i9fkgr9iw92c94mxgs1lkxbhynkf83vmsgrldflmf0xjky7";
+      nativeBuildInputs = [ pkgconfig ];
       buildInputs = [
-        pkgconfig libpng ffmpeg openexr opencolorio openimageio boost mesa_noglu
+        libpng ffmpeg openexr opencolorio openimageio boost libGL
         seexpr
       ];
     })
@@ -74,7 +76,7 @@ let
       pluginName = "misc";
       sha256 = "02h79jrll0c17azxj16as1mks3lmypm4m3da4mms9sg31l3n82qi";
       buildInputs = [
-        mesa_noglu
+        libGL
       ];
       preConfigure = ''
         cp ${CImgh} CImg/CImg.h
@@ -91,11 +93,11 @@ stdenv.mkDerivation {
     sha256 = "1wdc0zqriw2jhlrhzs6af3kagrv22cm086ffnbr1x43mgc9hfhjp";
   };
 
-  buildInputs = [
-    pkgconfig qt4 boost expat cairo python2Packages.pyside python2Packages.pysideShiboken
-  ];
+  nativeBuildInputs = [ qmake4Hook pkgconfig python2Packages.wrapPython ];
 
-  nativeBuildInputs = [ qmake4Hook python2Packages.wrapPython ];
+  buildInputs = [
+    qt4 boost expat cairo python2Packages.pyside python2Packages.pysideShiboken
+  ];
 
   preConfigure = ''
     export MAKEFLAGS=-j$NIX_BUILD_CORES
@@ -118,9 +120,10 @@ stdenv.mkDerivation {
       Node-graph based, open-source compositing software. Similar in
       functionalities to Adobe After Effects and Nuke by The Foundry.
     '';
-    homepage = https://natron.inria.fr/;
+    homepage = https://natron.fr/;
     license = stdenv.lib.licenses.gpl2;
     maintainers = [ maintainers.puffnfresh ];
     platforms = platforms.linux;
+    broken = true;
   };
 }

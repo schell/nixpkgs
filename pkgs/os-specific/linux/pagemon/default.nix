@@ -1,11 +1,11 @@
 { stdenv, fetchFromGitHub, ncurses }:
 
 stdenv.mkDerivation rec {
-  name = "pagemon-${version}";
-  version = "0.01.10";
+  pname = "pagemon";
+  version = "0.01.16";
 
   src = fetchFromGitHub {
-    sha256 = "04dbcr7bzgp4kvhw1rsn084cz4qbfhf7ifyh3ikgdka9w98057h1";
+    sha256 = "0fpxjw6sg6r9r7yy03brri37wmmc32rhzayzlmwgmzay8rifmm7i";
     rev = "V${version}";
     repo = "pagemon";
     owner = "ColinIanKing";
@@ -33,6 +33,5 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

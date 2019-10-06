@@ -1,8 +1,8 @@
-{ stdenv, fetchurl, makeWrapper, makeDesktopItem, ant, jdk, jre }:
+{ stdenv, fetchurl, makeWrapper, makeDesktopItem, jdk, jre, wrapGAppsHook, gtk3, gsettings-desktop-schemas }:
 
 stdenv.mkDerivation rec {
   version = "3.8.1";
-  name = "jabref-${version}";
+  pname = "jabref";
 
   src = fetchurl {
     url = "https://github.com/JabRef/jabref/releases/download/v${version}/JabRef-${version}.jar";
@@ -19,9 +19,9 @@ stdenv.mkDerivation rec {
     exec = "jabref";
   };
 
-  buildInputs = [ makeWrapper jdk ];
+  buildInputs = [ makeWrapper jdk wrapGAppsHook gtk3 gsettings-desktop-schemas ];
 
-  phases = [ "installPhase" ];
+  dontUnpack = true;
 
   installPhase = ''
     mkdir -p $out/bin $out/share/java $out/share/icons

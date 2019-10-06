@@ -1,16 +1,16 @@
-{ stdenv, fetchzip, ocaml, findlib, ocamlbuild, opam, topkg, astring }:
+{ stdenv, fetchzip, ocaml, findlib, ocamlbuild, topkg, astring }:
 
 stdenv.mkDerivation {
   name = "ocaml${ocaml.version}-ocb-stubblr-0.1.0";
   src = fetchzip {
-    url = http://github.com/pqwy/ocb-stubblr/releases/download/v0.1.0/ocb-stubblr-0.1.0.tbz;
+    url = https://github.com/pqwy/ocb-stubblr/releases/download/v0.1.0/ocb-stubblr-0.1.0.tbz;
     name = "src.tar.bz";
     sha256 = "0hpds1lkq4j8wgslv7hnirgfrjmqi36h5rarpw9mwf24gfp5ays2";
   };
 
   patches = [ ./pkg-config.patch ];
 
-  buildInputs = [ ocaml findlib ocamlbuild opam topkg ];
+  buildInputs = [ ocaml findlib ocamlbuild topkg ];
 
   propagatedBuildInputs = [ astring ];
 

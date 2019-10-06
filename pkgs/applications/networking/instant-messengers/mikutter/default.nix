@@ -1,15 +1,29 @@
 { stdenv, fetchurl
-, bundlerEnv, ruby, pkgconfig
-, alsaUtils, libnotify, which, wrapGAppsHook, gtk2
+, bundlerEnv, ruby
+, alsaUtils, libnotify, which, wrapGAppsHook, gtk2, atk, gobject-introspection
 }:
 
+# how to update:
+# find latest version at: http://mikutter.hachune.net/download#download
+# run these commands:
+#
+# wget http://mikutter.hachune.net/bin/mikutter.3.8.7.tar.gz
+# tar xvf mikutter.3.8.7.tar.gz
+# cd mikutter
+# find . -not -name Gemfile -exec rm {} \;
+# find . -type d -exec rmdir -p --ignore-fail-on-non-empty {} \;
+# cd ..
+# mv mikutter/* .
+# rm mikutter.3.8.7.tar.gz
+# rm gemset.nix Gemfile.lock; nix-shell -p bundler bundix --run 'bundle lock && bundix'
+
 stdenv.mkDerivation rec {
-  name = "mikutter-${version}";
-  version = "3.5.7";
+  pname = "mikutter";
+  version = "3.8.7";
 
   src = fetchurl {
     url = "https://mikutter.hachune.net/bin/mikutter.${version}.tar.gz";
-    sha256 = "1vh5ap92q869j69hmmbznailaflmdp0km4sqdv06cpq7v8pwm28w";
+    sha256 = "1griypcd1xgyfd9wc3ls32grpw4ig0xxdiygpdinzr3bigfmd7iv";
   };
 
   env = bundlerEnv {
@@ -19,7 +33,7 @@ stdenv.mkDerivation rec {
     inherit ruby;
   };
 
-  buildInputs = [ alsaUtils libnotify which gtk2 ruby ];
+  buildInputs = [ alsaUtils libnotify which gtk2 ruby atk gobject-introspection ];
   nativeBuildInputs = [ wrapGAppsHook ];
 
   postUnpack = ''
@@ -41,6 +55,7 @@ stdenv.mkDerivation rec {
       --prefix GEM_HOME : "${env}/${env.ruby.gemPath}"
       --set DISABLE_BUNDLER_SETUP 1
     )
+      # --prefix GIO_EXTRA_MODULES : "$prefix/lib/gio/modules"
 
     mkdir -p $out/share/mikutter $out/share/applications
     ln -sv $out/core/skin $out/share/mikutter/skin
@@ -55,8 +70,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "An extensible Twitter client";
-    homepage = "https://mikutter.hachune.net";
-    maintainers = with maintainers; [ midchildan ];
+    homepage = https://mikutter.hachune.net;
     platforms = ruby.meta.platforms;
     license = licenses.mit;
   };

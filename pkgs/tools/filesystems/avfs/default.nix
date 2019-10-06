@@ -1,11 +1,11 @@
 { stdenv, fetchurl, pkgconfig, fuse, xz }:
 
 stdenv.mkDerivation rec {
-  name = "avfs-${version}";
-  version = "1.0.4";
+  pname = "avfs";
+  version = "1.1.1";
   src = fetchurl {
-    url = "mirror://sourceforge/avf/${version}/${name}.tar.bz2";
-    sha256 = "005iw01ppjslfzbbx52dhmp1f7a8d071s5pxvjlk11zdv4h22rbb";
+    url = "mirror://sourceforge/avf/${version}/${pname}-${version}.tar.bz2";
+    sha256 = "0fxzigpyi08ipqz30ihjcpqmmx8g7r1kqdqq1bnnznvnhrzyygn8";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -15,7 +15,6 @@ stdenv.mkDerivation rec {
   configureFlags = [
     "--enable-library"
     "--enable-fuse"
-    "--disable-static"
   ];
 
   meta = {

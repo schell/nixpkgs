@@ -1,21 +1,29 @@
-{ stdenv, fetchurl, fetchpatch, pkgconfig, perl, perlXMLParser, libXft
+{ stdenv, fetchurl, pkgconfig, perlPackages, libXft
 , libpng, zlib, popt, boehmgc, libxml2, libxslt, glib, gtkmm2
-, glibmm, libsigcxx, lcms, boost, gettext, makeWrapper, intltool
+, glibmm, libsigcxx, lcms, boost, gettext, makeWrapper
 , gsl, python2, poppler, imagemagick, libwpg, librevenge
-, libvisio, libcdr, libexif, automake114x, potrace, cmake
+, libvisio, libcdr, libexif, potrace, cmake, hicolor-icon-theme
+, librsvg, wrapGAppsHook
 }:
 
 let
-  python2Env = python2.withPackages(ps: with ps; [ numpy lxml ]);
+  python2Env = python2.withPackages(ps: with ps;
+    [ numpy lxml scour ]);
 in
 
 stdenv.mkDerivation rec {
-  name = "inkscape-0.92.1";
+  name = "inkscape-0.92.4";
 
   src = fetchurl {
-    url = "https://media.inkscape.org/dl/resources/file/${name}.tar_XlpI7qT.bz2";
-    sha256 = "01chr3vh728dkg7l7lilwgmh5nrp784khdhjgpqjbq9dh2zhax15";
+    url = "https://media.inkscape.org/dl/resources/file/${name}.tar.bz2";
+    sha256 = "0pjinhjibfsz1aywdpgpj3k23xrsszpj4a1ya5562dkv2yl2vv2p";
   };
+
+  # Inkscape hits the ARGMAX when linking on macOS. It appears to be
+  # CMake’s ARGMAX check doesn’t offer enough padding for NIX_LDFLAGS.
+  # Setting strictDeps it avoids duplicating some dependencies so it
+  # will leave us under ARGMAX.
+  strictDeps = true;
 
   unpackPhase = ''
     cp $src ${name}.tar.bz2
@@ -33,26 +41,33 @@ stdenv.mkDerivation rec {
       --replace '"python-interpreter", "python"' '"python-interpreter", "${python2Env}/bin/python"'
   '';
 
+  nativeBuildInputs = [ pkgconfig cmake makeWrapper python2Env wrapGAppsHook ]
+    ++ (with perlPackages; [ perl XMLParser ]);
   buildInputs = [
-    pkgconfig perl perlXMLParser libXft libpng zlib popt boehmgc
+    libXft libpng zlib popt boehmgc
     libxml2 libxslt glib gtkmm2 glibmm libsigcxx lcms boost gettext
-    makeWrapper intltool gsl poppler imagemagick libwpg librevenge
-    libvisio libcdr libexif automake114x potrace cmake python2Env
+    gsl poppler imagemagick libwpg librevenge
+    libvisio libcdr libexif potrace hicolor-icon-theme
+
+    librsvg # for loading icons
+
+    python2Env perlPackages.perl
   ];
 
   enableParallelBuilding = true;
 
-  postInstall = ''
-    # Make sure PyXML modules can be found at run-time.
-    rm "$out/share/icons/hicolor/icon-theme.cache"
-  '' + stdenv.lib.optionalString stdenv.isDarwin ''
+  # Make sure PyXML modules can be found at run-time.
+  postInstall = stdenv.lib.optionalString stdenv.isDarwin ''
     install_name_tool -change $out/lib/libinkscape_base.dylib $out/lib/inkscape/libinkscape_base.dylib $out/bin/inkscape
     install_name_tool -change $out/lib/libinkscape_base.dylib $out/lib/inkscape/libinkscape_base.dylib $out/bin/inkview
   '';
 
+  # 0.92.3 complains about an invalid conversion from const char * to char *
+  NIX_CFLAGS_COMPILE = " -fpermissive ";
+
   meta = with stdenv.lib; {
     license = "GPL";
-    homepage = http://www.inkscape.org;
+    homepage = https://www.inkscape.org;
     description = "Vector graphics editor";
     platforms = platforms.all;
     longDescription = ''

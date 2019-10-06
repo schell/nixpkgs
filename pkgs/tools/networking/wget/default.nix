@@ -1,24 +1,20 @@
-{ stdenv, fetchurl, gettext, pkgconfig, perl
-, libidn2, zlib, pcre, libuuid, libiconv
-, IOSocketSSL, LWP, python3
+{ stdenv, fetchurl, gettext, pkgconfig, perlPackages
+, libidn2, zlib, pcre, libuuid, libiconv, libintl
+, python3, lzip
 , libpsl ? null
 , openssl ? null }:
 
 stdenv.mkDerivation rec {
-  name = "wget-1.19.1";
+  pname = "wget";
+  version = "1.20.3";
 
   src = fetchurl {
-    url = "mirror://gnu/wget/${name}.tar.xz";
-    sha256 = "1ljcfhbkdsd0zjfm520rbl1ai62fc34i7c45sfj244l8f6b0p58c";
+    url = "mirror://gnu/wget/${pname}-${version}.tar.lz";
+    sha256 = "1frajd86ds8vz2hprq30wq8ya89z9dcxnwm8nwk12bbc47l7qq39";
   };
 
   patches = [
     ./remove-runtime-dep-on-openssl-headers.patch
-    (fetchurl {
-      name = "CVE-2017-6508";
-      url = "http://git.savannah.gnu.org/cgit/wget.git/patch/?id=4d729e322fae359a1aefaafec1144764a54e8ad4";
-      sha256 = "14r0c5y3w3gavxp2d9yq8xji82izi5sx0sjv6jpmk6zp6cnr7cjf";
-    })
   ];
 
   preConfigure = ''
@@ -30,19 +26,18 @@ stdenv.mkDerivation rec {
     do
       sed -i "$i" -e's/localhost/127.0.0.1/g'
     done
-  '' + stdenv.lib.optionalString stdenv.isDarwin ''
-    export LIBS="-liconv -lintl"
   '';
 
-  nativeBuildInputs = [ gettext pkgconfig perl ];
-  buildInputs = [ libidn2 libiconv zlib pcre libuuid ]
-    ++ stdenv.lib.optionals doCheck [ IOSocketSSL LWP python3 ]
+  nativeBuildInputs = [ gettext pkgconfig perlPackages.perl lzip libiconv libintl ];
+  buildInputs = [ libidn2 zlib pcre libuuid ]
+    ++ stdenv.lib.optionals doCheck [ perlPackages.IOSocketSSL perlPackages.LWP python3 ]
     ++ stdenv.lib.optional (openssl != null) openssl
     ++ stdenv.lib.optional (libpsl != null) libpsl
-    ++ stdenv.lib.optional stdenv.isDarwin perl;
+    ++ stdenv.lib.optional stdenv.isDarwin perlPackages.perl;
 
-  configureFlags =
-    if openssl != null then "--with-ssl=openssl" else "--without-ssl";
+  configureFlags = [
+    (stdenv.lib.withFeatureAs (openssl != null) "ssl" "openssl")
+  ];
 
   doCheck = false;
 
@@ -58,7 +53,7 @@ stdenv.mkDerivation rec {
 
     license = licenses.gpl3Plus;
 
-    homepage = http://www.gnu.org/software/wget/;
+    homepage = https://www.gnu.org/software/wget/;
 
     maintainers = with maintainers; [ fpletz ];
     platforms = platforms.all;

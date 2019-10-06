@@ -1,5 +1,10 @@
 { stdenv, fetchFromGitHub, writeScript, glibcLocales, diffPlugins
-, pythonPackages, imagemagick, gobjectIntrospection, gst_all_1
+, pythonPackages, imagemagick, gobject-introspection, gst_all_1
+, runtimeShell
+, fetchpatch
+
+# Attributes needed for tests of the external plugins
+, callPackage, beets
 
 , enableAcousticbrainz ? true
 , enableAcoustid       ? true
@@ -8,10 +13,16 @@
 , enableDiscogs        ? true
 , enableEmbyupdate     ? true
 , enableFetchart       ? true
+, enableGmusic         ? true
 , enableKeyfinder      ? true, keyfinder-cli ? null
+, enableKodiupdate     ? true
 , enableLastfm         ? true
+, enableLoadext        ? true
 , enableMpd            ? true
+, enablePlaylist       ? true
 , enableReplaygain     ? true, bs1770gain ? null
+, enableSonosUpdate    ? true
+, enableSubsonicupdate ? true
 , enableThumbnails     ? true
 , enableWeb            ? true
 
@@ -27,10 +38,12 @@ assert enableBadfiles    -> flac != null && mp3val != null;
 assert enableConvert     -> ffmpeg != null;
 assert enableDiscogs     -> pythonPackages.discogs_client != null;
 assert enableFetchart    -> pythonPackages.responses      != null;
+assert enableGmusic      -> pythonPackages.gmusicapi      != null;
 assert enableKeyfinder   -> keyfinder-cli != null;
 assert enableLastfm      -> pythonPackages.pylast         != null;
-assert enableMpd         -> pythonPackages.mpd            != null;
+assert enableMpd         -> pythonPackages.mpd2           != null;
 assert enableReplaygain  -> bs1770gain                    != null;
+assert enableSonosUpdate -> pythonPackages.soco           != null;
 assert enableThumbnails  -> pythonPackages.pyxdg          != null;
 assert enableWeb         -> pythonPackages.flask          != null;
 
@@ -45,12 +58,18 @@ let
     discogs = enableDiscogs;
     embyupdate = enableEmbyupdate;
     fetchart = enableFetchart;
+    gmusic = enableGmusic;
     keyfinder = enableKeyfinder;
+    kodiupdate = enableKodiupdate;
     lastgenre = enableLastfm;
     lastimport = enableLastfm;
+    loadext = enableLoadext;
     mpdstats = enableMpd;
     mpdupdate = enableMpd;
+    playlist = enablePlaylist;
     replaygain = enableReplaygain;
+    sonosupdate = enableSonosUpdate;
+    subsonicupdate = enableSubsonicupdate;
     thumbnails = enableThumbnails;
     web = enableWeb;
   };
@@ -72,15 +91,30 @@ let
   testShell = "${bashInteractive}/bin/bash --norc";
   completion = "${bash-completion}/share/bash-completion/bash_completion";
 
+  # This is a stripped down beets for testing of the external plugins.
+  externalTestArgs.beets = (beets.override {
+    enableAlternatives = false;
+    enableCopyArtifacts = false;
+  }).overrideAttrs (stdenv.lib.const {
+    doInstallCheck = false;
+  });
+
+  pluginArgs = externalTestArgs // { inherit pythonPackages; };
+
+  plugins = {
+    alternatives = callPackage ./alternatives-plugin.nix pluginArgs;
+    copyartifacts = callPackage ./copyartifacts-plugin.nix pluginArgs;
+  };
+
 in pythonPackages.buildPythonApplication rec {
-  name = "beets-${version}";
-  version = "1.4.3";
+  pname = "beets";
+  version = "1.4.9";
 
   src = fetchFromGitHub {
     owner = "beetbox";
     repo = "beets";
     rev = "v${version}";
-    sha256 = "0sh2ap7jbqh7p8h63kgrx1ja9lyqlxjpfnh6axxw9p1mh78cgc1v";
+    sha256 = "1qxdqbzvz97zgykzdwn78g2xyxmg0q2jdb12dnjnrwvhmjv67vi8";
   };
 
   propagatedBuildInputs = [
@@ -90,43 +124,47 @@ in pythonPackages.buildPythonApplication rec {
     pythonPackages.munkres
     pythonPackages.musicbrainzngs
     pythonPackages.mutagen
-    pythonPackages.pathlib
     pythonPackages.pyyaml
     pythonPackages.unidecode
     pythonPackages.gst-python
     pythonPackages.pygobject3
-    gobjectIntrospection
-  ] ++ optional enableAcoustid     pythonPackages.pyacoustid
+    gobject-introspection
+  ] ++ optional enableAcoustid      pythonPackages.pyacoustid
     ++ optional (enableFetchart
               || enableEmbyupdate
+              || enableKodiupdate
+              || enableLoadext
+              || enablePlaylist
+              || enableSubsonicupdate
               || enableAcousticbrainz)
-                                   pythonPackages.requests
-    ++ optional enableConvert      ffmpeg
-    ++ optional enableDiscogs      pythonPackages.discogs_client
-    ++ optional enableKeyfinder    keyfinder-cli
-    ++ optional enableLastfm       pythonPackages.pylast
-    ++ optional enableMpd          pythonPackages.mpd
-    ++ optional enableThumbnails   pythonPackages.pyxdg
-    ++ optional enableWeb          pythonPackages.flask
-    ++ optional enableAlternatives (import ./alternatives-plugin.nix {
-      inherit stdenv pythonPackages fetchFromGitHub;
-    })
-    ++ optional enableCopyArtifacts (import ./copyartifacts-plugin.nix {
-      inherit stdenv pythonPackages fetchFromGitHub;
-    });
+                                    pythonPackages.requests
+    ++ optional enableConvert       ffmpeg
+    ++ optional enableDiscogs       pythonPackages.discogs_client
+    ++ optional enableGmusic        pythonPackages.gmusicapi
+    ++ optional enableKeyfinder     keyfinder-cli
+    ++ optional enableLastfm        pythonPackages.pylast
+    ++ optional enableMpd           pythonPackages.mpd2
+    ++ optional enableSonosUpdate   pythonPackages.soco
+    ++ optional enableThumbnails    pythonPackages.pyxdg
+    ++ optional enableWeb           pythonPackages.flask
+    ++ optional enableAlternatives  plugins.alternatives
+    ++ optional enableCopyArtifacts plugins.copyartifacts;
 
-  buildInputs = with pythonPackages; [
-    beautifulsoup4
+  buildInputs = [
     imagemagick
-    mock
-    nose
-    rarfile
-    responses
   ] ++ (with gst_all_1; [
     gst-plugins-base
     gst-plugins-good
     gst-plugins-ugly
   ]);
+
+  checkInputs = with pythonPackages; [
+    beautifulsoup4
+    mock
+    nose
+    rarfile
+    responses
+  ];
 
   patches = [
     ./replaygain-default-bs1770gain.patch
@@ -146,13 +184,18 @@ in pythonPackages.buildPythonApplication rec {
       s,"mp3val","${mp3val}/bin/mp3val",
     }' beetsplug/badfiles.py
   '' + optionalString enableConvert ''
-    sed -i -e 's,\(util\.command_output(\)\([^)]\+\)),\1[b"${ffmpeg.bin}/bin/ffmpeg" if args[0] == b"ffmpeg" else args[0]] + \2[1:]),' beetsplug/convert.py 
+    sed -i -e 's,\(util\.command_output(\)\([^)]\+\)),\1[b"${ffmpeg.bin}/bin/ffmpeg" if args[0] == b"ffmpeg" else args[0]] + \2[1:]),' beetsplug/convert.py
   '' + optionalString enableReplaygain ''
     sed -i -re '
       s!^( *cmd *= *b?['\'''"])(bs1770gain['\'''"])!\1${bs1770gain}/bin/\2!
     ' beetsplug/replaygain.py
     sed -i -e 's/if has_program.*bs1770gain.*:/if True:/' \
       test/test_replaygain.py
+  '';
+
+  postInstall = ''
+    mkdir -p $out/share/zsh/site-functions
+    cp extra/_beet $out/share/zsh/site-functions/
   '';
 
   doCheck = true;
@@ -174,8 +217,7 @@ in pythonPackages.buildPythonApplication rec {
     LOCALE_ARCHIVE=${assert stdenv.isLinux; glibcLocales}/lib/locale/locale-archive \
     BEETS_TEST_SHELL="${testShell}" \
     BASH_COMPLETION_SCRIPT="${completion}" \
-    HOME="$(mktemp -d)" \
-      nosetests -v
+    HOME="$(mktemp -d)" nosetests -v
 
     runHook postCheck
   '';
@@ -188,7 +230,7 @@ in pythonPackages.buildPythonApplication rec {
     tmphome="$(mktemp -d)"
 
     EDITOR="${writeScript "beetconfig.sh" ''
-      #!${stdenv.shell}
+      #!${runtimeShell}
       cat > "$1" <<CFG
       plugins: ${concatStringsSep " " allEnabledPlugins}
       CFG
@@ -202,9 +244,9 @@ in pythonPackages.buildPythonApplication rec {
 
   meta = {
     description = "Music tagger and library organizer";
-    homepage = http://beets.radbox.org;
+    homepage = http://beets.io;
     license = licenses.mit;
-    maintainers = with maintainers; [ aszlig domenkozar pjones profpatsch ];
+    maintainers = with maintainers; [ aszlig domenkozar pjones ];
     platforms = platforms.linux;
   };
 }

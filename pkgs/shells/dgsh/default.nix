@@ -3,8 +3,8 @@
   perl, texinfo, help2man, gettext, ncurses
 }:
 
-stdenv.mkDerivation rec {
-  name = "dgsh-unstable-${version}";
+stdenv.mkDerivation {
+  pname = "dgsh-unstable";
   version = "2017-02-05";
 
   src = fetchFromGitHub {
@@ -14,6 +14,8 @@ stdenv.mkDerivation rec {
     sha256 = "0k3hmnarz56wphw45mabn5zcc427l5p77jldh1qqy89pxqy1wnql";
     fetchSubmodules = true;
   };
+
+  patches = [ ./glibc-2.26.patch ];
 
   nativeBuildInputs = [ autoconf automake pkgconfig libtool check
     bison git gettext gperf perl texinfo help2man ncurses
@@ -30,6 +32,8 @@ stdenv.mkDerivation rec {
     export RSYNC=true # set to rsync binary, eventhough it is not used.
     make PREFIX=$out config
   '';
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     description = "The Directed Graph Shell";

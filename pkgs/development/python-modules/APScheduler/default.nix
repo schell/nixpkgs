@@ -20,12 +20,11 @@
 
 buildPythonPackage rec {
   pname = "APScheduler";
-  version = "3.3.1";
-  name = "${pname}-${version}";
+  version = "3.6.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "f68874dff1bdffcc6ce3adb7840c1e4d162c609a3e3f831351df30b75732767b";
+    sha256 = "1c56066rx09xk1zbd156whsynlakxazqq64i509id17015wzp6jj";
   };
 
   buildInputs = [
@@ -59,7 +58,7 @@ buildPythonPackage rec {
 
   meta = with lib; {
     description = "A Python library that lets you schedule your Python code to be executed";
-    homepage = http://pypi.python.org/pypi/APScheduler/;
+    homepage = https://pypi.python.org/pypi/APScheduler/;
     license = licenses.mit;
   };
 }

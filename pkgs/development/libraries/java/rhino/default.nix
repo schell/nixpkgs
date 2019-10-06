@@ -2,7 +2,6 @@
 
 let
   version = "1.7R2";
-  options = "-Dbuild.compiler=gcj";   # FIXME: We assume GCJ here.
 
   xbeans  = fetchurl {
     url = "http://archive.apache.org/dist/xmlbeans/binaries/xmlbeans-2.2.0.zip";
@@ -11,7 +10,8 @@ let
 in
 
 stdenv.mkDerivation {
-  name = "rhino-${version}";
+  pname = "rhino";
+  inherit version;
 
   src = fetchurl {
     url = "mirror://mozilla/js/rhino1_7R2.zip";
@@ -33,7 +33,7 @@ stdenv.mkDerivation {
 
   buildInputs = [ unzip ant javac jvm ];
 
-  buildPhase = "ant ${options} jar";
+  buildPhase = "ant jar";
   doCheck    = false;
 
   # FIXME: Install javadoc as well.
@@ -55,6 +55,6 @@ stdenv.mkDerivation {
     homepage = http://www.mozilla.org/rhino/;
 
     license = with licenses; [ mpl11 /* or */ gpl2Plus ];
-    platforms = platforms.linux;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }

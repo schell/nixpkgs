@@ -1,27 +1,29 @@
-{ stdenv, fetchurl, perl }:
+{ stdenv, fetchFromGitHub, perl }:
 
 stdenv.mkDerivation rec {
-  name = "libx86emu-${version}";
-  version = "1.5";
+  pname = "libx86emu";
+  version = "2.3";
 
-  src = fetchurl {
-    url = "https://github.com/wfeldt/libx86emu/archive/${version}.tar.gz";
-    sha256 = "1im6w6m0bl6ajynx4hc028lad8v10whv4y7w9zxndzh3j4mi3aa8";
+  src = fetchFromGitHub {
+    owner = "wfeldt";
+    repo = "libx86emu";
+    rev = version;
+    sha256 = "158mrg9xb0sb4l3s60084j6i7nr90smpsks9f02gbssk495h2k8l";
   };
 
-  buildInputs = [ perl ];
+  nativeBuildInputs = [ perl ];
 
+  postUnpack = "rm $sourceRoot/git2log";
   patchPhase = ''
     # VERSION is usually generated using Git
     echo "${version}" > VERSION
-    sed -i 's|/usr/|/|g' Makefile
+    substituteInPlace Makefile --replace "/usr" "/"
   '';
 
-  makeFlags = [ "shared" ];
+  buildFlags = [ "shared" ];
+  enableParallelBuilding = true;
 
-  installPhase = ''
-    make install DESTDIR=$out/ LIBDIR=lib
-  '';
+  installFlags = [ "DESTDIR=$(out)" "LIBDIR=/lib" ];
 
   meta = with stdenv.lib; {
     description = "x86 emulation library";

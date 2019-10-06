@@ -1,37 +1,49 @@
-{ stdenv, fetchFromGitHub, rustPlatform, makeWrapper }:
+{ stdenv, fetchFromGitHub, rustPlatform, makeWrapper, substituteAll, Security }:
 
 rustPlatform.buildRustPackage rec {
-  name = "racer-${version}";
-  version = "2.0.6";
+  pname = "racer";
+  version = "2.1.22";
 
   src = fetchFromGitHub {
-    owner = "phildawes";
+    owner = "racer-rust";
     repo = "racer";
-    rev = version;
-    sha256 = "09wgfrb0z2d2icfk11f1jal5p93sqjv3jzmzcgw0pgw3zvffhni3";
+    rev = "v${version}";
+    sha256 = "1n808h4jqxkvpjwmj8jgi4y5is5zvr8vn42mwb3yi13mix32cysa";
   };
 
-  depsSha256 = "0mnq7dk9wz2k9jhzciknybwc471sy8f71cd15m752b5ng6v1f5kn";
+  cargoSha256 = "0njaa9vk2i9g1c6sq20b7ls97nl532rfv3is7d8dwz51nrwk6jxs";
 
-  buildInputs = [ makeWrapper ];
+  buildInputs = [ makeWrapper ]
+                ++ stdenv.lib.optional stdenv.isDarwin Security;
 
-  preCheck = ''
-    export RUST_SRC_PATH="${rustPlatform.rust.rustc.src}/src"
+  # a nightly compiler is required unless we use this cheat code.
+  RUSTC_BOOTSTRAP=1;
+
+  RUST_SRC_PATH = rustPlatform.rustcSrc;
+  postInstall = ''
+    wrapProgram $out/bin/racer --set-default RUST_SRC_PATH $rustcSrc
   '';
 
-  doCheck = true;
+  checkPhase = ''
+    cargo test -- \
+      --skip nameres::test_do_file_search_std \
+      --skip util::test_get_rust_src_path_rustup_ok \
+      --skip util::test_get_rust_src_path_not_rust_source_tree \
+      --skip extern --skip completes_pub_fn --skip find_crate_doc \
+      --skip follows_use_local_package --skip follows_use_for_reexport \
+      --skip follows_rand_crate --skip get_completion_in_example_dir
+  '';
 
-  installPhase = ''
-    mkdir -p $out/bin
-    cp -p target/release/racer $out/bin/
-    wrapProgram $out/bin/racer --set RUST_SRC_PATH "${rustPlatform.rust.rustc.src}/src"
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $out/bin/racer --version
   '';
 
   meta = with stdenv.lib; {
     description = "A utility intended to provide Rust code completion for editors and IDEs";
-    homepage = https://github.com/phildawes/racer;
+    homepage = https://github.com/racer-rust/racer;
     license = licenses.mit;
-    maintainers = with maintainers; [ jagajaga globin ];
+    maintainers = with maintainers; [ jagajaga ];
     platforms = platforms.all;
   };
 }

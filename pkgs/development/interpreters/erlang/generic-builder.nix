@@ -1,8 +1,9 @@
-{ pkgs, stdenv, fetchurl, fetchFromGitHub, makeWrapper, gawk, gnum4, gnused
-, libxml2, libxslt, ncurses, openssl, perl, gcc, autoreconfHook
+{ pkgs, stdenv, fetchFromGitHub, makeWrapper, gawk, gnum4, gnused
+, libxml2, libxslt, ncurses, openssl, perl, autoconf
 , openjdk ? null # javacSupport
 , unixODBC ? null # odbcSupport
-, mesa ? null, wxGTK ? null, wxmac ? null, xorg ? null # wxSupport
+, libGLU_combined ? null, wxGTK ? null, wxmac ? null, xorg ? null # wxSupport
+, withSystemd ? stdenv.isLinux, systemd # systemd support in epmd
 }:
 
 { baseName ? "erlang"
@@ -17,7 +18,7 @@
 , enableKernelPoll ? true
 , javacSupport ? false, javacPackages ? [ openjdk ]
 , odbcSupport ? false, odbcPackages ? [ unixODBC ]
-, wxSupport ? true, wxPackages ? [ mesa wxGTK xorg.libX11 ]
+, wxSupport ? true, wxPackages ? [ libGLU_combined wxGTK xorg.libX11 ]
 , preUnpack ? "", postUnpack ? ""
 , patches ? [], patchPhase ? "", prePatch ? "", postPatch ? ""
 , configureFlags ? [], configurePhase ? "", preConfigure ? "", postConfigure ? ""
@@ -26,12 +27,12 @@
 , installTargets ? "install install-docs"
 , checkPhase ? "", preCheck ? "", postCheck ? ""
 , fixupPhase ? "", preFixup ? "", postFixup ? ""
-, meta ? null
+, meta ? {}
 }:
 
 assert wxSupport -> (if stdenv.isDarwin
   then wxmac != null
-  else mesa != null && wxGTK != null && xorg != null);
+  else libGLU_combined != null && wxGTK != null && xorg != null);
 
 assert odbcSupport -> unixODBC != null;
 assert javacSupport -> openjdk != null;
@@ -47,15 +48,19 @@ in stdenv.mkDerivation ({
 
   inherit src version;
 
-  buildInputs =
-   [ perl gnum4 ncurses openssl autoreconfHook libxslt libxml2 makeWrapper gcc
-   ]
+  nativeBuildInputs = [ autoconf makeWrapper perl gnum4 libxslt libxml2 ];
+
+  buildInputs = [ ncurses openssl ]
     ++ optionals wxSupport wxPackages2
     ++ optionals odbcSupport odbcPackages
     ++ optionals javacSupport javacPackages
+    ++ optional withSystemd systemd
     ++ optionals stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [ Carbon Cocoa ]);
 
   debugInfo = enableDebugInfo;
+
+  # On some machines, parallel build reliably crashes on `GEN    asn1ct_eval_ext.erl` step
+  enableParallelBuilding = false;
 
   # Clang 4 (rightfully) thinks signed comparisons of pointers with NULL are nonsense
   prePatch = ''
@@ -65,9 +70,9 @@ in stdenv.mkDerivation ({
   '';
 
   postPatch = ''
-    ${postPatch}
-
     patchShebangs make
+
+    ${postPatch}
   '';
 
   preConfigure = ''
@@ -82,15 +87,16 @@ in stdenv.mkDerivation ({
     ++ optional javacSupport "--with-javac"
     ++ optional odbcSupport "--with-odbc=${unixODBC}"
     ++ optional wxSupport "--enable-wx"
+    ++ optional withSystemd "--enable-systemd"
     ++ optional stdenv.isDarwin "--enable-darwin-64bit";
 
   # install-docs will generate and install manpages and html docs
   # (PDFs are generated only when fop is available).
 
   postInstall = ''
-    ${postInstall}
-
     ln -s $out/lib/erlang/lib/erl_interface*/bin/erl_call $out/bin/erl_call
+
+    ${postInstall}
   '';
 
   # Some erlang bin/ scripts run sed and awk
@@ -101,9 +107,9 @@ in stdenv.mkDerivation ({
 
   setupHook = ./setup-hook.sh;
 
-  meta = with stdenv.lib; {
-    homepage = "http://www.erlang.org/";
-    downloadPage = "http://www.erlang.org/download.html";
+  meta = with stdenv.lib; ({
+    homepage = https://www.erlang.org/;
+    downloadPage = "https://www.erlang.org/download.html";
     description = "Programming language used for massively scalable soft real-time systems";
 
     longDescription = ''
@@ -115,10 +121,11 @@ in stdenv.mkDerivation ({
       tolerance.
     '';
 
-    platforms = platforms.unix;
+    # aarch64 is supposed to work but started failing in https://hydra.nixos.org/build/83735973
+    platforms = subtractLists [ "aarch64-linux" ] platforms.unix;
     maintainers = with maintainers; [ the-kenny sjmackenzie couchemar gleber ];
     license = licenses.asl20;
-  };
+  } // meta);
 }
 // optionalAttrs (preUnpack != "")      { inherit preUnpack; }
 // optionalAttrs (postUnpack != "")     { inherit postUnpack; }
@@ -140,5 +147,4 @@ in stdenv.mkDerivation ({
 // optionalAttrs (fixupPhase != "")     { inherit fixupPhase; }
 // optionalAttrs (preFixup != "")       { inherit preFixup; }
 // optionalAttrs (postFixup != "")      { inherit postFixup; }
-// optionalAttrs (meta != null)         { inherit meta; }
 )

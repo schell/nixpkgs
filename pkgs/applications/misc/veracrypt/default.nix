@@ -1,44 +1,38 @@
-{ fetchurl, stdenv, pkgconfig, nasm, fuse, wxGTK30, devicemapper, makeself,
-  wxGUI ? true
-}:
+{ stdenv, fetchurl, pkgconfig, makeself, yasm, fuse, unzip, wxGTK, lvm2 }:
 
 with stdenv.lib;
 
 stdenv.mkDerivation rec {
-  name = "veracrypt-${version}";
-  version = "1.19";
+  pname = "veracrypt";
+  version = "1.23";
+  minorVersion = "-Hotfix-2";
 
   src = fetchurl {
-    url = "https://launchpad.net/veracrypt/trunk/${version}/+download/VeraCrypt_${version}_Source.tar.gz";
-    sha256 = "111xs1zmic82lpn5spn0ca33q0g4za04a2k4cvjwdb7k3vcicq6v";
+    url = "https://launchpad.net/${pname}/trunk/${version}/+download/VeraCrypt_${version}${minorVersion}_Source.zip";
+    sha256 = "229de81b2478cfa5fa73e74e60798a298cd616e9852b9f47b484c80bc2a2c259";
   };
 
-  # The source archive appears to be compressed twice ...
-  unpackPhase =
-    ''
-      gzip -dc $src | tar xz
-      cd Vera*/src
-    '';
+  sourceRoot = "src";
 
-  nativeBuildInputs = [ makeself nasm pkgconfig ];
-  buildInputs = [ fuse devicemapper ]
-    ++ optional wxGUI wxGTK30;
-  makeFlags = optionalString (!wxGUI) "NOGUI=1";
+  nativeBuildInputs = [ makeself pkgconfig yasm ];
+  buildInputs = [ fuse lvm2 unzip wxGTK ];
 
-  installPhase =
-    ''
-      mkdir -p $out/bin
-      cp Main/veracrypt $out/bin
-      mkdir -p $out/share/$name
-      cp License.txt $out/share/$name/LICENSE
-      mkdir -p $out/share/applications
-      sed "s,Exec=.*,Exec=$out/bin/veracrypt," Setup/Linux/veracrypt.desktop > $out/share/applications/veracrypt.desktop
-    '';
+  enableParallelBuilding = true;
+
+  installPhase = ''
+    install -Dm 755 Main/${pname} "$out/bin/${pname}"
+    install -Dm 444 Resources/Icons/VeraCrypt-256x256.xpm "$out/share/pixmaps/${pname}.xpm"
+    install -Dm 444 License.txt -t "$out/share/doc/${pname}/"
+    install -d $out/share/applications
+    substitute Setup/Linux/${pname}.desktop $out/share/applications/${pname}.desktop \
+      --replace "Exec=/usr/bin/veracrypt" "Exec=$out/bin/veracrypt" \
+      --replace "Icon=veracrypt" "Icon=veracrypt.xpm"
+  '';
 
   meta = {
     description = "Free Open-Source filesystem on-the-fly encryption";
-    homepage = https://veracrypt.codeplex.com/;
-    license = "VeraCrypt License";
+    homepage = https://www.veracrypt.fr/;
+    license = [ licenses.asl20 /* or */ "TrueCrypt License version 3.0" ];
     maintainers = with maintainers; [ dsferruzza ];
     platforms = platforms.linux;
   };

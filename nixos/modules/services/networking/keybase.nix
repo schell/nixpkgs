@@ -26,13 +26,15 @@ in {
 
     systemd.user.services.keybase = {
       description = "Keybase service";
+      unitConfig.ConditionUser = "!@system";
       serviceConfig = {
         ExecStart = ''
-          ${pkgs.keybase}/bin/keybase service
+          ${pkgs.keybase}/bin/keybase service --auto-forked
         '';
         Restart = "on-failure";
         PrivateTmp = true;
       };
+      wantedBy = [ "default.target" ];
     };
 
     environment.systemPackages = [ pkgs.keybase ];

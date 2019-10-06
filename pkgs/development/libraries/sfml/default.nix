@@ -1,23 +1,34 @@
-{ stdenv, fetchurl, cmake, libX11, freetype, libjpeg, openal, flac, libvorbis
+{ stdenv, fetchzip, cmake, libX11, freetype, libjpeg, openal, flac, libvorbis
 , glew, libXrandr, libXrender, udev, xcbutilimage
+, IOKit, Foundation, AppKit, OpenAL
 }:
 
 let
-  version = "2.4.1";
+  version = "2.5.1";
 in
 
-stdenv.mkDerivation rec {
-  name = "sfml-${version}";
-  src = fetchurl {
-    url = "https://github.com/LaurentGomila/SFML/archive/${version}.tar.gz";
-    sha256 = "13irazmqk9vcgkigsjcxns7xjmnz1gifw0b656z1rpz208diklgr";
+stdenv.mkDerivation {
+  pname = "sfml";
+  inherit version;
+
+  src = fetchzip {
+    url = "https://github.com/SFML/SFML/archive/${version}.tar.gz";
+    sha256 = "0abr8ri2ssfy9ylpgjrr43m6rhrjy03wbj9bn509zqymifvq5pay";
   };
-  buildInputs = [ cmake libX11 freetype libjpeg openal flac libvorbis glew
-                  libXrandr libXrender udev xcbutilimage
-                ];
-  cmakeFlags = [ "-DSFML_INSTALL_PKGCONFIG_FILES=yes" ];
+
+  nativeBuildInputs = [ cmake ];
+  buildInputs = [ freetype libjpeg openal flac libvorbis glew ]
+    ++ stdenv.lib.optional stdenv.isLinux udev
+    ++ stdenv.lib.optionals (!stdenv.isDarwin) [ libX11 libXrandr libXrender xcbutilimage ]
+    ++ stdenv.lib.optionals stdenv.isDarwin [ IOKit Foundation AppKit OpenAL ];
+
+  cmakeFlags = [ "-DSFML_INSTALL_PKGCONFIG_FILES=yes"
+                 "-DSFML_MISC_INSTALL_PREFIX=share/SFML"
+                 "-DSFML_BUILD_FRAMEWORKS=no"
+                 "-DSFML_USE_SYSTEM_DEPS=yes" ];
+
   meta = with stdenv.lib; {
-    homepage = http://www.sfml-dev.org/;
+    homepage = https://www.sfml-dev.org/;
     description = "Simple and fast multimedia library";
     longDescription = ''
       SFML is a simple, fast, cross-platform and object-oriented multimedia API.
@@ -26,6 +37,6 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.zlib;
     maintainers = [ maintainers.astsmtl ];
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

@@ -1,5 +1,6 @@
 { stdenv, lib, fetchurl, autoreconfHook, pkgconfig
-, openssl, netcat-gnu, gnutls, gsasl, libidn, Security
+, netcat-gnu, gnutls, gsasl, libidn2, Security
+, withKeyring ? true, libsecret ? null
 , systemd ? null }:
 
 let
@@ -7,26 +8,32 @@ let
   journal = if stdenv.isLinux then "y" else "n";
 
 in stdenv.mkDerivation rec {
-  name = "msmtp-${version}";
-  version = "1.6.6";
+  pname = "msmtp";
+  version = "1.8.5";
 
   src = fetchurl {
-    url = "mirror://sourceforge/msmtp/${name}.tar.xz";
-    sha256 = "0ppvww0sb09bnsrpqnvlrn8vx231r24xn2iiwpy020mxc8gxn5fs";
+    url = "https://marlam.de/${pname}/releases/${pname}-${version}.tar.xz";
+    sha256 = "0fczpfxlr62wkr7bwhp24clxg962k5khgz14h818qyy4v77dl4qn";
   };
 
   patches = [
     ./paths.patch
   ];
 
-  buildInputs = [ openssl gnutls gsasl libidn ]
-    ++ stdenv.lib.optional stdenv.isDarwin Security;
+  buildInputs = [ gnutls gsasl libidn2 ]
+    ++ stdenv.lib.optional stdenv.isDarwin Security
+    ++ stdenv.lib.optional withKeyring libsecret;
+
   nativeBuildInputs = [ autoreconfHook pkgconfig ];
 
   configureFlags =
-    stdenv.lib.optional stdenv.isDarwin [ "--with-macosx-keyring" ];
+    [ "--sysconfdir=/etc" ] ++ stdenv.lib.optional stdenv.isDarwin [ "--with-macosx-keyring" ];
 
   postInstall = ''
+    install -d $out/share/doc/${pname}/scripts
+    cp -r scripts/{find_alias,msmtpqueue,msmtpq,set_sendmail} $out/share/doc/${pname}/scripts
+    install -Dm644 doc/*.example $out/share/doc/${pname}
+
     substitute scripts/msmtpq/msmtpq $out/bin/msmtpq \
       --replace @msmtp@      $out/bin/msmtp \
       --replace @nc@         ${netcat-gnu}/bin/nc \
@@ -37,14 +44,16 @@ in stdenv.mkDerivation rec {
     substitute scripts/msmtpq/msmtp-queue $out/bin/msmtp-queue \
       --replace @msmtpq@ $out/bin/msmtpq
 
+    ln -s msmtp $out/bin/sendmail
+
     chmod +x $out/bin/*
   '';
 
   meta = with stdenv.lib; {
     description = "Simple and easy to use SMTP client with excellent sendmail compatibility";
-    homepage = "http://msmtp.sourceforge.net/";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ garbas peterhoeg ];
+    homepage = https://marlam.de/msmtp/;
+    license = licenses.gpl3Plus;
+    maintainers = with maintainers; [ peterhoeg ];
     platforms = platforms.unix;
   };
 }

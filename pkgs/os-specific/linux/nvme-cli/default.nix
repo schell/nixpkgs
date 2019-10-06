@@ -1,23 +1,27 @@
 { lib, stdenv, fetchFromGitHub }:
 
 stdenv.mkDerivation rec {
-  name = "nvme-cli-${version}";
-  version = "0.9";
+  pname = "nvme-cli";
+  version = "1.9";
 
   src = fetchFromGitHub {
     owner = "linux-nvme";
     repo = "nvme-cli";
     rev = "v${version}";
-    sha256 = "16n0gg1zx4fgadcq94kx6bgysqw60jvybjwynk7mj3fzdbvzrqyh";
+    sha256 = "08x0x7nq8v7gr8a4lrrhclkz6n8fxlhhizxl2nz56w1xmfghcnfv";
   };
 
   makeFlags = [ "DESTDIR=$(out)" "PREFIX=" ];
 
+  # To omit the hostnqn and hostid files that are impure and should be unique
+  # for each target host:
+  installTargets = "install-spec";
+
   meta = with lib; {
     inherit (src.meta) homepage;
     description = "NVM-Express user space tooling for Linux";
-    license = licenses.gpl2;
+    license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ tavyc ];
+    maintainers = with maintainers; [ primeos tavyc ];
   };
 }

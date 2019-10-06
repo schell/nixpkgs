@@ -1,19 +1,18 @@
-{ stdenv, fetchurl, perl, buildLinux, ... } @ args:
+{ stdenv, buildPackages, fetchurl, perl, buildLinux, modDirVersionArg ? null, ... } @ args:
 
-import ./generic.nix (args // rec {
-  version = "4.12-rc5";
-  modDirVersion = "4.12.0-rc5";
-  extraMeta.branch = "4.12";
+with stdenv.lib;
+
+buildLinux (args // rec {
+  version = "5.3-rc8";
+  extraMeta.branch = "5.3";
+
+  # modDirVersion needs to be x.y.z, will always add .0
+  modDirVersion = if (modDirVersionArg == null) then builtins.replaceStrings ["-"] [".0-"] version else modDirVersionArg;
 
   src = fetchurl {
     url = "https://git.kernel.org/torvalds/t/linux-${version}.tar.gz";
-    sha256 = "0d3lpf429fqrf6i529y0pjdwnpq2v82agn3xhw4jwkriib9i425x";
+    sha256 = "01pr8xb9akjzafl8zkpwwkmlsjxghv5bx0larkjqdakjfspqnhzj";
   };
-
-  features.iwlwifi = true;
-  features.efiBootStub = true;
-  features.needsCifsUtils = true;
-  features.netfilterRPFilter = true;
 
   # Should the testing kernels ever be built on Hydra?
   extraMeta.hydraPlatforms = [];

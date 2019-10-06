@@ -1,21 +1,21 @@
 { stdenv, fetchurl, perl }:
 
 let
-  version = "1.9.9";
+  version = "2.1.0";
 in
-stdenv.mkDerivation rec {
-  name = "uthash-${version}";
+stdenv.mkDerivation {
+  pname = "uthash";
+  inherit version;
 
   src = fetchurl {
     url = "https://github.com/troydhanson/uthash/archive/v${version}.tar.gz";
-    sha256 = "035z3cs5ignywgh4wqxx358a2nhn3lj0x1ifij6vj0yyyhah3wgj";
+    sha256 = "17k6k97n20jpi9zj3lzvqfw8pv670r6rdqrjf8vrbx6hcj7csb0m";
   };
 
   dontBuild = false;
 
-  buildInputs = stdenv.lib.optional doCheck perl;
-
   doCheck = true;
+  checkInputs = [ perl ];
   checkTarget = "-C tests/";
 
   installPhase = ''
@@ -30,4 +30,3 @@ stdenv.mkDerivation rec {
     platforms   = platforms.all;
   };
 }
-

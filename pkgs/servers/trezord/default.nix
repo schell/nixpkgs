@@ -1,51 +1,26 @@
-{ stdenv, fetchgit, curl, cmake, boost, gcc5, protobuf, pkgconfig, jsoncpp
-, libusb1, libmicrohttpd
-}:
+{ stdenv, buildGoPackage, fetchFromGitHub }:
 
-let
-  version = "1.2.0";
-in
+buildGoPackage rec {
+  pname = "trezord-go";
+  version = "2.0.27";
 
-stdenv.mkDerivation rec {
-  name = "trezord-${version}";
+  # Fixes Cgo related build failures (see https://github.com/NixOS/nixpkgs/issues/25959 )
+  hardeningDisable = [ "fortify" ];
 
-  src = fetchgit {
-    url    = "https://github.com/trezor/trezord";
-    rev    = "refs/tags/v${version}";
-    sha256 = "1606j5cfngryk4q21yiga1zvc3zpx4q8vqn6ljrvr679hpvlwni4";
+  goPackagePath = "github.com/trezor/trezord-go";
+
+  src = fetchFromGitHub {
+    owner  = "trezor";
+    repo   = "trezord-go";
+    rev    = "v${version}";
+    sha256 = "00d90qmmk1pays78a2jm8gb7dncvlsjjn4033q1yd1ii3fxc6nh8";
   };
 
   meta = with stdenv.lib; {
-    description = "TREZOR Bridge daemon for TREZOR bitcoin hardware wallet";
-    homepage = https://mytrezor.com;
-    license = licenses.gpl3;
-    maintainers = with stdenv.lib.maintainers; [ canndrew jb55 ];
-    platforms = platforms.linux;
+    description = "TREZOR Communication Daemon aka TREZOR Bridge";
+    homepage = "https://trezor.io";
+    license = licenses.lgpl3;
+    maintainers = with maintainers; [ canndrew jb55 prusnak mmahut maintainers."1000101" ];
+    platforms = platforms.unix;
   };
-
-  patches = [ ./dynamic-link.patch ];
-
-  nativeBuildInputs = [
-    cmake
-    gcc5
-    pkgconfig
-  ];
-
-  buildInputs = [
-    curl
-    boost
-    protobuf
-    libusb1
-    libmicrohttpd
-    jsoncpp
-  ];
-
-  LD_LIBRARY_PATH = "${stdenv.lib.makeLibraryPath [ curl ]}";
-  cmakeFlags="-DJSONCPP_LIBRARY='${jsoncpp}/lib/libjsoncpp.so'";
-
-  installPhase = ''
-    mkdir -p $out/bin
-    cp trezord $out/bin
-  '';
 }
-

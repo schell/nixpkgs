@@ -12,21 +12,23 @@
 , libXinerama
 , libXrandr
 , libXrender
+, libGL
 , openal}:
 
 let
   version = "1.0";
 
-  arch = if stdenv.system == "x86_64-linux" then
+  arch = if stdenv.hostPlatform.system == "x86_64-linux" then
     "x64"
-  else if stdenv.system == "i686-linux" then
+  else if stdenv.hostPlatform.system == "i686-linux" then
     "x86"
   else
-    abort "Unsupported platform";
+    throw "Unsupported platform ${stdenv.hostPlatform.system}";
 
 in
   stdenv.mkDerivation rec {
-    name = "unigine-valley-${version}";
+    pname = "unigine-valley";
+    inherit version;
 
     src = fetchurl {
       url = "http://assets.unigine.com/d/Unigine_Valley-${version}.run";
@@ -47,6 +49,7 @@ in
       libXinerama
       libXrandr
       libXrender
+      libGL
       openal
     ];
 
@@ -104,7 +107,7 @@ in
 
     meta = {
       description = "The Unigine Valley GPU benchmarking tool";
-      homepage = "http://unigine.com/products/benchmarks/valley/";
+      homepage = http://unigine.com/products/benchmarks/valley/;
       license = stdenv.lib.licenses.unfree; # see also: $out/$instPath/documentation/License.pdf
       maintainers = [ stdenv.lib.maintainers.kierdavis ];
       platforms = ["x86_64-linux" "i686-linux"];

@@ -1,6 +1,6 @@
 {stdenv, fetchurl, ncurses, libpcap, automake}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "iftop-1.0pre4";
 
   src = fetchurl {
@@ -28,6 +28,6 @@ stdenv.mkDerivation rec {
     license = licenses.gpl2Plus;
     homepage = http://ex-parrot.com/pdw/iftop/;
     platforms = platforms.unix;
-    maintainers = [ maintainers.mornfall ];
+    maintainers = [ ];
   };
 }

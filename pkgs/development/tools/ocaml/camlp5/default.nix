@@ -1,28 +1,22 @@
-{ stdenv, fetchzip, ocaml, transitional ? false }:
-
-let
-  metafile = ./META;
-in
+{ stdenv, fetchzip, ocaml }:
 
 stdenv.mkDerivation {
 
-  name = "camlp5${if transitional then "_transitional" else ""}-6.17";
+  name = "camlp5-7.10";
 
   src = fetchzip {
-    url = https://github.com/camlp5/camlp5/archive/rel617.tar.gz;
-    sha256 = "0finmr6y0lyd7mnl61kmvwd32cmmf64m245vdh1iy0139rxf814c";
+    url = "https://github.com/camlp5/camlp5/archive/rel710.tar.gz";
+    sha256 = "1a1lgsc8350afdwmsznsys7m0c0cks4nw6irqz2f92g8g4vkk9b7";
   };
 
   buildInputs = [ ocaml ];
 
   prefixKey = "-prefix ";
 
-  preConfigure = "configureFlagsArray=(" +  (if transitional then "--transitional" else "--strict") +
+  preConfigure = "configureFlagsArray=(--strict" +
                   " --libdir $out/lib/ocaml/${ocaml.version}/site-lib)";
 
   buildFlags = "world.opt";
-
-  postInstall = "cp ${metafile} $out/lib/ocaml/${ocaml.version}/site-lib/camlp5/META";
 
   dontStrip = true;
 

@@ -1,8 +1,8 @@
 { stdenv, fetchFromGitHub,  libjack2, gtk2, lv2, faust, pkgconfig }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   version = "git-2015-05-21";
-  name = "foo-yc20-${version}";
+  pname = "foo-yc20";
   src = fetchFromGitHub {
     owner = "sampov2";
     repo = "foo-yc20";
@@ -10,7 +10,8 @@ stdenv.mkDerivation rec {
     sha256 = "0i8261n95n4xic766h70xkrpbvw3sag96n1883ahmg6h7yb94avq";
   };
 
-  buildInputs = [ libjack2 gtk2 lv2 faust pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ libjack2 gtk2 lv2 faust ];
 
   makeFlags = "PREFIX=$(out)";
 

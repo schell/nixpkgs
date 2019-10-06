@@ -1,15 +1,14 @@
 {stdenv, fetchFromGitHub, autoreconfHook}:
 
 stdenv.mkDerivation rec {
-  name = "jo-${version}";
-  version = "1.0";
+  pname = "jo";
+  version = "1.2";
 
   src = fetchFromGitHub {
-    owner = "jpmens";
+    owner  = "jpmens";
     repo = "jo";
-
-    rev = "v${version}";
-    sha256="0vyi0aaxsp6x3cvym7mlcfdsxjhj5h0b00mqc42mg8kc95cyp2c1";
+    rev = version;
+    sha256 ="03b22zb5034ccqyp4ynfzknxagb3jz2dppl0kqz2nv4a08aglpmy";
   };
 
   enableParallelBuilding = true;

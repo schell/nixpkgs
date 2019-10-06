@@ -2,8 +2,8 @@
 
 stdenv.mkDerivation rec {
   version = "1.4";
-  name = "reaver-wps-${version}";
-  confdir = "/var/db/${name}"; # the sqlite database is at "${confdir}/reaver/reaver.db"
+  pname = "reaver-wps";
+  confdir = "/var/db/${pname}-${version}"; # the sqlite database is at "${confdir}/reaver/reaver.db"
 
   src = fetchurl {
     url = "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/reaver-wps/reaver-${version}.tar.gz";
@@ -13,9 +13,12 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ makeWrapper ];
   buildInputs = [ libpcap sqlite ];
 
-  sourceRoot = "reaver-${version}/src";
 
-  configureFlags = "--sysconfdir=${confdir}";
+  setSourceRoot = ''
+    sourceRoot=$(echo */src)
+  '';
+
+  configureFlags = [ "--sysconfdir=${confdir}" ];
 
   installPhase = ''
     mkdir -p $out/{bin,etc}
@@ -28,7 +31,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Brute force attack against Wifi Protected Setup";
-    homepage = http://code.google.com/p/reaver-wps;
+    homepage = https://code.google.com/archive/p/reaver-wps/;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
     maintainers = with maintainers; [ nico202 volth ];

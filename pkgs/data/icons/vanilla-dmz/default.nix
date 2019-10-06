@@ -1,7 +1,7 @@
 { stdenv, lib, fetchzip, xorg }:
 
 stdenv.mkDerivation rec {
-  name = "vanilla-dmz-${version}";
+  pname = "vanilla-dmz";
   version = "0.4.4";
   src = fetchzip {
     url = "http://ftp.de.debian.org/debian/pool/main/d/dmz-cursor-theme/dmz-cursor-theme_${version}.tar.gz";
@@ -22,7 +22,7 @@ stdenv.mkDerivation rec {
     install -Dm644 DMZ-Black/index.theme $out/share/icons/Vanilla-DMZ-AA/index.theme
   '';
   meta = with lib; {
-    homepage = "http://jimmac.musichall.cz";
+    homepage = http://jimmac.musichall.cz;
     description = "A style neutral scalable cursor theme";
     platforms = platforms.all;
     license = licenses.cc-by-nc-sa-30;

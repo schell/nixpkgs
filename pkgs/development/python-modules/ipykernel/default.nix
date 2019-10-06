@@ -1,38 +1,44 @@
 { lib
 , buildPythonPackage
 , fetchPypi
-, nose
-, isPy27
-, mock
+, fetchpatch
 , ipython
 , jupyter_client
-, pexpect
 , traitlets
 , tornado
+, pythonOlder
+, pytest
+, nose
 }:
 
 buildPythonPackage rec {
   pname = "ipykernel";
-  version = "4.6.1";
-  name = "${pname}-${version}";
+  version = "5.1.1";
+  disabled = pythonOlder "3.4";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "2e1825aca4e2585b5adb7953ea16e53f53a62159ed49952a564b1e23507205db";
+    sha256 = "173nm29g85w8cac3fg40b27qaq26g41wgg6qn79ql1hq4w2n5sgh";
   };
 
-  buildInputs = [ nose ] ++ lib.optional isPy27 mock;
-  propagatedBuildInputs = [
-    ipython
-    jupyter_client
-    pexpect
-    traitlets
-    tornado
+  checkInputs = [ pytest nose ];
+  propagatedBuildInputs = [ ipython jupyter_client traitlets tornado ];
+
+  # https://github.com/ipython/ipykernel/pull/377
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/ipython/ipykernel/commit/a3bf849dbd368a1826deb9dfc94c2bd3e5ed04fe.patch";
+      sha256 = "1yhpwqixlf98a3n620z92mfips3riw6psijqnc5jgs2p58fgs2yc";
+    })
   ];
 
-  # Tests require backends.
-  # I don't want to add all supported backends as propagatedBuildInputs
-  doCheck = false;
+  # For failing tests, see https://github.com/ipython/ipykernel/issues/387
+  checkPhase = ''
+    HOME=$(mktemp -d) pytest ipykernel -k "not (test_sys_path or test_sys_path_profile_dir or test_complete)"
+  '';
+
+  # Some of the tests use localhost networking.
+  __darwinAllowLocalNetworking = true;
 
   meta = {
     description = "IPython Kernel for Jupyter";

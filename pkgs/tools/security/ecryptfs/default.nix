@@ -2,11 +2,11 @@
 , intltool, makeWrapper, coreutils, bash, gettext, cryptsetup, lvm2, rsync, which, lsof }:
 
 stdenv.mkDerivation rec {
-  name = "ecryptfs-${version}";
+  pname = "ecryptfs";
   version = "111";
 
   src = fetchurl {
-    url = "http://launchpad.net/ecryptfs/trunk/${version}/+download/ecryptfs-utils_${version}.orig.tar.gz";
+    url = "https://launchpad.net/ecryptfs/trunk/${version}/+download/ecryptfs-utils_${version}.orig.tar.gz";
     sha256 = "0zwq19siiwf09h7lwa7n7mgmrr8cxifp45lmwgcfr8c1gviv6b0i";
   };
 
@@ -33,7 +33,8 @@ stdenv.mkDerivation rec {
     done
   '';
 
-  buildInputs = [ pkgconfig perl nss nspr python2 pam intltool makeWrapper ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ perl nss nspr python2 pam intltool makeWrapper ];
   propagatedBuildInputs = [ coreutils gettext cryptsetup lvm2 rsync keyutils which ];
 
   postInstall = ''

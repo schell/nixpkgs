@@ -1,14 +1,14 @@
 { stdenv, fetchFromGitHub, bash, curl, xsel }:
 
 stdenv.mkDerivation rec {
-  name = "imgurbash2-${version}";
-  version = "2.1";
+  pname = "imgurbash2";
+  version = "3.1";
 
   src = fetchFromGitHub {
     owner = "ram-on";
     repo = "imgurbash2";
     rev = version;
-    sha256 = "1vdkyy0gvjqwc2g7a1lqx6cbynfxbd4f66m8sg1xjvd0kdpgi9wk";
+    sha256 = "1hqghlk8c6svfszhmp02bhkc791lqhqffgiypf05giqmr5d8b9a9";
   };
 
   installPhase = ''
@@ -26,6 +26,6 @@ stdenv.mkDerivation rec {
     license = licenses.mit;
     platforms = platforms.linux;
     maintainers = with maintainers; [ abbradar ];
-    homepage = "https://github.com/ram-on/imgurbash2";
+    homepage = https://github.com/ram-on/imgurbash2;
   };
 }

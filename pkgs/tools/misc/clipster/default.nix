@@ -1,27 +1,25 @@
-{fetchFromGitHub , stdenv, makeWrapper, python3, gtk3, libwnck3 }:
+{fetchFromGitHub , stdenv, python3, gtk3, libwnck3,
+ gobject-introspection, wrapGAppsHook }:
 
 stdenv.mkDerivation  rec {
-  name = "clipster-unstable-${version}";
-  version = "2017-02-27";
+  pname = "clipster";
+  version = "2.0.2";
 
   src = fetchFromGitHub {
     owner = "mrichar1";
     repo = "clipster";
-    rev = "dfa75b52ee3a41fff7534aca165dc0e6a24a3680";
-    sha256 = "0d7ak6wpvvgz7cwvfzy2shkfiw6gr8l703xyjpiayjbnr2s79k5j";
+    rev = version;
+    sha256 = "0582r8840dk4k4jj1zq6kmyh7z9drcng099bj7f4wvr468nb9z1p";
   };
 
   pythonEnv = python3.withPackages(ps: with ps; [ pygobject3 ]);
 
-  buildInputs =  [ pythonEnv gtk3 libwnck3 ];
-  nativeBuildInputs = [ makeWrapper ];
+  buildInputs =  [ pythonEnv gtk3 libwnck3 gobject-introspection wrapGAppsHook ];
 
   installPhase = ''
     sed -i 's/python/python3/g' clipster
     mkdir -p $out/bin/
     cp clipster $out/bin/
-    wrapProgram "$out/bin/clipster" \
-      --prefix GI_TYPELIB_PATH : "$GI_TYPELIB_PATH"
   '';
 
   meta = with stdenv.lib; {

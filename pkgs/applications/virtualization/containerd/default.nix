@@ -1,39 +1,56 @@
-{ stdenv, lib, fetchFromGitHub, removeReferencesTo
-, go, libapparmor, apparmor-parser, libseccomp }:
+{ lib, fetchFromGitHub, buildGoPackage, btrfs-progs, go-md2man, utillinux }:
 
 with lib;
 
-stdenv.mkDerivation rec {
-  name = "containerd-${version}";
-  version = "0.2.5";
+buildGoPackage rec {
+  pname = "containerd";
+  version = "1.2.6";
 
   src = fetchFromGitHub {
-    owner = "docker";
+    owner = "containerd";
     repo = "containerd";
     rev = "v${version}";
-    sha256 = "16p8kixhzdx8afpciyf3fjx43xa3qrqpx06r5aqxdrqviw851zh8";
+    sha256 = "0sp5mn5wd3xma4svm6hf67hyhiixzkzz6ijhyjkwdrc4alk81357";
   };
 
-  buildInputs = [ removeReferencesTo go ];
+  goPackagePath = "github.com/containerd/containerd";
+  outputs = [ "bin" "out" "man" ];
 
-  preBuild = ''
-    ln -s $(pwd) vendor/src/github.com/docker/containerd
+  hardeningDisable = [ "fortify" ];
+
+  buildInputs = [ btrfs-progs go-md2man utillinux ];
+  buildFlags = "VERSION=v${version}";
+
+  BUILDTAGS = []
+    ++ optional (btrfs-progs == null) "no_btrfs";
+
+  buildPhase = ''
+    cd go/src/${goPackagePath}
+    patchShebangs .
+    make binaries
   '';
 
   installPhase = ''
-    mkdir -p $out/bin
-    cp bin/* $out/bin
-  '';
+    for b in bin/*; do
+      install -Dm555 $b $bin/$b
+    done
 
-  preFixup = ''
-    find $out -type f -exec remove-references-to -t ${go} '{}' +
+    make man
+    manRoot="$man/share/man"
+    mkdir -p "$manRoot"
+    for manFile in man/*; do
+      manName="$(basename "$manFile")" # "docker-build.1"
+      number="$(echo $manName | rev | cut -d'.' -f1 | rev)"
+      mkdir -p "$manRoot/man$number"
+      gzip -c "$manFile" > "$manRoot/man$number/$manName.gz"
+    done
   '';
 
   meta = {
-    homepage = https://containerd.tools/;
+    homepage = https://containerd.io/;
     description = "A daemon to control runC";
     license = licenses.asl20;
-    maintainers = with maintainers; [ offline ];
+    maintainers = with maintainers; [ offline vdemeester ];
     platforms = platforms.linux;
   };
 }

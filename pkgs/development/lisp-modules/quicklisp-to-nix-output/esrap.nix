@@ -1,33 +1,29 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''esrap'';
-  version = ''20170124-git'';
+  version = ''20190521-git'';
+
+  parasites = [ "esrap/tests" ];
 
   description = ''A Packrat / Parsing Grammar / TDPL parser for Common Lisp.'';
 
-  deps = [ args."alexandria" ];
+  deps = [ args."alexandria" args."fiveam" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/esrap/2017-01-24/esrap-20170124-git.tgz'';
-    sha256 = ''1182011bbhvkw2qsdqrccl879vf5k7bcda318n0xskk35hzircp8'';
+    url = ''http://beta.quicklisp.org/archive/esrap/2019-05-21/esrap-20190521-git.tgz'';
+    sha256 = ''0kbb05735yhkh2vply6hdk2jn43s8pym8j6jqip13qyaaiax6w5q'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/esrap[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "esrap";
+
+  asdFilesToKeep = ["esrap.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM esrap DESCRIPTION A Packrat / Parsing Grammar / TDPL parser for Common Lisp. SHA256 1182011bbhvkw2qsdqrccl879vf5k7bcda318n0xskk35hzircp8 URL
-    http://beta.quicklisp.org/archive/esrap/2017-01-24/esrap-20170124-git.tgz MD5 72f7a7d8e5808586dfd3ab1698e3d11f NAME esrap TESTNAME NIL FILENAME esrap DEPS
-    ((NAME alexandria)) DEPENDENCIES (alexandria) VERSION 20170124-git SIBLINGS NIL) */
+/* (SYSTEM esrap DESCRIPTION
+    A Packrat / Parsing Grammar / TDPL parser for Common Lisp. SHA256
+    0kbb05735yhkh2vply6hdk2jn43s8pym8j6jqip13qyaaiax6w5q URL
+    http://beta.quicklisp.org/archive/esrap/2019-05-21/esrap-20190521-git.tgz
+    MD5 401362d64d644f02824de03697435883 NAME esrap FILENAME esrap DEPS
+    ((NAME alexandria FILENAME alexandria) (NAME fiveam FILENAME fiveam))
+    DEPENDENCIES (alexandria fiveam) VERSION 20190521-git SIBLINGS NIL
+    PARASITES (esrap/tests)) */

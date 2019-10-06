@@ -1,19 +1,16 @@
-{ stdenv, fetchurl, unzip }:
+{ lib, fetchzip }:
 
-stdenv.mkDerivation rec {
+fetchzip {
   name = "ubuntu-font-family-0.83";
-  buildInputs = [unzip];
 
-  src = fetchurl {
-    url = "http://font.ubuntu.com/download/${name}.zip";
-    sha256 = "0hjvq2x758dx0sfwqhzflns0ns035qm7h6ygskbx1svzg517sva5";
-  };
+  url = "https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip";
 
-  installPhase =
-    ''
-      mkdir -p $out/share/fonts/ubuntu
-      cp *.ttf $out/share/fonts/ubuntu
-    '';
+  postFetch = ''
+    mkdir -p $out/share/fonts
+    unzip -j $downloadedFile \*.ttf -d $out/share/fonts/ubuntu
+  '';
+
+  sha256 = "090y665h4kf2bi623532l6wiwkwnpd0xds0jr7560xwfwys1hiqh";
 
   meta = {
     description = "Ubuntu Font Family";
@@ -22,8 +19,8 @@ stdenv.mkDerivation rec {
     contemporary style and contains characteristics unique to
     the Ubuntu brand that convey a precise, reliable and free attitude.";
     homepage = http://font.ubuntu.com/;
-    license = stdenv.lib.licenses.free;
-    platforms = stdenv.lib.platforms.all;
-    maintainers = [ stdenv.lib.maintainers.antono ];
+    license = lib.licenses.free;
+    platforms = lib.platforms.all;
+    maintainers = [ lib.maintainers.antono ];
   };
 }

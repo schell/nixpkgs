@@ -1,14 +1,14 @@
 { stdenv, fetchFromGitHub, autoreconfHook, ncurses5 }:
 
 stdenv.mkDerivation rec {
-  version = "4.0.5";
-  name = "angband-${version}";
+  pname = "angband";
+  version = "4.2.0";
 
   src = fetchFromGitHub {
     owner = "angband";
     repo = "angband";
     rev = version;
-    sha256 = "1l7ybqmsxpsijm7iqiqjpa7lhjafxml743q4crxn8wnwrbjzbi86";
+    sha256 = "0fr59986swx9a2xkxkbfgadzpwy2lq55fgcib05k393kibyz49kg";
   };
 
   nativeBuildInputs = [ autoreconfHook ];

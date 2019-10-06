@@ -5,17 +5,19 @@ with lib;
 let modDestDir = "$out/lib/modules/${kernel.modDirVersion}/kernel/drivers/net/wireless/realtek/rtlwifi";
 
 in stdenv.mkDerivation rec {
-  name = "rtlwifi_new-${version}";
-  version = "2016-09-12";
+  pname = "rtlwifi_new";
+  version = "2019-08-21";
 
   src = fetchFromGitHub {
     owner = "lwfinger";
     repo = "rtlwifi_new";
-    rev = "7a1b37d2121e8ab1457f002b2729fc23e6ff3e10";
-    sha256 = "0z8grf0fak2ryxwzapp9di77c4bghzkv8lffv76idkcnxgq6sclv";
+    rev = "a108e3de87c2ed30b71c3c4595b79ab7a2f9e348";
+    sha256 = "15kjs9i9vvmn1cdzccd5cljf3m45r4ssm65klkj2fdkf3kljj38k";
   };
 
   hardeningDisable = [ "pic" "format" ];
+
+  nativeBuildInputs = kernel.moduleBuildDependencies;
 
   makeFlags = "KSRC=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
 

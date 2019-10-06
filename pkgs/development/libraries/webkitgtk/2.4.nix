@@ -1,5 +1,5 @@
-{ stdenv, fetchurl, perl, python, ruby, bison, gperf, flex
-, pkgconfig, which, gettext, gobjectIntrospection
+{ stdenv, fetchurl, fetchpatch, perl, python, ruby, bison, gperf, flex
+, pkgconfig, which, gettext, gobject-introspection
 , gtk2, gtk3, wayland, libwebp, enchant, sqlite
 , libxml2, libsoup, libsecret, libxslt, harfbuzz, xorg
 , gst-plugins-base, libobjc
@@ -14,12 +14,12 @@ assert stdenv.isDarwin -> !enableCredentialStorage;
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "webkitgtk-${version}";
+  pname = "webkitgtk";
   version = "2.4.11";
 
   meta = with stdenv.lib; {
-    description = "Web content rendering engine, GTK+ port";
-    homepage = "http://webkitgtk.org/";
+    description = "Web content rendering engine, GTK port";
+    homepage = http://webkitgtk.org/;
     license = licenses.bsd2;
     platforms = with platforms; linux ++ darwin;
     maintainers = [];
@@ -33,7 +33,7 @@ stdenv.mkDerivation rec {
   };
 
   src = fetchurl {
-    url = "http://webkitgtk.org/releases/${name}.tar.xz";
+    url = "https://webkitgtk.org/releases/${pname}-${version}.tar.xz";
     sha256 = "1xsvnvyvlywwyf6m9ainpsg87jkxjmd37q6zgz9cxb7v3c2ym2jq";
   };
 
@@ -44,11 +44,17 @@ stdenv.mkDerivation rec {
   '';
   patches = [
     ./webcore-svg-libxml-cflags.patch
+    (fetchpatch {
+      url = https://raw.githubusercontent.com/gentoo/gentoo/7c5457e265bd40c156a8fe6b2ff94a4e34bcea8e/net-libs/webkit-gtk/files/webkit-gtk-2.4.9-gcc-6.patch;
+      sha256 = "0ll93dr5vxd40wvly1jaw41lvw86krac0jc6k6cacrps4i5ql5j0";
+    })
   ] ++ optionals stdenv.isDarwin [
     ./configure.patch
     ./quartz-webcore.patch
     ./libc++.patch
     ./plugin-none.patch
+  ] ++ optionals stdenv.hostPlatform.isMusl [
+    ./fix-execinfo.patch
   ];
 
   configureFlags = with stdenv.lib; [
@@ -71,19 +77,22 @@ stdenv.mkDerivation rec {
     "--disable-credential-storage"
   ];
 
-  NIX_CFLAGS_COMPILE = "-DU_NOEXCEPT=";
+  NIX_CFLAGS_COMPILE = [
+    "-DU_NOEXCEPT="
+    "-Wno-expansion-to-defined"
+  ];
 
   dontAddDisableDepTrack = true;
 
   nativeBuildInputs = [
     perl python ruby bison gperf flex
-    pkgconfig which gettext gobjectIntrospection
+    pkgconfig which gettext gobject-introspection
   ];
 
   buildInputs = [
     gtk2 libwebp enchant
     libxml2 libxslt
-    gst-plugins-base sqlite xorg.libXt
+    gst-plugins-base sqlite xorg.libXt xorg.libXdamage
   ] ++ optionals enableCredentialStorage [
     libsecret
   ] ++ (if stdenv.isDarwin then [

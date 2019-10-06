@@ -1,11 +1,12 @@
 { stdenv
 , fetch
+, fetchpatch
 , perl
 , groff
 , cmake
 , python
 , libffi
-, binutils
+, libbfd
 , libxml2
 , valgrind
 , ncurses
@@ -16,13 +17,14 @@
 , enableSharedLibraries ? !stdenv.isDarwin
 }:
 
-let
+stdenv.mkDerivation {
+  pname = "llvm";
+  inherit version;
+
   src = fetch "llvm" "0xf5q17kkxsrm2gsi93h4pwlv663kji73r2g4asb97klsmb626a4";
-in stdenv.mkDerivation rec {
-  name = "llvm-${version}";
 
   unpackPhase = ''
-    unpackFile ${src}
+    unpackFile $src
     mv llvm-${version}.src llvm
     sourceRoot=$PWD/llvm
     unpackFile ${compiler-rt_src}
@@ -32,6 +34,28 @@ in stdenv.mkDerivation rec {
   buildInputs = [ perl groff cmake libxml2 python libffi ] ++ stdenv.lib.optional stdenv.isLinux valgrind;
 
   propagatedBuildInputs = [ ncurses zlib ];
+
+  prePatch = ''
+    substituteInPlace CMakeLists.txt \
+      --replace 'set(CMAKE_INSTALL_NAME_DIR "@rpath")' "set(CMAKE_INSTALL_NAME_DIR "$out/lib")" \
+      --replace 'set(CMAKE_INSTALL_RPATH "@executable_path/../lib")' ""
+  '';
+
+  postPatch = stdenv.lib.optionalString (stdenv ? glibc) ''
+    (
+      cd projects/compiler-rt
+      patch -p1 < ${
+        fetchpatch {
+          name = "sigaltstack.patch"; # for glibc-2.26
+          url = https://github.com/llvm-mirror/compiler-rt/commit/8a5e425a68d.diff;
+          sha256 = "0h4y5vl74qaa7dl54b1fcyqalvlpd8zban2d1jxfkxpzyi7m8ifi";
+        }
+      }
+
+      sed -i "s,#include <pthread.h>,&\n#include <signal.h>,g" \
+        lib/asan/asan_linux.cc
+    )
+  '';
 
   # hacky fix: created binaries need to be run before installation
   preBuild = ''
@@ -47,34 +71,27 @@ in stdenv.mkDerivation rec {
   ] ++ stdenv.lib.optional enableSharedLibraries
     "-DBUILD_SHARED_LIBS=ON"
     ++ stdenv.lib.optional (!isDarwin)
-    "-DLLVM_BINUTILS_INCDIR=${binutils.dev}/include"
+    "-DLLVM_BINUTILS_INCDIR=${libbfd.dev}/include"
     ++ stdenv.lib.optionals ( isDarwin) [
     "-DCMAKE_CXX_FLAGS=-stdlib=libc++"
     "-DCAN_TARGET_i386=false"
   ];
 
-  patches = [ ./fix-15974.patch ];
+  patches = [ ./fix-15974.patch ] ++
+    stdenv.lib.optionals (!stdenv.isDarwin) [../fix-llvm-config.patch ];
 
   postBuild = ''
     rm -fR $out
-
-    paxmark m bin/{lli,llvm-rtdyld}
-
-    paxmark m unittests/ExecutionEngine/JIT/JITTests
-    paxmark m unittests/ExecutionEngine/MCJIT/MCJITTests
-    paxmark m unittests/Support/SupportTests
   '';
 
   enableParallelBuilding = true;
-
-  passthru.src = src;
 
   meta = {
     description = "Collection of modular and reusable compiler and toolchain technologies";
     homepage    = http://llvm.org/;
     license     = stdenv.lib.licenses.ncsa;
-    maintainers = with stdenv.lib.maintainers; [ lovek323 raskin viric ];
-    platforms   = stdenv.lib.platforms.all;
+    maintainers = with stdenv.lib.maintainers; [ lovek323 raskin ];
+    platforms = [ "i686-linux" "x86_64-linux" "x86_64-darwin" "armv7l-linux"];
   };
 }
 

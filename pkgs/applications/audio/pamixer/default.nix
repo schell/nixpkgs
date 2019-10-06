@@ -1,20 +1,20 @@
-{ stdenv, fetchurl, boost, libpulseaudio }:
+{ stdenv, fetchFromGitHub, fetchpatch, boost, libpulseaudio }:
 
 stdenv.mkDerivation rec {
+  pname = "pamixer";
+  version = "1.4";
 
-  name = "pamixer-${version}";
-  version = "1.3";
-
-  src = fetchurl {
-    url = "https://github.com/cdemoulins/pamixer/archive/${version}.tar.gz";
-    sha256 = "091676ww4jbf4jr728gjfk7fkd5nisy70mr6f3s1p7n05hjpmfjx";
+  src = fetchFromGitHub {
+    owner = "cdemoulins";
+    repo = "pamixer";
+    rev = version;
+    sha256 = "1i14550n8paijwwnhksv5izgfqm3s5q2773bdfp6vyqybkll55f7";
   };
 
   buildInputs = [ boost libpulseaudio ];
 
   installPhase = ''
-    mkdir -p $out/bin
-    cp pamixer $out/bin
+    install -Dm755 pamixer -t $out/bin
   '';
 
   meta = with stdenv.lib; {

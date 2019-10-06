@@ -1,4 +1,4 @@
-{ fetchurl, stdenv, fixDarwinDylibNames, gdb
+{ fetchurl, stdenv
 , pkgconfig, gnupg
 , xapian, gmime, talloc, zlib
 , doxygen, perl
@@ -6,102 +6,80 @@
 , bash-completion
 , emacs
 , ruby
-, which, dtach, openssl, bash
+, which, dtach, openssl, bash, gdb, man
 }:
 
+with stdenv.lib;
+
 stdenv.mkDerivation rec {
-  version = "0.23.5";
-  name = "notmuch-${version}";
+  version = "0.29.1";
+  pname = "notmuch";
 
   passthru = {
-    pythonSourceRoot = "${name}/bindings/python";
+    pythonSourceRoot = "${pname}-${version}/bindings/python";
     inherit version;
   };
 
   src = fetchurl {
-    url = "http://notmuchmail.org/releases/${name}.tar.gz";
-    sha256 = "0ry2k9sdwd1vw8cf6svch8wk98523s07mwxvsf7b8kghqnrr89n6";
+    url = "https://notmuchmail.org/releases/${pname}-${version}.tar.xz";
+    sha256 = "0rg3rwghd3wivf3bmqcqpkkd5c779ld5hi363zjcw5fl6a7gqilq";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    pkgconfig gnupg # undefined dependencies
+    gnupg # undefined dependencies
     xapian gmime talloc zlib  # dependencies described in INSTALL
     doxygen perl  # (optional) api docs
     pythonPackages.sphinx pythonPackages.python  # (optional) documentation -> doc/INSTALL
     bash-completion  # (optional) dependency to install bash completion
-    emacs  # (optional) to byte compile emacs code
+    emacs  # (optional) to byte compile emacs code, also needed for tests
     ruby  # (optional) ruby bindings
-    which dtach openssl bash  # test dependencies
-    ]
-    ++ stdenv.lib.optional stdenv.isDarwin fixDarwinDylibNames
-    ++ stdenv.lib.optional (!stdenv.isDarwin) gdb;
+  ];
 
-  doCheck = !stdenv.isDarwin;
+  postPatch = ''
+    patchShebangs configure
+    patchShebangs test/
+
+    substituteInPlace lib/Makefile.local \
+      --replace '-install_name $(libdir)' "-install_name $out/lib"
+
+    substituteInPlace emacs/notmuch-emacs-mua \
+      --replace 'EMACS:-emacs' 'EMACS:-${emacs}/bin/emacs' \
+      --replace 'EMACSCLIENT:-emacsclient' 'EMACSCLIENT:-${emacs}/bin/emacsclient'
+  '';
+
+  configureFlags = [ "--zshcompletiondir=${placeholder "out"}/share/zsh/site-functions" ];
+
+  # Notmuch doesn't use autoconf and consequently doesn't tag --bindir and
+  # friends
+  setOutputFlags = false;
+  enableParallelBuilding = true;
+  makeFlags = [ "V=1" ];
+
+  preCheck = let
+    test-database = fetchurl {
+      url = "https://notmuchmail.org/releases/test-databases/database-v1.tar.xz";
+      sha256 = "1lk91s00y4qy4pjh8638b5lfkgwyl282g1m27srsf7qfn58y16a2";
+    };
+  in ''
+    ln -s ${test-database} test/test-databases/database-v1.tar.xz
+  '';
+  doCheck = !stdenv.hostPlatform.isDarwin && (versionAtLeast gmime.version "3.0.3");
   checkTarget = "test";
+  checkInputs = [
+    which dtach openssl bash
+    gdb man
+  ];
 
-  patchPhase = ''
-    # XXX: disabling few tests since i have no idea how to make them pass for now
-    rm -f test/T010-help-test.sh \
-          test/T350-crypto.sh \
-          test/T355-smime.sh
+  installTargets = [ "install" "install-man" ];
 
-    find test -type f -exec \
-      sed -i \
-        -e "1s|#!/usr/bin/env bash|#!${bash}/bin/bash|" \
-        -e "s|gpg |${gnupg}/bin/gpg2 |" \
-        -e "s| gpg| ${gnupg}/bin/gpg2|" \
-        -e "s|gpgsm |${gnupg}/bin/gpgsm |" \
-        -e "s| gpgsm| ${gnupg}/bin/gpgsm|" \
-        -e "s|crypto.gpg_path=gpg|crypto.gpg_path=${gnupg}/bin/gpg2|" \
-        "{}" ";"
-
-    for src in \
-      crypto.c \
-      notmuch-config.c \
-      emacs/notmuch-crypto.el
-    do
-      substituteInPlace "$src" \
-        --replace \"gpg\" \"${gnupg}/bin/gpg2\"
-    done
-  '';
-
-  preFixup = stdenv.lib.optionalString stdenv.isDarwin ''
-    set -e
-
-    die() {
-      >&2 echo "$@"
-      exit 1
-    }
-
-    prg="$out/bin/notmuch"
-    lib="$(find "$out/lib" -name 'libnotmuch.?.dylib')"
-
-    [[ -s "$prg" ]] || die "couldn't find notmuch binary"
-    [[ -s "$lib" ]] || die "couldn't find libnotmuch"
-
-    badname="$(otool -L "$prg" | awk '$1 ~ /libtalloc/ { print $1 }')"
-    goodname="$(find "${talloc}/lib" -name 'libtalloc.?.?.?.dylib')"
-
-    [[ -n "$badname" ]]  || die "couldn't find libtalloc reference in binary"
-    [[ -n "$goodname" ]] || die "couldn't find libtalloc in nix store"
-
-    echo "fixing libtalloc link in $lib"
-    install_name_tool -change "$badname" "$goodname" "$lib"
-
-    echo "fixing libtalloc link in $prg"
-    install_name_tool -change "$badname" "$goodname" "$prg"
-  '';
-
-  postInstall = ''
-    make install-man
-  '';
   dontGzipMan = true; # already compressed
 
-  meta = with stdenv.lib; {
+  meta = {
     description = "Mail indexer";
     homepage    = https://notmuchmail.org/;
     license     = licenses.gpl3;
-    maintainers = with maintainers; [ chaoflow garbas ];
+    maintainers = with maintainers; [ flokli puckipedia the-kenny ];
     platforms   = platforms.unix;
   };
 }

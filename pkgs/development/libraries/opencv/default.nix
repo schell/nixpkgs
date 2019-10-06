@@ -8,9 +8,9 @@
 , enableEXR ? (!stdenv.isDarwin), openexr, ilmbase
 , enableJPEG2K ? true, jasper
 , enableFfmpeg ? false, ffmpeg
-, enableGStreamer ? false, gst_all
-, enableEigen ? false, eigen
-, darwin
+, enableGStreamer ? false, gst_all_1
+, enableEigen ? true, eigen
+, Cocoa, QTKit
 }:
 
 let
@@ -19,7 +19,7 @@ let
 in
 
 stdenv.mkDerivation rec {
-  name = "opencv-${version}";
+  pname = "opencv";
   version = "2.4.13";
 
   src = fetchFromGitHub {
@@ -52,9 +52,9 @@ stdenv.mkDerivation rec {
     ++ lib.optionals enableEXR [ openexr ilmbase ]
     ++ lib.optional enableJPEG2K jasper
     ++ lib.optional enableFfmpeg ffmpeg
-    ++ lib.optionals enableGStreamer (with gst_all; [ gstreamer gst-plugins-base ])
+    ++ lib.optionals enableGStreamer (with gst_all_1; [ gstreamer gst-plugins-base ])
     ++ lib.optional enableEigen eigen
-    ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [ Cocoa QTKit ])
+    ++ lib.optionals stdenv.isDarwin [ Cocoa QTKit ]
     ;
 
   propagatedBuildInputs = lib.optional enablePython pythonPackages.numpy;
@@ -69,6 +69,7 @@ stdenv.mkDerivation rec {
     (opencvFlag "JPEG" enableJPEG)
     (opencvFlag "PNG" enablePNG)
     (opencvFlag "OPENEXR" enableEXR)
+    (opencvFlag "GSTREAMER" enableGStreamer)
   ];
 
   enableParallelBuilding = true;
@@ -85,9 +86,9 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Open Computer Vision Library with more than 500 algorithms";
-    homepage = http://opencv.org/;
+    homepage = https://opencv.org/;
     license = licenses.bsd3;
-    maintainers = with maintainers; [ viric ];
-    platforms = platforms.linux ++ platforms.darwin;
+    maintainers = with maintainers; [ ];
+    platforms = platforms.linux;
   };
 }

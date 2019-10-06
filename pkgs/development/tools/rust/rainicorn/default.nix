@@ -1,9 +1,9 @@
-{ stdenv, fetchFromGitHub, rustPlatform, makeWrapper }:
+{ stdenv, fetchFromGitHub, rustPlatform }:
 
 with rustPlatform;
 
 buildRustPackage rec {
-  name = "rainicorn-${version}";
+  pname = "rainicorn";
   version = "1.0.0";
 
   src = fetchFromGitHub {
@@ -13,9 +13,10 @@ buildRustPackage rec {
     sha256 = "07vh4g120sx569wkzclq91blkkd7q7z582pl8vz0li1l9ij8md01";
   };
 
-  depsSha256 = "1ckrf77s1glrqi0gvrv9wqmip4i97dk0arn0iz87jg4q2wfss85k";
+  cargoSha256 = "07zsj12g4ff0cdb9pwz302vxvajr8g6nl3bpz4vdyi84csfvmahz";
 
   meta = with stdenv.lib; {
+    broken = true;
     description = "Rust IDEs.  parse-analysis";
     homepage = https://github.com/RustDT/Rainicorn;
     license = with licenses; [ mit asl20 ];

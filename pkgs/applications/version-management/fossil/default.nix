@@ -1,30 +1,30 @@
-{stdenv, libiconv, fetchurl, zlib, openssl, tcl, readline, sqlite, ed, which
-, tcllib, withJson ? true}:
+{ stdenv
+, libiconv, fetchurl, zlib, openssl, tcl, readline, sqlite, ed, which
+, tcllib, withJson ? true
+}:
 
 stdenv.mkDerivation rec {
-  name = "fossil-1.36";
+  pname = "fossil";
+  version = "2.9";
 
   src = fetchurl {
-    urls = 
+    urls =
       [
-        https://fossil-scm.org/index.html/uv/download/fossil-src-1.36.tar.gz
+        "https://www.fossil-scm.org/index.html/uv/fossil-src-${version}.tar.gz"
       ];
-    name = "${name}.tar.gz";
-    sha256 = "04px1mnq5dlc6gaihxj5nj6k7ac43wfryzifaairjh74qmgc6xi6";
+    name = "${pname}-${version}.tar.gz";
+    sha256 = "0kwb7pkp7y2my916rhyl6kmcf0fk8gkzaxzy13hfgqs35nlsvchw";
   };
 
   buildInputs = [ zlib openssl readline sqlite which ed ]
              ++ stdenv.lib.optional stdenv.isDarwin libiconv;
   nativeBuildInputs = [ tcl ];
 
-  doCheck = true;
-
-  checkTarget = "test";
-
+  doCheck = stdenv.hostPlatform == stdenv.buildPlatform;
   preCheck = ''
     export TCLLIBPATH="${tcllib}/lib/tcllib${tcllib.version}"
   '';
-  configureFlags = if withJson then  "--json" else  "";
+  configureFlags = stdenv.lib.optional withJson "--json";
 
   preBuild=''
     export USER=nonexistent-but-specified-user
@@ -34,11 +34,6 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     INSTALLDIR=$out/bin make install
   '';
-
-  crossAttrs = {
-    doCheck = false;
-    makeFlagsArray = [ "TCC=${stdenv.cross.config}-gcc" ];
-  };
 
   meta = {
     description = "Simple, high-reliability, distributed software configuration management";

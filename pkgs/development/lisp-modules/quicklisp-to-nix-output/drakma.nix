@@ -1,34 +1,39 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''drakma'';
-  version = ''2.0.2'';
+  version = ''v2.0.5'';
 
   description = ''Full-featured http/https client based on usocket'';
 
-  deps = [ args."usocket" args."puri" args."flexi-streams" args."cl-ppcre" args."cl-base64" args."cl+ssl" args."chunga" args."chipz" ];
+  deps = [ args."alexandria" args."babel" args."bordeaux-threads" args."cffi" args."chipz" args."chunga" args."cl_plus_ssl" args."cl-base64" args."cl-ppcre" args."flexi-streams" args."puri" args."split-sequence" args."trivial-features" args."trivial-garbage" args."trivial-gray-streams" args."usocket" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/drakma/2015-10-31/drakma-2.0.2.tgz'';
-    sha256 = ''1bpwh19fxd1ncvwai2ab2363bk6qkpwch5sa4csbiawcihyawh2z'';
+    url = ''http://beta.quicklisp.org/archive/drakma/2019-05-21/drakma-v2.0.5.tgz'';
+    sha256 = ''14bqvdr1f5ms6kxdgran57qk43g9c37ia7ni1z3afdkbv8wp2lyj'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/drakma[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "drakma";
+
+  asdFilesToKeep = ["drakma.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM drakma DESCRIPTION Full-featured http/https client based on usocket SHA256 1bpwh19fxd1ncvwai2ab2363bk6qkpwch5sa4csbiawcihyawh2z URL
-    http://beta.quicklisp.org/archive/drakma/2015-10-31/drakma-2.0.2.tgz MD5 eb51e1417c02c912c2b43bd9605dfb50 NAME drakma TESTNAME NIL FILENAME drakma DEPS
-    ((NAME usocket) (NAME puri) (NAME flexi-streams) (NAME cl-ppcre) (NAME cl-base64) (NAME cl+ssl) (NAME chunga) (NAME chipz)) DEPENDENCIES
-    (usocket puri flexi-streams cl-ppcre cl-base64 cl+ssl chunga chipz) VERSION 2.0.2 SIBLINGS (drakma-test)) */
+/* (SYSTEM drakma DESCRIPTION Full-featured http/https client based on usocket
+    SHA256 14bqvdr1f5ms6kxdgran57qk43g9c37ia7ni1z3afdkbv8wp2lyj URL
+    http://beta.quicklisp.org/archive/drakma/2019-05-21/drakma-v2.0.5.tgz MD5
+    85316671dd8ada170b85af82ed97ce8e NAME drakma FILENAME drakma DEPS
+    ((NAME alexandria FILENAME alexandria) (NAME babel FILENAME babel)
+     (NAME bordeaux-threads FILENAME bordeaux-threads)
+     (NAME cffi FILENAME cffi) (NAME chipz FILENAME chipz)
+     (NAME chunga FILENAME chunga) (NAME cl+ssl FILENAME cl_plus_ssl)
+     (NAME cl-base64 FILENAME cl-base64) (NAME cl-ppcre FILENAME cl-ppcre)
+     (NAME flexi-streams FILENAME flexi-streams) (NAME puri FILENAME puri)
+     (NAME split-sequence FILENAME split-sequence)
+     (NAME trivial-features FILENAME trivial-features)
+     (NAME trivial-garbage FILENAME trivial-garbage)
+     (NAME trivial-gray-streams FILENAME trivial-gray-streams)
+     (NAME usocket FILENAME usocket))
+    DEPENDENCIES
+    (alexandria babel bordeaux-threads cffi chipz chunga cl+ssl cl-base64
+     cl-ppcre flexi-streams puri split-sequence trivial-features
+     trivial-garbage trivial-gray-streams usocket)
+    VERSION v2.0.5 SIBLINGS (drakma-test) PARASITES NIL) */

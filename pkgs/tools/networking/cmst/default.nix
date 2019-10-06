@@ -1,48 +1,33 @@
-{ stdenv, fetchFromGitHub, qtbase, qmakeHook, makeWrapper, libX11 }:
+{ mkDerivation, lib, fetchFromGitHub, qmake, qtbase }:
 
-stdenv.mkDerivation rec {
-  name = "cmst-${version}";
-  version = "2017.03.18";
+mkDerivation rec {
+  pname = "cmst";
+  version = "2019.01.13";
 
   src = fetchFromGitHub {
     repo = "cmst";
     owner = "andrew-bibb";
-    rev = name;
-    sha256 = "0lsg8ya36df48ij0jawgli3f63hy6mn9zcla48whb1l4r7cih545";
+    rev = "${pname}-${version}";
+    sha256 = "13739f0ddld34dcqlfhylzn1zqz5a7jbp4a4id7gj7pcxjx1lafh";
   };
 
-  nativeBuildInputs = [ makeWrapper qmakeHook ];
+  nativeBuildInputs = [ qmake ];
 
   buildInputs = [ qtbase ];
 
   enableParallelBuilding = true;
 
-  preConfigure = ''
-    substituteInPlace ./cmst.pro \
-      --replace "/usr/share" "$out/share"
-
-    substituteInPlace ./cmst.pri \
-      --replace "/usr/lib" "$out/lib" \
-      --replace "/usr/share" "$out/share"
-
-    substituteInPlace ./apps/cmstapp/cmstapp.pro \
-      --replace "/usr/bin" "$out/bin"
-
-    substituteInPlace ./apps/rootapp/rootapp.pro \
-      --replace "/etc" "$out/etc" \
-      --replace "/usr/share" "$out/share"
-  '';
-
-  postInstall = ''
-    wrapProgram $out/bin/cmst \
-      --prefix "QTCOMPOSE" ":" "${libX11}/share/X11/locale"
+  postPatch = ''
+    for f in $(find . -name \*.cpp -o -name \*.pri -o -name \*.pro); do
+      substituteInPlace $f --replace /etc $out/etc --replace /usr $out
+    done
   '';
 
   meta = {
     description = "QT GUI for Connman with system tray icon";
-    homepage = "https://github.com/andrew-bibb/cmst";
-    maintainers = [ stdenv.lib.maintainers.matejc ];
-    platforms = stdenv.lib.platforms.linux;
-    license = stdenv.lib.licenses.mit;
+    homepage = https://github.com/andrew-bibb/cmst;
+    maintainers = [ lib.maintainers.matejc ];
+    platforms = lib.platforms.linux;
+    license = lib.licenses.mit;
   };
 }

@@ -1,12 +1,12 @@
 { stdenv, fetchurl, xz }:
 
 stdenv.mkDerivation rec {
-  name = "gzip-${version}";
-  version = "1.8";
+  pname = "gzip";
+  version = "1.10";
 
   src = fetchurl {
-    url = "mirror://gnu/gzip/${name}.tar.xz";
-    sha256 = "1lxv3p4iyx7833mlihkn5wfwmz4cys5nybwpz3dfawag8kn6f5zz";
+    url = "mirror://gnu/gzip/${pname}-${version}.tar.xz";
+    sha256 = "1h6p374d3j8d4cdfydzls021xa2yby8myc0h8d6m8bc7k6ncq9c4";
   };
 
   outputs = [ "out" "man" "info" ];
@@ -15,12 +15,7 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ xz.bin ];
 
-  preConfigure = if stdenv.isCygwin then ''
-    sed -i lib/fpending.h -e 's,include <stdio_ext.h>,,'
-  '' else null;
-
-  # In stdenv-linux, prevent a dependency on bootstrap-tools.
-  makeFlags = "SHELL=/bin/sh GREP=grep";
+  makeFlags = [ "SHELL=/bin/sh" "GREP=grep" ];
 
   meta = {
     homepage = https://www.gnu.org/software/gzip/;

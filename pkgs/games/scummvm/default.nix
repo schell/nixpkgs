@@ -1,33 +1,40 @@
-{ stdenv, fetchurl, SDL, zlib, libmpeg2, libmad, libogg, libvorbis, flac, alsaLib, mesa }:
+{ stdenv, fetchurl, nasm
+, alsaLib, flac, fluidsynth, freetype, libjpeg, libmad, libmpeg2, libogg, libvorbis, libGLU_combined, SDL2, zlib
+}:
 
 stdenv.mkDerivation rec {
-  name = "scummvm-1.9.0";
+  pname = "scummvm";
+  version = "2.0.0";
 
   src = fetchurl {
-    url = "http://scummvm.org/frs/scummvm/1.9.0/scummvm-1.9.0.tar.bz2";
-    sha256 = "813d7d8a76e3d05b45001d37451368711dadc32899ecf907df1cc7abfb1754d2";
-  };
-  
-  buildInputs = [ SDL zlib libmpeg2 libmad libogg libvorbis flac alsaLib mesa ];
-
-  hardeningDisable = [ "format" ];
-
-  crossAttrs = {
-    preConfigure = ''
-      # Remove the --build flag set by the gcc cross wrapper setup
-      # hook
-      export configureFlags="--host=${stdenv.cross.config}"
-    '';
-    postConfigure = ''
-      # They use 'install -s', that calls the native strip instead of the cross
-      sed -i 's/-c -s/-c/' ports.mk;
-    '';
+    url = "http://scummvm.org/frs/scummvm/${version}/${pname}-${version}.tar.xz";
+    sha256 = "0q6aiw97wsrf8cjw9vjilzhqqsr2rw2lll99s8i5i9svan6l314p";
   };
 
-  meta = {
+  nativeBuildInputs = [ nasm ];
+
+  buildInputs = [
+    alsaLib freetype flac fluidsynth libjpeg libmad libmpeg2 libogg libvorbis libGLU_combined SDL2 zlib
+  ];
+
+  enableParallelBuilding = true;
+
+  configurePlatforms = [ "host" ];
+  configureFlags = [
+    "--enable-c++11"
+    "--enable-release"
+  ];
+
+  # They use 'install -s', that calls the native strip instead of the cross
+  postConfigure = ''
+    sed -i "s/-c -s/-c -s --strip-program=''${STRIP@Q}/" ports.mk
+  '';
+
+  meta = with stdenv.lib; {
     description = "Program to run certain classic graphical point-and-click adventure games (such as Monkey Island)";
-    homepage = http://www.scummvm.org/;
-    platforms = stdenv.lib.platforms.linux;
+    homepage = https://www.scummvm.org/;
+    license = licenses.gpl2;
+    maintainers = [ maintainers.peterhoeg ];
+    platforms = platforms.linux;
   };
 }
-

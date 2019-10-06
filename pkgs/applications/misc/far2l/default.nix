@@ -1,27 +1,31 @@
-{ stdenv, fetchFromGitHub, makeWrapper, cmake, pkgconfig, wxGTK30, glib, pcre, m4, bash,
-  xdg_utils, gvfs, zip, unzip, gzip, bzip2, gnutar, p7zip, xz, imagemagick }:
+{ stdenv, fetchFromGitHub, fetchpatch, makeWrapper, cmake, pkgconfig, wxGTK30, glib, pcre, m4, bash,
+  xdg_utils, gvfs, zip, unzip, gzip, bzip2, gnutar, p7zip, xz, imagemagick, darwin }:
 
+with stdenv.lib;
 stdenv.mkDerivation rec {
-  rev = "ab240373f69824c56e9255d452b689cff3b1ecfb";
-  build = "2017-05-09-${builtins.substring 0 10 rev}";
+  build = "unstable-2018-07-19.git${builtins.substring 0 7 src.rev}";
   name = "far2l-2.1.${build}";
 
   src = fetchFromGitHub {
     owner = "elfmz";
     repo = "far2l";
-    rev = rev;
-    sha256 = "1b6w6xhja3xkfzhrdy8a8qpbhxws75khm1zhwz8sc8la9ykd541q";
+    rev = "dceaa3918ea2c5e43600bad3fc63f861b8d26fc4";
+    sha256 = "1ssd3hwz4b7vl4r858d9whl61cn23pgcamcjmvfa6ysf4x2b7sgi";
   };
 
   nativeBuildInputs = [ cmake pkgconfig m4 makeWrapper imagemagick ];
 
-  buildInputs = [ wxGTK30 glib pcre ];
+  buildInputs = [ wxGTK30 glib pcre ]
+    ++ optional stdenv.isDarwin darwin.apple_sdk.frameworks.Cocoa;
 
-  postPatch = ''
-    echo 'echo ${build}' > far2l/bootstrap/scripts/vbuild.sh
-
-    substituteInPlace far2l/bootstrap/open.sh              \
+  postPatch = optionalString stdenv.isLinux ''
+    substituteInPlace far2l/bootstrap/trash.sh \
       --replace 'gvfs-trash'  '${gvfs}/bin/gvfs-trash'
+  '' + optionalString stdenv.isDarwin ''
+    substituteInPlace far2l/CMakeLists.txt \
+      --replace "-framework System" -lSystem
+  '' + ''
+    echo 'echo ${build}' > far2l/bootstrap/scripts/vbuild.sh
     substituteInPlace far2l/bootstrap/open.sh              \
       --replace 'xdg-open'    '${xdg_utils}/bin/xdg-open'
     substituteInPlace far2l/vtcompletor.cpp                \
@@ -37,6 +41,15 @@ stdenv.mkDerivation rec {
       --replace '"gzip '      '"${gzip}/bin/gzip '         \
       --replace '"bzip2 '     '"${bzip2}/bin/bzip2 '       \
       --replace '"tar '       '"${gnutar}/bin/tar '
+
+    ( cd colorer/configs/base
+      patch -p2 <  ${ fetchpatch {
+                        name   = "nix-language-highlighting.patch";
+                        url    = https://github.com/colorer/Colorer-schemes/commit/64bd06de0a63224b431cd8fc42cd9fa84b8ba7c0.patch;
+                        sha256 = "1mrj1wyxmk7sll9j1jzw6miwi0sfavf654klms24wngnh6hadsch";
+                      }
+                    }
+    )
   '';
 
   installPhase = ''
@@ -54,15 +67,17 @@ stdenv.mkDerivation rec {
       mkdir -p $out/share/icons/hicolor/$size/apps
       convert -size $size ../far2l/DE/icons/hicolor/$size/apps/far2l.svg $out/share/icons/hicolor/$size/apps/far2l.png
     done
+  '' + stdenv.lib.optionalString stdenv.isDarwin ''
+    wrapProgram $out/bin/far2l --argv0 $out/bin/far2l
   '';
 
   stripDebugList = "bin share";
 
   enableParallelBuilding = true;
 
-  meta = with stdenv.lib; {
+  meta = {
     description = "An orthodox file manager";
-    homepage = http://github.com/elfmz/far2l;
+    homepage = https://github.com/elfmz/far2l;
     license = licenses.gpl2;
     maintainers = [ maintainers.volth ];
     platforms = platforms.all;

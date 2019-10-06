@@ -1,11 +1,12 @@
-let lib = import ./default.nix;
-    inherit (builtins) isFunction head tail isList isAttrs isInt attrNames;
+{ lib }:
+let
+    inherit (builtins) head tail isList isAttrs isInt attrNames;
 
 in
 
-with import ./lists.nix;
-with import ./attrsets.nix;
-with import ./strings.nix;
+with lib.lists;
+with lib.attrsets;
+with lib.strings;
 
 rec {
 
@@ -23,7 +24,7 @@ rec {
     let arg = (merger init (defaultMergeArg init x));
         # now add the function with composed args already applied to the final attrs
         base = (setAttrMerge "passthru" {} (f arg)
-                        ( z: z // rec {
+                        ( z: z // {
                             function = foldArgs merger f arg;
                             args = (lib.attrByPath ["passthru" "args"] {} z) // x;
                           } ));
@@ -32,74 +33,6 @@ rec {
         };
         in
           withStdOverrides;
-
-
-  # predecessors: proposed replacement for applyAndFun (which has a bug cause it merges twice)
-  # the naming "overridableDelayableArgs" tries to express that you can
-  # - override attr values which have been supplied earlier
-  # - use attr values before they have been supplied by accessing the fix point
-  #   name "fixed"
-  # f: the (delayed overridden) arguments are applied to this
-  #
-  # initial: initial attrs arguments and settings. see defaultOverridableDelayableArgs
-  #
-  # returns: f applied to the arguments // special attributes attrs
-  #     a) merge: merge applied args with new args. Wether an argument is overridden depends on the merge settings
-  #     b) replace: this let's you replace and remove names no matter which merge function has been set
-  #
-  # examples: see test cases "res" below;
-  overridableDelayableArgs =
-          f:        # the function applied to the arguments
-          initial:  # you pass attrs, the functions below are passing a function taking the fix argument
-    let
-        takeFixed = if isFunction initial then initial else (fixed : initial); # transform initial to an expression always taking the fixed argument
-        tidy = args:
-            let # apply all functions given in "applyPreTidy" in sequence
-                applyPreTidyFun = fold ( n: a: x: n ( a x ) ) lib.id (maybeAttr "applyPreTidy" [] args);
-            in removeAttrs (applyPreTidyFun args) ( ["applyPreTidy"] ++ (maybeAttr  "removeAttrs" [] args) ); # tidy up args before applying them
-        fun = n: x:
-            let newArgs = fixed:
-                    let args = takeFixed fixed;
-                        mergeFun = args.${n};
-                    in if isAttrs x then (mergeFun args x)
-                       else assert isFunction x;
-                            mergeFun args (x ( args // { inherit fixed; }));
-            in overridableDelayableArgs f newArgs;
-    in
-    (f (tidy (lib.fix takeFixed))) // {
-      merge   = fun "mergeFun";
-      replace = fun "keepFun";
-    };
-  defaultOverridableDelayableArgs = f:
-      let defaults = {
-            mergeFun = mergeAttrByFunc; # default merge function. merge strategie (concatenate lists, strings) is given by mergeAttrBy
-            keepFun = a: b: { inherit (a) removeAttrs mergeFun keepFun mergeAttrBy; } // b; # even when using replace preserve these values
-            applyPreTidy = []; # list of functions applied to args before args are tidied up (usage case : prepareDerivationArgs)
-            mergeAttrBy = mergeAttrBy // {
-              applyPreTidy = a: b: a ++ b;
-              removeAttrs = a: b: a ++ b;
-            };
-            removeAttrs = ["mergeFun" "keepFun" "mergeAttrBy" "removeAttrs" "fixed" ]; # before applying the arguments to the function make sure these names are gone
-          };
-      in (overridableDelayableArgs f defaults).merge;
-
-
-
-  # rec { # an example of how composedArgsAndFun can be used
-  #  a  = composedArgsAndFun (x: x) { a = ["2"]; meta = { d = "bar";}; };
-  #  # meta.d will be lost ! It's your task to preserve it (eg using a merge function)
-  #  b  = a.passthru.function { a = [ "3" ]; meta = { d2 = "bar2";}; };
-  #  # instead of passing/ overriding values you can use a merge function:
-  #  c  = b.passthru.function ( x: { a = x.a  ++ ["4"]; }); # consider using (maybeAttr "a" [] x)
-  # }
-  # result:
-  # {
-  #   a = { a = ["2"];     meta = { d = "bar"; }; passthru = { function = .. }; };
-  #   b = { a = ["3"];     meta = { d2 = "bar2"; }; passthru = { function = .. }; };
-  #   c = { a = ["3" "4"]; meta = { d2 = "bar2"; }; passthru = { function = .. }; };
-  #   # c2 is equal to c
-  # }
-  composedArgsAndFun = f: foldArgs defaultMerge f {};
 
 
   # shortcut for attrByPath ["name"] default attrs
@@ -284,7 +217,7 @@ rec {
   # };
   # will result in
   # { mergeAttrsBy = [...]; buildInputs = [ a b c d ]; }
-  # is used by prepareDerivationArgs, defaultOverridableDelayableArgs and can be used when composing using
+  # is used by defaultOverridableDelayableArgs and can be used when composing using
   # foldArgs, composedArgsAndFun or applyAndFun. Example: composableDerivation in all-packages.nix
   mergeAttrByFunc = x: y:
     let
@@ -309,48 +242,6 @@ rec {
   mergeAttrsByFuncDefaults = foldl mergeAttrByFunc { inherit mergeAttrBy; };
   mergeAttrsByFuncDefaultsClean = list: removeAttrs (mergeAttrsByFuncDefaults list) ["mergeAttrBy"];
 
-  # merge attrs based on version key into mkDerivation args, see mergeAttrBy to learn about smart merge defaults
-  #
-  # This function is best explained by an example:
-  #
-  #     {version ? "2.x"}:
-  #
-  #     mkDerivation (mergeAttrsByVersion "package-name" version
-  #       { # version specific settings
-  #         "git" = { src = ..; preConfigre = "autogen.sh"; buildInputs = [automake autoconf libtool];  };
-  #         "2.x" = { src = ..; };
-  #       }
-  #       {  // shared settings
-  #          buildInputs = [ common build inputs ];
-  #          meta = { .. }
-  #       }
-  #     )
-  #
-  # Please note that e.g. Eelco Dolstra usually prefers having one file for
-  # each version. On the other hand there are valuable additional design goals
-  #  - readability
-  #  - do it once only
-  #  - try to avoid duplication
-  #
-  # Marc Weber and Michael Raskin sometimes prefer keeping older
-  # versions around for testing and regression tests - as long as its cheap to
-  # do so.
-  #
-  # Very often it just happens that the "shared" code is the bigger part.
-  # Then using this function might be appropriate.
-  #
-  # Be aware that its easy to cause recompilations in all versions when using
-  # this function - also if derivations get too complex splitting into multiple
-  # files is the way to go.
-  #
-  # See misc.nix -> versionedDerivation
-  # discussion: nixpkgs: pull/310
-  mergeAttrsByVersion = name: version: attrsByVersion: base:
-    mergeAttrsByFuncDefaultsClean [ { name = "${name}-${version}"; }
-                                    base
-                                    (maybeAttr version (throw "bad version ${version} for ${name}") attrsByVersion)
-                                  ];
-
   # sane defaults (same name as attr name so that inherit can be used)
   mergeAttrBy = # { buildInputs = concatList; [...]; passthru = mergeAttr; [..]; }
     listToAttrs (map (n: nameValuePair n lib.concat)
@@ -359,63 +250,11 @@ rec {
     // listToAttrs (map (n: nameValuePair n (a: b: "${a}\n${b}") ) [ "preConfigure" "postInstall" ])
   ;
 
-  # prepareDerivationArgs tries to make writing configurable derivations easier
-  # example:
-  #  prepareDerivationArgs {
-  #    mergeAttrBy = {
-  #       myScript = x: y: x ++ "\n" ++ y;
-  #    };
-  #    cfg = {
-  #      readlineSupport = true;
-  #    };
-  #    flags = {
-  #      readline = {
-  #        set = {
-  #           configureFlags = [ "--with-compiler=${compiler}" ];
-  #           buildInputs = [ compiler ];
-  #           pass = { inherit compiler; READLINE=1; };
-  #           assertion = compiler.dllSupport;
-  #           myScript = "foo";
-  #        };
-  #        unset = { configureFlags = ["--without-compiler"]; };
-  #      };
-  #    };
-  #    src = ...
-  #    buildPhase = '' ... '';
-  #    name = ...
-  #    myScript = "bar";
-  #  };
-  # if you don't have need for unset you can omit the surrounding set = { .. } attr
-  # all attrs except flags cfg and mergeAttrBy will be merged with the
-  # additional data from flags depending on config settings
-  # It's used in composableDerivation in all-packages.nix. It's also used
-  # heavily in the new python and libs implementation
-  #
-  # should we check for misspelled cfg options?
-  # TODO use args.mergeFun here as well?
-  prepareDerivationArgs = args:
-    let args2 = { cfg = {}; flags = {}; } // args;
-        flagName = name: "${name}Support";
-        cfgWithDefaults = (listToAttrs (map (n: nameValuePair (flagName n) false) (attrNames args2.flags)))
-                          // args2.cfg;
-        opts = attrValues (mapAttrs (a: v:
-                let v2 = if v ? set || v ? unset then v else { set = v; };
-                    n = if cfgWithDefaults.${flagName a} then "set" else "unset";
-                    attr = maybeAttr n {} v2; in
-                if (maybeAttr "assertion" true attr)
-                  then attr
-                  else throw "assertion of flag ${a} of derivation ${args.name} failed"
-               ) args2.flags );
-    in removeAttrs
-      (mergeAttrsByFuncDefaults ([args] ++ opts ++ [{ passthru = cfgWithDefaults; }]))
-      ["flags" "cfg" "mergeAttrBy" ];
-
-
   nixType = x:
       if isAttrs x then
           if x ? outPath then "derivation"
           else "attrs"
-      else if isFunction x then "function"
+      else if lib.isFunction x then "function"
       else if isList x then "list"
       else if x == true then "bool"
       else if x == false then "bool"
@@ -423,4 +262,16 @@ rec {
       else if isInt x then "int"
       else "string";
 
+  /* deprecated:
+
+     For historical reasons, imap has an index starting at 1.
+
+     But for consistency with the rest of the library we want an index
+     starting at zero.
+  */
+  imap = imap1;
+
+  # Fake hashes. Can be used as hash placeholders, when computing hash ahead isn't trivial
+  fakeSha256 = "0000000000000000000000000000000000000000000000000000000000000000";
+  fakeSha512 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 }

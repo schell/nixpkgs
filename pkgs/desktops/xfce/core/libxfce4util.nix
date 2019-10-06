@@ -14,13 +14,13 @@ stdenv.mkDerivation rec {
 
   outputs = [ "out" "dev" "devdoc" ];
 
-  buildInputs = [ pkgconfig glib intltool ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ glib intltool ];
 
   meta = {
-    homepage = http://www.xfce.org/;
+    homepage = https://www.xfce.org/;
     description = "Basic utility non-GUI functions for Xfce";
     license = "bsd";
     platforms = stdenv.lib.platforms.linux;
   };
 }
-

@@ -1,33 +1,47 @@
-{ stdenv, fetchurl, pkgconfig, udev }:
+{ stdenv, fetchurl, pkgconfig, udev, runtimeShellPackage, runtimeShell }:
 
 stdenv.mkDerivation rec {
-  name = "dhcpcd-6.11.5";
+  # when updating this to >=7, check, see previous reverts:
+  # nix-build -A nixos.tests.networking.scripted.macvlan.x86_64-linux nixos/release-combined.nix
+  pname = "dhcpcd";
+  version = "8.0.3";
 
   src = fetchurl {
-    url = "mirror://roy/dhcpcd/${name}.tar.xz";
-    sha256 = "17nnhxmbdcc7k2mh6sgvxisqcqbic5540xbig363ds97gvf795kg";
+    url = "mirror://roy/${pname}/${pname}-${version}.tar.xz";
+    sha256 = "07cg0sp8sk9b6ch2ajmvkbn6z08bgyx8xbd004s5mkasrlgrfx4n";
   };
 
-  buildInputs = [ pkgconfig udev ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [
+    udev
+    runtimeShellPackage # So patchShebangs finds a bash suitable for the installed scripts
+  ];
+
+  prePatch = ''
+    substituteInPlace hooks/dhcpcd-run-hooks.in --replace /bin/sh ${runtimeShell}
+  '';
+
+  preConfigure = "patchShebangs ./configure";
 
   configureFlags = [
     "--sysconfdir=/etc"
     "--localstatedir=/var"
   ];
 
-  makeFlags = "PREFIX=\${out}";
+  makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
   # Hack to make installation succeed.  dhcpcd will still use /var/db
   # at runtime.
-  installFlags = "DBDIR=\${TMPDIR}/db SYSCONFDIR=$(out)/etc";
+  installFlags = [ "DBDIR=$(TMPDIR)/db" "SYSCONFDIR=${placeholder "out"}/etc" ];
 
   # Check that the udev plugin got built.
-  postInstall = stdenv.lib.optional (udev != null) "[ -e $out/lib/dhcpcd/dev/udev.so ]";
+  postInstall = stdenv.lib.optional (udev != null) "[ -e ${placeholder "out"}/lib/dhcpcd/dev/udev.so ]";
 
-  meta = {
+  meta = with stdenv.lib; {
     description = "A client for the Dynamic Host Configuration Protocol (DHCP)";
-    homepage = http://roy.marples.name/projects/dhcpcd;
-    platforms = stdenv.lib.platforms.linux;
-    maintainers = with stdenv.lib.maintainers; [ eelco fpletz ];
+    homepage = https://roy.marples.name/projects/dhcpcd;
+    platforms = platforms.linux;
+    license = licenses.bsd2;
+    maintainers = with maintainers; [ eelco fpletz ];
   };
 }

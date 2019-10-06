@@ -1,11 +1,11 @@
 { stdenv, fetchurl, pkgconfig, libtool, perl, bsdbuild, gettext, mandoc
-, libpng, libjpeg, xlibsWrapper, libXinerama, freetype, SDL, mesa
-, libsndfile, portaudio, mysql, fontconfig
+, libpng, libjpeg, xlibsWrapper, libXinerama, freetype, SDL, libGLU_combined
+, libsndfile, portaudio, libmysqlclient, fontconfig
 }:
 
 let srcs = import ./srcs.nix { inherit fetchurl; }; in
-stdenv.mkDerivation rec {
-  name = "libagar-${version}";
+stdenv.mkDerivation {
+  pname = "libagar";
   inherit (srcs) version src;
 
   preConfigure = ''
@@ -19,16 +19,17 @@ stdenv.mkDerivation rec {
     "--enable-nls=yes"
     "--with-gettext=${gettext}"
     "--with-jpeg=${libjpeg.dev}"
-    "--with-gl=${mesa}"
-    "--with-mysql=yes"
+    "--with-gl=${libGLU_combined}"
+    "--with-mysql=${libmysqlclient}"
     "--with-manpages=yes"
   ];
 
   outputs = [ "out" "devdoc" ];
 
   nativeBuildInputs = [ pkgconfig libtool gettext ];
+
   buildInputs = [
-    bsdbuild perl xlibsWrapper libXinerama SDL mesa  mysql.client mandoc
+    bsdbuild perl xlibsWrapper libXinerama SDL libGLU_combined libmysqlclient mandoc
     freetype.dev libpng libjpeg.dev fontconfig portaudio libsndfile
   ];
 

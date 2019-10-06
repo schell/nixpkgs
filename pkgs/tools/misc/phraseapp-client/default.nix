@@ -1,8 +1,8 @@
 { stdenv, buildGoPackage, fetchFromGitHub }:
 
 buildGoPackage rec {
-  name = "phraseapp-client-${version}";
-  version = "1.4.3";
+  pname = "phraseapp-client";
+  version = "1.11.0";
 
   goPackagePath = "github.com/phrase/phraseapp-client";
   subPackages = [ "." ];
@@ -11,8 +11,12 @@ buildGoPackage rec {
     owner = "phrase";
     repo = "phraseapp-client";
     rev = version;
-    sha256 = "1nfab7y75vl0vg9vy8gc46h7wikk94nky1n415im1xbpsnqg77wz";
+    sha256 = "0lfx0wv95hgczi74qnkw2cripwgvl53z2gi5i6nyflisy4r7vvkr";
   };
+
+  postInstall = ''
+    ln -s $bin/bin/phraseapp-client $bin/bin/phraseapp
+  '';
 
   meta = with stdenv.lib; {
     homepage = http://docs.phraseapp.com;

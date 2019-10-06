@@ -1,4 +1,13 @@
-{ stdenv, lib, buildGoPackage, fetchpatch, fetchFromGitHub }:
+{ stdenv
+, lib
+, buildEnv
+, buildGoPackage
+, fetchFromGitHub
+, makeWrapper
+, runCommand
+, writeText
+, terraform-providers
+}:
 
 let
   goPackagePath = "github.com/hashicorp/terraform";
@@ -34,23 +43,84 @@ let
         description = "Tool for building, changing, and versioning infrastructure";
         homepage = https://www.terraform.io/;
         license = licenses.mpl20;
-        maintainers = with maintainers; [ jgeerds zimbatm peterhoeg ];
+        maintainers = with maintainers; [ zimbatm peterhoeg kalbasit ];
       };
     } // attrs');
-in {
-  terraform_0_8_5 = generic {
-    version = "0.8.5";
-    sha256 = "1cxwv3652fpsbm2zk1akw356cd7w7vhny1623ighgbz9ha8gvg09";
-  };
 
-  terraform_0_8_8 = generic {
-    version = "0.8.8";
-    sha256 = "0ibgpcpvz0bmn3cw60nzsabsrxrbmmym1hv7fx6zmjxiwd68w5gb";
-  };
+  pluggable = terraform:
+    let
+      withPlugins = plugins:
+        let
+          actualPlugins = plugins terraform.plugins;
 
-  terraform_0_9_6 = generic {
-    version = "0.9.6";
-    sha256 = "1f6z1zkklzpqgc7akgdz1g306ccmhni5lmg7i6g762n3qai60bnv";
-    doCheck = true;
-  };
+          # Wrap PATH of plugins propagatedBuildInputs, plugins may have runtime dependencies on external binaries
+          wrapperInputs = lib.unique (lib.flatten (lib.catAttrs "propagatedBuildInputs" (builtins.filter (x: x != null) actualPlugins)));
+
+          passthru = {
+            withPlugins = newplugins: withPlugins (x: newplugins x ++ actualPlugins);
+            full = withPlugins lib.attrValues;
+
+            # Ouch
+            overrideDerivation = f: (pluggable (terraform.overrideDerivation f)).withPlugins plugins;
+            overrideAttrs = f: (pluggable (terraform.overrideAttrs f)).withPlugins plugins;
+            override = x: (pluggable (terraform.override x)).withPlugins plugins;
+          };
+        in
+          # Don't bother wrapping unless we actually have plugins, since the wrapper will stop automatic downloading
+          # of plugins, which might be counterintuitive if someone just wants a vanilla Terraform.
+          if actualPlugins == []
+            then terraform.overrideAttrs (orig: { passthru = orig.passthru // passthru; })
+            else lib.appendToName "with-plugins"(stdenv.mkDerivation {
+              inherit (terraform) name;
+              buildInputs = [ makeWrapper ];
+
+              buildCommand = ''
+                mkdir -p $out/bin/
+                makeWrapper "${terraform.bin}/bin/terraform" "$out/bin/terraform" \
+                  --set NIX_TERRAFORM_PLUGIN_DIR "${buildEnv { name = "tf-plugin-env"; paths = actualPlugins; }}/bin" \
+                  --prefix PATH : "${lib.makeBinPath wrapperInputs}"
+              '';
+
+              inherit passthru;
+            });
+    in withPlugins (_: []);
+
+  plugins = removeAttrs terraform-providers ["override" "overrideDerivation" "recurseForDerivations"];
+in rec {
+  terraform_0_11 = pluggable (generic {
+    version = "0.11.14";
+    sha256 = "1bzz5wy13gh8j47mxxp6ij6yh20xmxd9n5lidaln3mf1bil19dmc";
+    patches = [ ./provider-path.patch ];
+    passthru = { inherit plugins; };
+  });
+
+  terraform_0_11-full = terraform_0_11.full;
+
+  terraform_0_12 = pluggable (generic {
+    version = "0.12.9";
+    sha256 = "14js4n08rg30y0jrm0na79syglpb64cb7cxys0x3w47pcbgymrka";
+    patches = [ ./provider-path.patch ];
+    passthru = { inherit plugins; };
+  });
+
+  # Tests that the plugins are being used. Terraform looks at the specific
+  # file pattern and if the plugin is not found it will try to download it
+  # from the Internet. With sandboxing enable this test will fail if that is
+  # the case.
+  terraform_plugins_test = let
+    mainTf = writeText "main.tf" ''
+      resource "random_id" "test" {}
+    '';
+    terraform = terraform_0_11.withPlugins (p: [ p.random ]);
+    test = runCommand "terraform-plugin-test" { buildInputs = [terraform]; }
+      ''
+        set -e
+        # make it fail outside of sandbox
+        export HTTP_PROXY=http://127.0.0.1:0 HTTPS_PROXY=https://127.0.0.1:0
+        cp ${mainTf} main.tf
+        terraform init
+        touch $out
+      '';
+  in test;
+
 }

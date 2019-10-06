@@ -11,29 +11,39 @@
 , six
 , opencl-headers
 , ocl-icd
+, pybind11
 }:
 
 buildPythonPackage rec {
   pname = "pyopencl";
-  version = "2017.1.1";
-  name = "${pname}-${version}";
+  version = "2019.1.1";
 
-  buildInputs = [ pytest opencl-headers ocl-icd ];
+  checkInputs = [ pytest ];
+  buildInputs = [ opencl-headers ocl-icd pybind11 ];
 
   propagatedBuildInputs = [ numpy cffi pytools decorator appdirs six Mako ];
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "928c458a463321c6c91e7fa54bf325bf71d7a8aa5ff750ec8fed2472f6aeb323";
+    sha256 = "0g5n1c8gfqhfrfpzdypzwfj1q1nlqzcfjrx397cs6qqw67mg095k";
   };
+
+  # py.test is not needed during runtime, so remove it from `install_requires`
+  postPatch = ''
+    substituteInPlace setup.py --replace "pytest>=2" ""
+  '';
+
+  preBuild = ''
+    export HOME=$(mktemp -d)
+  '';
 
   # gcc: error: pygpu_language_opencl.cpp: No such file or directory
   doCheck = false;
 
-  meta = {
+  meta = with stdenv.lib; {
     description = "Python wrapper for OpenCL";
     homepage = https://github.com/pyopencl/pyopencl;
-    license = stdenv.lib.licenses.mit;
-    maintainer = stdenv.lib.maintainers.fridh;
+    license = licenses.mit;
+    maintainers = [ maintainers.fridh ];
   };
 }

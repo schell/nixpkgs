@@ -1,40 +1,51 @@
-{ stdenv, fetchurl, erlang, python, libxml2, libxslt, xmlto
-, docbook_xml_dtd_45, docbook_xsl, zip, unzip, rsync
-
+{ stdenv, fetchurl, erlang, elixir, python, libxml2, libxslt, xmlto
+, docbook_xml_dtd_45, docbook_xsl, zip, unzip, rsync, getconf, socat
 , AppKit, Carbon, Cocoa
 }:
 
 stdenv.mkDerivation rec {
-  name = "rabbitmq-server-${version}";
+  pname = "rabbitmq-server";
 
-  version = "3.6.6";
+  version = "3.7.18";
 
+  # when updating, consider bumping elixir version in all-packages.nix
   src = fetchurl {
-    url = "https://github.com/rabbitmq/rabbitmq-server/releases/download/rabbitmq_v3_6_6/rabbitmq-server-3.6.6.tar.xz";
-    sha256 = "13mpnyfxd026w525rsnkcw0f8bcrkbzl7k9g8pnqmm3zyny8jmir";
+    url = "https://github.com/rabbitmq/rabbitmq-server/releases/download/v${version}/${pname}-${version}.tar.xz";
+    sha256 = "1vzx9g2k7ynbv2gz450cwjyxcn3vcxsmlpnvq1r5wzcf25giy9ky";
   };
 
   buildInputs =
-    [ erlang python libxml2 libxslt xmlto docbook_xml_dtd_45 docbook_xsl zip unzip rsync ]
+    [ erlang elixir python libxml2 libxslt xmlto docbook_xml_dtd_45 docbook_xsl zip unzip rsync ]
     ++ stdenv.lib.optionals stdenv.isDarwin [ AppKit Carbon Cocoa ];
 
-  preBuild =
-    ''
-      # Fix the "/usr/bin/env" in "calculate-relative".
-      patchShebangs .
-    '';
+  outputs = [ "out" "man" "doc" ];
 
   installFlags = "PREFIX=$(out) RMQ_ERLAPP_DIR=$(out)";
   installTargets = "install install-man";
 
-  postInstall =
-    ''
-      echo 'PATH=${erlang}/bin:''${PATH:+:}$PATH' >> $out/sbin/rabbitmq-env
-    ''; # */
+  runtimePath = stdenv.lib.makeBinPath [getconf erlang socat];
+  postInstall = ''
+    echo 'PATH=${runtimePath}:''${PATH:+:}$PATH' >> $out/sbin/rabbitmq-env
+
+    # we know exactly where rabbitmq is gonna be,
+    # so we patch that into the env-script
+    substituteInPlace $out/sbin/rabbitmq-env \
+      --replace 'RABBITMQ_SCRIPTS_DIR=`dirname $SCRIPT_PATH`' \
+                "RABBITMQ_SCRIPTS_DIR=$out/sbin"
+
+    # there’s a few stray files that belong into share
+    mkdir -p $doc/share/doc/rabbitmq-server
+    mv $out/LICENSE* $doc/share/doc/rabbitmq-server
+
+    # and an unecessarily copied INSTALL file
+    rm $out/INSTALL
+  '';
 
   meta = {
     homepage = http://www.rabbitmq.com/;
     description = "An implementation of the AMQP messaging protocol";
+    license = stdenv.lib.licenses.mpl11;
     platforms = stdenv.lib.platforms.unix;
+    maintainers = with stdenv.lib.maintainers; [ Profpatsch ];
   };
 }

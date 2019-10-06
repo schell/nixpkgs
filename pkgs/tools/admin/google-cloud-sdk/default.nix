@@ -1,57 +1,75 @@
-{stdenv, fetchurl, python27, python27Packages, makeWrapper}:
+# Make sure that the "with-gce" flag is set when building `google-cloud-sdk`
+# for GCE hosts. This flag prevents "google-compute-engine" from being a
+# default dependency which is undesirable because this package is
+#
+#   1) available only on GNU/Linux (requires `systemd` in particular)
+#   2) intended only for GCE guests (and is useless elsewhere)
+#   3) used by `google-cloud-sdk` only on GCE guests
+#
 
-with python27Packages;
+{ stdenv, lib, fetchurl, makeWrapper, python, cffi, cryptography, pyopenssl,
+  crcmod, google-compute-engine, with-gce ? false }:
 
-# other systems not supported yet
-assert stdenv.system == "i686-linux" || stdenv.system == "x86_64-linux" || stdenv.system == "x86_64-darwin";
+let
+  pythonInputs = [ cffi cryptography pyopenssl crcmod ]
+                 ++ lib.optional (with-gce) google-compute-engine;
+  pythonPath = lib.makeSearchPath python.sitePackages pythonInputs;
 
-stdenv.mkDerivation rec {
-  name = "google-cloud-sdk-${version}";
-  version = "155.0.0";
+  baseUrl = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads";
+  sources = name: system: {
+    x86_64-darwin = {
+      url = "${baseUrl}/${name}-darwin-x86_64.tar.gz";
+      sha256 = "17gqrfnqbhp9hhlb57nxii18pb5cnxn3k8p2djiw699qkx3aqs13";
+    };
 
-  src =
-    if stdenv.system == "i686-linux" then
-      fetchurl {
-        url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${name}-linux-x86.tar.gz";
-        sha256 = "1xh8xy9p3qqmirvhih7vf96i5xn0z0zr5mmbqr6vfzx16r47bi2z";
-      }
-    else if stdenv.system == "x86_64-darwin" then
-      fetchurl {
-        url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${name}-darwin-x86_64.tar.gz";
-        sha256 = "19pr1pld6vdp5ig5i7zddfl1l5xjv9nx5sn00va4l1nnb410ac69";
-      }
-    else
-      fetchurl {
-        url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${name}-linux-x86_64.tar.gz";
-        sha256 = "18hnabhdlrprhg8micy2z63jxyah3qr3pv9pgb64i7lbv6lznr2b";
-      };
+    x86_64-linux = {
+      url = "${baseUrl}/${name}-linux-x86_64.tar.gz";
+      sha256 = "1bgvwgyshh0icb07dacrip0q5xs5l2315m1gz5ggz5dhnf0vrz0q";
+    };
+  }.${system};
 
-  buildInputs = [python27 makeWrapper];
+in stdenv.mkDerivation rec {
+  pname = "google-cloud-sdk";
+  version = "255.0.0";
 
-  phases = [ "installPhase" "fixupPhase" ];
+  src = fetchurl (sources "${pname}-${version}" stdenv.hostPlatform.system);
+
+  buildInputs = [ python makeWrapper ];
+
+  patches = [
+    ./gcloud-path.patch
+  ];
 
   installPhase = ''
-    mkdir -p "$out"
-    tar -xzf "$src" -C "$out" google-cloud-sdk
+    mkdir -p $out/google-cloud-sdk
+    cp -R * .install $out/google-cloud-sdk/
+
+    mkdir -p $out/google-cloud-sdk/lib/surface/{alpha,beta}
+    cp ${./alpha__init__.py} $out/google-cloud-sdk/lib/surface/alpha/__init__.py
+    cp ${./beta__init__.py} $out/google-cloud-sdk/lib/surface/beta/__init__.py
 
     # create wrappers with correct env
-    for program in gcloud bq gsutil git-credential-gcloud.sh; do
+    for program in gcloud bq gsutil git-credential-gcloud.sh docker-credential-gcloud; do
         programPath="$out/google-cloud-sdk/bin/$program"
         binaryPath="$out/bin/$program"
         wrapProgram "$programPath" \
-            --set CLOUDSDK_PYTHON "${python27}/bin/python" \
-            --prefix PYTHONPATH : "$(toPythonPath ${cffi}):$(toPythonPath ${cryptography}):$(toPythonPath ${pyopenssl}):$(toPythonPath ${crcmod})"
+            --set CLOUDSDK_PYTHON "${python}/bin/python" \
+            --prefix PYTHONPATH : "${pythonPath}"
 
         mkdir -p $out/bin
         ln -s $programPath $binaryPath
     done
 
-    # install man pages
-    mv "$out/google-cloud-sdk/help/man" "$out"
+    # disable component updater and update check
+    substituteInPlace $out/google-cloud-sdk/lib/googlecloudsdk/core/config.json \
+      --replace "\"disable_updater\": false" "\"disable_updater\": true"
+    echo "
+    [component_manager]
+    disable_update_check = true" >> $out/google-cloud-sdk/properties
 
     # setup bash completion
-    mkdir -p "$out/etc/bash_completion.d/"
-    mv "$out/google-cloud-sdk/completion.bash.inc" "$out/etc/bash_completion.d/gcloud.inc"
+    mkdir -p $out/etc/bash_completion.d
+    mv $out/google-cloud-sdk/completion.bash.inc $out/etc/bash_completion.d/gcloud.inc
 
     # This directory contains compiled mac binaries. We used crcmod from
     # nixpkgs instead.
@@ -61,11 +79,10 @@ stdenv.mkDerivation rec {
   meta = with stdenv.lib; {
     description = "Tools for the google cloud platform";
     longDescription = "The Google Cloud SDK. This package has the programs: gcloud, gsutil, and bq";
-    version = version;
     # This package contains vendored dependencies. All have free licenses.
     license = licenses.free;
     homepage = "https://cloud.google.com/sdk/";
-    maintainers = with maintainers; [stephenmw zimbatm];
-    platforms = with platforms; linux ++ darwin;
+    maintainers = with maintainers; [ stephenmw zimbatm ];
+    platforms = [ "x86_64-linux" "x86_64-darwin" ];
   };
 }

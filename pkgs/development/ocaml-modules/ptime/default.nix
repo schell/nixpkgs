@@ -1,31 +1,24 @@
-{stdenv, fetchurl, buildOcaml, ocaml, findlib, ocamlbuild, topkg, result, opam}:
+{ stdenv, fetchurl, ocaml, findlib, ocamlbuild, topkg, result, js_of_ocaml }:
 
-buildOcaml rec {
-  version = "0.8.2";
-  name = "ptime";
+stdenv.mkDerivation rec {
+  version = "0.8.5";
+  name = "ocaml${ocaml.version}-ptime-${version}";
 
   src = fetchurl {
-    url = "http://erratique.ch/software/ptime/releases/ptime-${version}.tbz";
-    sha256 = "1lihkhzskzwxskiarh4mvf7gbz5nfv25vmazbfz81m344i32a5pj";
+    url = "https://erratique.ch/software/ptime/releases/ptime-${version}.tbz";
+    sha256 = "1fxq57xy1ajzfdnvv5zfm7ap2nf49znw5f9gbi4kb9vds942ij27";
   };
 
-  unpackCmd = "tar -xf $curSrc";
-
-  buildInputs = [ ocaml findlib ocamlbuild topkg opam ];
+  buildInputs = [ ocaml findlib ocamlbuild topkg js_of_ocaml ];
 
   propagatedBuildInputs = [ result ];
 
-  buildPhase = ''
-    ocaml -I ${findlib}/lib/ocaml/${ocaml.version}/site-lib/ pkg/pkg.ml build --with-js_of_ocaml false
-  '';
+  buildPhase = "${topkg.run} build --with-js_of_ocaml true";
 
-  installPhase = ''
-    opam-installer --script --prefix=$out ptime.install | sh
-    ln -s $out/lib/ptime $out/lib/ocaml/${ocaml.version}/site-lib
-  '';
+  inherit (topkg) installPhase;
 
   meta = {
-    homepage = http://erratique.ch/software/ptime;
+    homepage = https://erratique.ch/software/ptime;
     description = "POSIX time for OCaml";
     longDescription = ''
       Ptime has platform independent POSIX time support in pure OCaml.

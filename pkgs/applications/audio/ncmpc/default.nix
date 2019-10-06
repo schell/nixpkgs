@@ -1,36 +1,31 @@
-{ stdenv, fetchFromGitHub, autoreconfHook, pkgconfig, glib, ncurses, mpd_clientlib, libintlOrEmpty }:
+{ stdenv, fetchFromGitHub, meson, ninja, pkgconfig, glib, ncurses
+, mpd_clientlib, gettext, boost }:
 
 stdenv.mkDerivation rec {
-  name = "ncmpc-${version}";
-  version = "0.27";
+  pname = "ncmpc";
+  version = "0.35";
 
   src = fetchFromGitHub {
     owner  = "MusicPlayerDaemon";
     repo   = "ncmpc";
     rev    = "v${version}";
-    sha256 = "0sfal3wadqvy6yas4xzhw35awdylikci8kbdcmgm4l2afpmc1lrr";
+    sha256 = "0hhc5snxy5fbg47ynz4b7fkmzdy974zxqr0cqc6kh15yvbr25ikh";
   };
 
-  buildInputs = [ glib ncurses mpd_clientlib ];
-    # ++ libintlOrEmpty;
-  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ glib ncurses mpd_clientlib boost ];
+  nativeBuildInputs = [ meson ninja pkgconfig gettext ];
 
-  NIX_LDFLAGS = stdenv.lib.optionalString stdenv.isDarwin "-lintl";
-
-  # without this, po/Makefile.in.in is not being created
-  preAutoreconf = ''
-    ./autogen.sh
-  '';
-
-  configureFlags = [
-    "--enable-colors"
-    "--enable-lyrics-screen"
+  mesonFlags = [
+    "-Dlirc=disabled"
+    "-Dregex=disabled"
+    "-Ddocumentation=disabled"
   ];
 
   meta = with stdenv.lib; {
     description = "Curses-based interface for MPD (music player daemon)";
-    homepage    = http://www.musicpd.org/clients/ncmpc/;
+    homepage    = https://www.musicpd.org/clients/ncmpc/;
     license     = licenses.gpl2Plus;
     platforms   = platforms.all;
+    maintainers = with maintainers; [ fpletz ];
   };
 }

@@ -1,7 +1,7 @@
 { stdenv, fetchurl, b43FirmwareCutter }:
 
 stdenv.mkDerivation rec {
-  name = "b43-firmware-${version}";
+  pname = "b43-firmware";
   version = "6.30.163.46";
 
   src = fetchurl {
@@ -25,6 +25,5 @@ stdenv.mkDerivation rec {
     homepage = http://wireless.kernel.org/en/users/Drivers/b43;
     downloadPage = http://www.lwfinger.com/b43-firmware;
     license = licenses.unfree;
-    maintainers = with maintainers; [ nckx ];
   };
 }

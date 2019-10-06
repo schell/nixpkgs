@@ -1,26 +1,23 @@
 { stdenv, fetchFromGitHub }:
 
-let
-  version = "0.3.2";
-in
-stdenv.mkDerivation {
-  name = "lr-${version}";
-  inherit version;
+stdenv.mkDerivation rec {
+  pname = "lr";
+  version = "1.4.1";
 
   src = fetchFromGitHub {
     owner = "chneukirchen";
     repo = "lr";
     rev = "v${version}";
-    sha256 = "1bbgzshayk0kzmlyw44jqskgmxz5c4jh2h0bqg3n5zi89588ng2k";
+    sha256 = "0mpaqn0zfhxdf9wzs1wgdd29bjcyl3rgfdlqbwhiwcy2h3vy2h8s";
   };
 
   makeFlags = "PREFIX=$(out)";
 
-  meta = {
-    homepage = "http://github.com/chneukirchen/lr";
+  meta = with stdenv.lib; {
+    homepage = https://github.com/chneukirchen/lr;
     description = "List files recursively";
-    license = stdenv.lib.licenses.mit;
-    platforms = stdenv.lib.platforms.all;
-    maintainers = [ stdenv.lib.maintainers.globin ];
+    license = licenses.mit;
+    platforms = platforms.all;
+    maintainers = with maintainers; [ vika_nezrimaya ];
   };
 }

@@ -1,12 +1,12 @@
 { stdenv, fetchurl, unzip, openblas, gfortran }:
 
 stdenv.mkDerivation rec {
-  name = "ipopt-${version}";
-  version = "3.12.6";
+  pname = "ipopt";
+  version = "3.12.13";
 
   src = fetchurl {
-    url = "http://www.coin-or.org/download/source/Ipopt/Ipopt-${version}.zip";
-    sha256 = "0lx09h1757s5jppwnxwblcjk0biqjxy7yaf3z4vfqbl4rl93avs0";
+    url = "https://www.coin-or.org/download/source/Ipopt/Ipopt-${version}.zip";
+    sha256 = "0kzf05aypx8q5mr3sciclk926ans0yi2d2chjdxxgpi3sza609dx";
   };
 
   CXXDEFS = [ "-DHAVE_RAND" "-DHAVE_CSTRING" "-DHAVE_CSTDIO" ];
@@ -24,7 +24,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A software package for large-scale nonlinear optimization";
-    homepage = "https://projects.coin-or.org/Ipopt";
+    homepage = https://projects.coin-or.org/Ipopt;
     license = licenses.epl10;
     platforms = platforms.unix;
     maintainers = with maintainers; [ abbradar ];

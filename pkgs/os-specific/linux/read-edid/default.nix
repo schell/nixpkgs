@@ -1,15 +1,18 @@
-{ stdenv, fetchurl, cmake, libx86 }:
+{ stdenv, lib, fetchurl, cmake, libx86 }:
 
 stdenv.mkDerivation rec {
-  name = "read-edid-${version}";
+  pname = "read-edid";
   version = "3.0.2";
 
   src = fetchurl {
-    url = "http://www.polypux.org/projects/read-edid/${name}.tar.gz";
+    url = "http://www.polypux.org/projects/read-edid/${pname}-${version}.tar.gz";
     sha256 = "0vqqmwsgh2gchw7qmpqk6idgzcm5rqf2fab84y7gk42v1x2diin7";
   };
 
-  buildInputs = [ cmake libx86 ];
+  nativeBuildInputs = [ cmake ];
+  buildInputs = lib.optional (stdenv.isi686 || stdenv.isx86_64) libx86;
+
+  cmakeFlags = [ "-DCLASSICBUILD=${if stdenv.isi686 || stdenv.isx86_64 then "ON" else "OFF"}" ];
 
   patchPhase = ''
     substituteInPlace CMakeLists.txt --replace 'COPYING' 'LICENSE'

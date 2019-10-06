@@ -1,15 +1,18 @@
-{stdenv, fetchurl, lib, pkgconfig, glib, gtk2, python27, python2Packages }:
+{stdenv, fetchFromGitHub, pkgconfig, glib, gtk2, python2Packages }:
 
 stdenv.mkDerivation rec {
-  version = "0.14.7";
-  name = "bootchart-${version}";
+  version = "0.14.8";
+  pname = "bootchart";
 
-  src = fetchurl {
-    url = "https://github.com/mmeeks/bootchart/archive/${version}.tar.gz";
-    sha256 = "1abn4amsyys6vwn7csxsxny94n24ycca3xhqxqcmdc4j0dzn3kmb";
+  src = fetchFromGitHub {
+    owner = "mmeeks";
+    repo = "bootchart";
+    rev = version;
+    sha256 = "12ja2hp6f49416zfjdx0kjfmlkh9wl9b7wz7gk372kps4gjnypqx";
   };
 
-  buildInputs = [ pkgconfig glib gtk2 python2Packages.python python2Packages.wrapPython python2Packages.pygtk ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ glib gtk2 python2Packages.python python2Packages.wrapPython python2Packages.pygtk ];
   pythonPath = with python2Packages; [ pygtk pycairo ];
 
   installPhase = ''

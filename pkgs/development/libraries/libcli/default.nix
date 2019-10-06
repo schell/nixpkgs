@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "libcli-${version}";
+  pname = "libcli";
   version = "1.9.7";
 
   src = fetchFromGitHub {
@@ -27,6 +27,5 @@ stdenv.mkDerivation rec {
     homepage = http://sites.dparrish.com/libcli;
     license = licenses.lgpl21Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

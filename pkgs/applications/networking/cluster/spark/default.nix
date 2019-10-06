@@ -1,40 +1,33 @@
-{ stdenv, fetchzip, makeWrapper, jre, pythonPackages
+{ stdenv, fetchzip, makeWrapper, jre, pythonPackages, coreutils, hadoop
 , RSupport? true, R
 , mesosSupport ? true, mesos
 , version
 }:
 
 let
-  versionMap = {
-    "1.6.3" = {
-                hadoopVersion = "cdh4";
-                sparkSha256 = "00il083cjb9xqzsma2ifphq9ggichwndrj6skh2z5z9jk3z0lgyn";
-              };
-    "2.1.0" = {
-                hadoopVersion = "hadoop2.4";
-                sparkSha256 = "0pbsmbjwijsfgbnm56kgwnmnlqkz3w010ma0d7vzlkdklj40vqn2";
-              };
-  };
+  sha256 = {
+    "1.6.3" = "142hw73wf20d846l83ydx0yg7qj5qxywm4h7qrhwnd7lsy2sbnjf";
+    "2.4.3" = "1dvvr1q3dz961bl7qigxngrp4ssrbll3g1s6nkra6gyr83pis96c"; 
+  }.${version};
 in
-
-with versionMap.${version};
 
 with stdenv.lib;
 
 stdenv.mkDerivation rec {
 
-  name = "spark-${version}";
+  pname = "spark";
+  inherit version;
 
   src = fetchzip {
-    url    = "mirror://apache/spark/${name}/${name}-bin-${hadoopVersion}.tgz";
-    sha256 = sparkSha256;
+    inherit sha256;
+    url    = "mirror://apache/spark/${pname}-${version}/${pname}-${version}-bin-without-hadoop.tgz";
   };
 
   buildInputs = [ makeWrapper jre pythonPackages.python pythonPackages.numpy ]
     ++ optional RSupport R
     ++ optional mesosSupport mesos;
 
-  untarDir = "${name}-bin-${hadoopVersion}";
+  untarDir = "${pname}-${version}-bin-without-hadoop";
   installPhase = ''
     mkdir -p $out/{lib/${untarDir}/conf,bin,/share/java}
     mv * $out/lib/${untarDir}
@@ -46,6 +39,7 @@ stdenv.mkDerivation rec {
     cat > $out/lib/${untarDir}/conf/spark-env.sh <<- EOF
     export JAVA_HOME="${jre}"
     export SPARK_HOME="$out/lib/${untarDir}"
+    export SPARK_DIST_CLASSPATH=$(${hadoop}/bin/hadoop classpath)
     export PYSPARK_PYTHON="${pythonPackages.python}/bin/${pythonPackages.python.executable}"
     export PYTHONPATH="\$PYTHONPATH:$PYTHONPATH"
     ${optionalString RSupport
@@ -57,6 +51,7 @@ stdenv.mkDerivation rec {
 
     for n in $(find $out/lib/${untarDir}/bin -type f ! -name "*.*"); do
       makeWrapper "$n" "$out/bin/$(basename $n)"
+      substituteInPlace "$n" --replace dirname ${coreutils.out}/bin/dirname
     done
     ln -s $out/lib/${untarDir}/lib/spark-assembly-*.jar $out/share/java
   '';
@@ -66,7 +61,7 @@ stdenv.mkDerivation rec {
     homepage         = "http://spark.apache.org";
     license          = stdenv.lib.licenses.asl20;
     platforms        = stdenv.lib.platforms.all;
-    maintainers      = with maintainers; [ thoughtpolice offline ];
+    maintainers      = with maintainers; [ thoughtpolice offline kamilchm ];
     repositories.git = git://git.apache.org/spark.git;
   };
 }

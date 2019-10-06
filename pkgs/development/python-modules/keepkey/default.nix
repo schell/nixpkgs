@@ -1,21 +1,24 @@
-{ stdenv, fetchPypi, buildPythonPackage, ecdsa
-, mnemonic, protobuf3_0, hidapi }:
+{ stdenv, fetchFromGitHub, buildPythonPackage, pytest
+, ecdsa , mnemonic, protobuf, hidapi, trezor }:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "keepkey";
-  version = "0.7.3";
+  version = "6.0.3";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "14d2r8dlx997ypgma2k8by90acw7i3l7hfq4gar9lcka0lqfj714";
+  src = fetchFromGitHub {
+    owner = "keepkey";
+    repo = "python-keepkey";
+    rev = "v${version}";
+    sha256 = "0jnkh1nin1lwnx32ak6sv8gzmpnkvcy6vm23wzm1ymzfndxk6rnm";
   };
 
-  propagatedBuildInputs = [ protobuf3_0 hidapi ];
+  propagatedBuildInputs = [ protobuf hidapi trezor ];
 
   buildInputs = [ ecdsa mnemonic ];
 
-  # There are no actual tests: "ImportError: No module named tests"
+  checkInputs = [ pytest ];
+
+  # tests requires hardware
   doCheck = false;
 
   # Remove impossible dependency constraint

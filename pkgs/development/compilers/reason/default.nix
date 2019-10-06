@@ -1,57 +1,41 @@
-{ stdenv, makeWrapper, buildOcaml, fetchFromGitHub,
-  ocaml, opam, topkg, menhir, merlin_extend, ppx_tools_versioned, utop }:
+{ stdenv, makeWrapper, fetchFromGitHub, ocaml, findlib, dune
+, menhir, merlin-extend, ppx_tools_versioned, utop, cppo
+, ocaml_lwt
+}:
 
-let 
-  version = "1.13.4";
+stdenv.mkDerivation rec {
+  name = "ocaml${ocaml.version}-reason-${version}";
+  version = "3.5.0";
+
   src = fetchFromGitHub {
     owner = "facebook";
     repo = "reason";
-    rev = version;
-    sha256 = "03r2ciikgwaq1dkzgzc8n7h7y0q95ajh6n9bb2n5bpgfhwkr1wqi";
-  };
-  meta = with stdenv.lib; {
-    homepage = https://facebook.github.io/reason/;
-    description = "Facebook's friendly syntax to OCaml";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.volth ];
+    rev = "ea207004e021efef5a92ecd011d9d5b9b16bbded";
+    sha256 = "0cdjy7sw15rlk63prrwy8lavqrz8fqwsgwr19ihvj99x332r98kk";
   };
 
-  reason-parser = buildOcaml {
-    name = "reason-parser";
-    inherit version src meta;
-    sourceRoot = "reason-${version}-src/reason-parser";
+  nativeBuildInputs = [ makeWrapper ];
 
-    minimumSupportedOcamlVersion = "4.02";
+  propagatedBuildInputs = [ menhir merlin-extend ppx_tools_versioned ];
 
-    propagatedBuildInputs = [ menhir merlin_extend ppx_tools_versioned ];
-    buildInputs = [ opam topkg ];
-
-    createFindlibDestdir = true;
-
-    inherit (topkg) installPhase;
-  };
-in
-buildOcaml {
-  name = "reason";
-  inherit version src meta;
-
-  buildInputs = [ makeWrapper opam topkg reason-parser utop ];
+  buildInputs = [ ocaml findlib dune cppo utop menhir ];
 
   buildFlags = [ "build" ]; # do not "make tests" before reason lib is installed
 
-  createFindlibDestdir = true;
+  inherit (dune) installPhase;
 
-  postPatch = ''
-    substituteInPlace src/reasonbuild.ml --replace "refmt --print binary" "$out/bin/refmt --print binary"
-  '';
-
-  installPhase = ''
-    ${topkg.installPhase}
-
-    wrapProgram $out/bin/reup \
-      --prefix PATH : "${opam}/bin"
+  postInstall = ''
     wrapProgram $out/bin/rtop \
       --prefix PATH : "${utop}/bin" \
+      --set CAML_LD_LIBRARY_PATH ${ocaml_lwt}/lib/ocaml/${ocaml.version}/site-lib:$CAML_LD_LIBRARY_PATH \
       --set OCAMLPATH $out/lib/ocaml/${ocaml.version}/site-lib:$OCAMLPATH
   '';
+
+  meta = with stdenv.lib; {
+    homepage = https://reasonml.github.io/;
+    description = "Facebook's friendly syntax to OCaml";
+    license = licenses.mit;
+    inherit (ocaml.meta) platforms;
+    maintainers = [ maintainers.volth ];
+  };
 }

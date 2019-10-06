@@ -1,54 +1,50 @@
-{ stdenv
+{ mkDerivation
 , lib
 , fetchurl
 , extra-cmake-modules
-, makeQtWrapper
 , kcmutils
 , kconfigwidgets
 , kdbusaddons
+, kdoctools
 , kiconthemes
 , ki18n
 , knotifications
 , qca-qt5
 , libfakekey
 , libXtst
+, qtx11extras
+, sshfs
+, makeWrapper
+, kwayland
 }:
 
-stdenv.mkDerivation rec {
-  name = "kdeconnect-${version}";
-  version = "1.0.3";
+mkDerivation rec {
+  pname = "kdeconnect";
+  version = "1.3.5";
 
   src = fetchurl {
-    url = "http://download.kde.org/stable/kdeconnect/${version}/src/kdeconnect-kde-${version}.tar.xz";
-    sha256 = "0b40402adw7cqz19fh8zw70f6l7b5p400mw668n3wic4favn27r2";
+    url = "mirror://kde/stable/${pname}/${version}/${pname}-kde-${version}.tar.xz";
+    sha256 = "02lr3xx5s2mgddac4n3lkgr7ppf1z5m6ajs90rjix0vs8a271kp5";
   };
 
   buildInputs = [
-    kcmutils
-    kconfigwidgets
-    kdbusaddons
-    qca-qt5
-    ki18n
-    kiconthemes
-    knotifications
-    libfakekey
-    libXtst
+    libfakekey libXtst
+    ki18n kiconthemes kcmutils kconfigwidgets kdbusaddons knotifications
+    qca-qt5 qtx11extras makeWrapper kwayland
   ];
 
-  nativeBuildInputs = [
-    extra-cmake-modules
-    makeQtWrapper
-  ];
+  nativeBuildInputs = [ extra-cmake-modules kdoctools ];
 
   postInstall = ''
-    wrapQtProgram "$out/bin/kdeconnect-cli"
+    wrapProgram $out/libexec/kdeconnectd --prefix PATH : ${lib.makeBinPath [ sshfs ]}
   '';
 
-  meta = {
-    description = "KDE Connect provides several features to integrate your phone and your computer";
-    license = with lib.licenses; [ gpl2 ];
-    maintainers = with lib.maintainers; [ fridh ];
-    homepage = https://community.kde.org/KDEConnect;
-  };
+  enableParallelBuilding = true;
 
+  meta = with lib; {
+    description = "KDE Connect provides several features to integrate your phone and your computer";
+    homepage    = https://community.kde.org/KDEConnect;
+    license     = with licenses; [ gpl2 ];
+    maintainers = with maintainers; [ fridh ];
+  };
 }

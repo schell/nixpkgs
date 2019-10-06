@@ -1,22 +1,36 @@
-{ python3Packages, fetchurl, lib }:
+{ stdenv, python3, fetchFromGitHub }:
 
-python3Packages.buildPythonApplication rec {
-  version = "2.2.0";
-  name = "cheat-${version}";
+with python3.pkgs;
+buildPythonApplication rec {
+  pname = "cheat";
+  version = "2.5.1";
 
-  propagatedBuildInputs = with python3Packages; [ docopt pygments ];
+  propagatedBuildInputs = [ docopt pygments termcolor ];
 
-  src = fetchurl {
-    url = "mirror://pypi/c/cheat/${name}.tar.gz";
-    sha256 = "16pg1bgyfjvzpm2rbi411ckf3gljg9v1vzd5qhp23g69ch6yr138";
+  src = fetchFromGitHub {
+    owner = "chrisallenlane";
+    repo = "cheat";
+    rev = version;
+    sha256 = "1i543hvg1yizamfd83bawflfcb500hvc72i59ikck8j1hjk50hsl";
   };
   # no tests available
   doCheck = false;
 
-  meta = {
+  postInstall = ''
+    install -D man1/cheat.1.gz $out/share/man/man1/cheat.1.gz
+    mv $out/${python3.sitePackages}/etc $out/
+    mv $out/${python3.sitePackages}/usr/share/* $out/share/
+    rm -r $out/${python3.sitePackages}/usr
+  '';
+
+  makeWrapperArgs = [
+    "--suffix" "CHEAT_PATH" ":" "$out/share/cheat"
+  ];
+
+  meta = with stdenv.lib; {
     description = "cheat allows you to create and view interactive cheatsheets on the command-line";
-    maintainers = with lib.maintainers; [ mic92 ];
-    license = with lib.licenses; [gpl3 mit];
-    homepage = "https://github.com/chrisallenlane/cheat";
+    maintainers = with maintainers; [ mic92 ];
+    license = with licenses; [ gpl3 mit ];
+    homepage = https://github.com/chrisallenlane/cheat;
   };
 }

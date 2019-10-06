@@ -5,11 +5,11 @@
 
 stdenv.mkDerivation rec {
   name = "sgt-puzzles-r${version}";
-  version = "20170228.1f613ba";
+  version = "20190415.e2135d5";
 
   src = fetchurl {
    url = "http://www.chiark.greenend.org.uk/~sgtatham/puzzles/puzzles-${version}.tar.gz";
-   sha256 = "02nqc18fhvxr545wgk55ly61fi0a06q61ljzwadprqxa1n0g0fz5";
+   sha256 = "02p9kpvmqa0cm9y0lzdy7g8h4b4mqma8d9jfvgi2yysbgjfzq2ak";
   };
 
   nativeBuildInputs = [ autoreconfHook makeWrapper pkgconfig perl wrapGAppsHook ];
@@ -41,6 +41,6 @@ stdenv.mkDerivation rec {
     license = licenses.mit;
     maintainers = [ maintainers.raskin ];
     platforms = platforms.linux;
-    homepage = "http://www.chiark.greenend.org.uk/~sgtatham/puzzles/";
+    homepage = http://www.chiark.greenend.org.uk/~sgtatham/puzzles/;
   };
 }

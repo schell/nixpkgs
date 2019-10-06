@@ -1,17 +1,14 @@
-{ stdenv
-, fetchFromGitHub
-, cmake
-, python
-}:
+{ stdenv , fetchFromGitHub , cmake , python }:
+
 stdenv.mkDerivation rec {
-  name = "jsoncpp-${version}";
-  version = "1.8.0";
+  pname = "jsoncpp";
+  version = "1.9.1";
 
   src = fetchFromGitHub {
     owner = "open-source-parsers";
     repo = "jsoncpp";
     rev = version;
-    sha256 = "1lg22zrjnl10x1bw0wfz72xd2kfbzynyggk8vdwd89mp1g8xjl9d";
+    sha256 = "00g356iv3kcp0gadj7gbyzf9jn9avvx9vxbxc7c2i5nnry8z72wj";
   };
 
   /* During darwin bootstrap, we have a cp that doesn't understand the
@@ -36,13 +33,14 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DBUILD_SHARED_LIBS=ON"
     "-DBUILD_STATIC_LIBS=OFF"
+    "-DJSONCPP_WITH_CMAKE_PACKAGE=ON"
   ];
 
   meta = with stdenv.lib; {
     inherit version;
     homepage = https://github.com/open-source-parsers/jsoncpp;
     description = "A C++ library for interacting with JSON.";
-    maintainers = with maintainers; [ ttuegel cpages ];
+    maintainers = with maintainers; [ ttuegel cpages nand0p ];
     license = licenses.mit;
     platforms = platforms.all;
   };

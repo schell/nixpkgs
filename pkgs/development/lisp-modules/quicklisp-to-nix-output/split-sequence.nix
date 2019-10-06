@@ -1,35 +1,30 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''split-sequence'';
-  version = ''1.2'';
+  version = ''v2.0.0'';
+
+  parasites = [ "split-sequence/tests" ];
 
   description = ''Splits a sequence into a list of subsequences
   delimited by objects satisfying a test.'';
 
-  deps = [ ];
+  deps = [ args."fiveam" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/split-sequence/2015-08-04/split-sequence-1.2.tgz'';
-    sha256 = ''12x5yfvinqz9jzxwlsg226103a9sdf67zpzn5izggvdlw0v5qp0l'';
+    url = ''http://beta.quicklisp.org/archive/split-sequence/2019-05-21/split-sequence-v2.0.0.tgz'';
+    sha256 = ''09cmmswzl1kahvlzgqv8lqm9qcnz5iqg8f26fw3mm9rb3dcp7aba'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/split-sequence[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "split-sequence";
+
+  asdFilesToKeep = ["split-sequence.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM split-sequence DESCRIPTION Splits a sequence into a list of subsequences
+/* (SYSTEM split-sequence DESCRIPTION
+    Splits a sequence into a list of subsequences
   delimited by objects satisfying a test.
-    SHA256 12x5yfvinqz9jzxwlsg226103a9sdf67zpzn5izggvdlw0v5qp0l URL http://beta.quicklisp.org/archive/split-sequence/2015-08-04/split-sequence-1.2.tgz MD5
-    194e24d60f0fba70a059633960052e21 NAME split-sequence TESTNAME NIL FILENAME split-sequence DEPS NIL DEPENDENCIES NIL VERSION 1.2 SIBLINGS NIL) */
+    SHA256 09cmmswzl1kahvlzgqv8lqm9qcnz5iqg8f26fw3mm9rb3dcp7aba URL
+    http://beta.quicklisp.org/archive/split-sequence/2019-05-21/split-sequence-v2.0.0.tgz
+    MD5 88aadc6c9da23663ebbb39d546991df4 NAME split-sequence FILENAME
+    split-sequence DEPS ((NAME fiveam FILENAME fiveam)) DEPENDENCIES (fiveam)
+    VERSION v2.0.0 SIBLINGS NIL PARASITES (split-sequence/tests)) */

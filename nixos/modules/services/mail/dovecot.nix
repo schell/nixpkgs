@@ -16,18 +16,20 @@ let
       sendmail_path = /run/wrappers/bin/sendmail
     ''
 
-    (if isNull cfg.sslServerCert then ''
+    (if cfg.sslServerCert == null then ''
       ssl = no
       disable_plaintext_auth = no
     '' else ''
       ssl_cert = <${cfg.sslServerCert}
       ssl_key = <${cfg.sslServerKey}
-      ${optionalString (!(isNull cfg.sslCACert)) ("ssl_ca = <" + cfg.sslCACert)}
+      ${optionalString (cfg.sslCACert != null) ("ssl_ca = <" + cfg.sslCACert)}
+      ssl_dh = <${config.security.dhparams.params.dovecot2.path}
       disable_plaintext_auth = yes
     '')
 
     ''
       default_internal_user = ${cfg.user}
+      default_internal_group = ${cfg.group}
       ${optionalString (cfg.mailUser != null) "mail_uid = ${cfg.mailUser}"}
       ${optionalString (cfg.mailGroup != null) "mail_gid = ${cfg.mailGroup}"}
 
@@ -60,6 +62,39 @@ let
       }
     '')
 
+    (optionalString (cfg.mailboxes != []) ''
+      protocol imap {
+        namespace inbox {
+          inbox=yes
+          ${concatStringsSep "\n" (map mailboxConfig cfg.mailboxes)}
+        }
+      }
+    '')
+
+    (optionalString cfg.enableQuota ''
+      mail_plugins = $mail_plugins quota
+      service quota-status {
+        executable = ${dovecotPkg}/libexec/dovecot/quota-status -p postfix
+        inet_listener {
+          port = ${cfg.quotaPort}
+        }
+        client_limit = 1
+      }
+
+      protocol imap {
+        mail_plugins = $mail_plugins imap_quota
+      }
+
+      plugin {
+        quota_rule = *:storage=${cfg.quotaGlobalPerUser} 
+        quota = maildir:User quota # per virtual mail user quota # BUG/FIXME broken, we couldn't get this working
+        quota_status_success = DUNNO
+        quota_status_nouser = DUNNO
+        quota_status_overquota = "552 5.2.2 Mailbox is full"
+        quota_grace = 10%%
+      }
+    '')
+
     cfg.extraConfig
   ];
 
@@ -68,6 +103,34 @@ let
     paths = map (pkg: "${pkg}/lib/dovecot") ([ dovecotPkg ] ++ map (module: module.override { dovecot = dovecotPkg; }) cfg.modules);
   };
 
+  mailboxConfig = mailbox: ''
+    mailbox "${mailbox.name}" {
+      auto = ${toString mailbox.auto}
+  '' + optionalString (mailbox.specialUse != null) ''
+      special_use = \${toString mailbox.specialUse}
+  '' + "}";
+
+  mailboxes = { ... }: {
+    options = {
+      name = mkOption {
+        type = types.strMatching ''[^"]+'';
+        example = "Spam";
+        description = "The name of the mailbox.";
+      };
+      auto = mkOption {
+        type = types.enum [ "no" "create" "subscribe" ];
+        default = "no";
+        example = "subscribe";
+        description = "Whether to automatically create or create and subscribe to the mailbox or not.";
+      };
+      specialUse = mkOption {
+        type = types.nullOr (types.enum [ "All" "Archive" "Drafts" "Flagged" "Junk" "Sent" "Trash" ]);
+        default = null;
+        example = "Junk";
+        description = "Null if no special use flag is set. Other than that every use flag mentioned in the RFC is valid.";
+      };
+    };
+  };
 in
 {
 
@@ -76,7 +139,7 @@ in
 
     enablePop3 = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Start the POP3 listener (when Dovecot is enabled).";
     };
 
@@ -145,6 +208,14 @@ in
       description = "Default group to store mail for virtual users.";
     };
 
+    createMailUser = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''Whether to automatically create the user
+        given in <option>services.dovecot.user</option> and the group
+        given in <option>services.dovecot.group</option>.'';
+    };
+
     modules = mkOption {
       type = types.listOf types.package;
       default = [];
@@ -191,34 +262,80 @@ in
       default = false;
       description = "Show the PAM failure message on authentication error (useful for OTPW).";
     };
+
+    mailboxes = mkOption {
+      type = types.listOf (types.submodule mailboxes);
+      default = [];
+      example = [ { name = "Spam"; specialUse = "Junk"; auto = "create"; } ];
+      description = "Configure mailboxes and auto create or subscribe them.";
+    };
+
+    enableQuota = mkOption {
+      type = types.bool;
+      default = false;
+      example = true;
+      description = "Whether to enable the dovecot quota service.";
+    };
+
+    quotaPort = mkOption {
+      type = types.str;
+      default = "12340";
+      description = ''
+        The Port the dovecot quota service binds to.
+        If using postfix, add check_policy_service inet:localhost:12340 to your smtpd_recipient_restrictions in your postfix config.
+      '';
+    };
+    quotaGlobalPerUser = mkOption {
+      type = types.str;
+      default = "100G";
+      example = "10G";
+      description = "Quota limit for the user in bytes. Supports suffixes b, k, M, G, T and %.";
+    };
+
   };
 
 
   config = mkIf cfg.enable {
-
     security.pam.services.dovecot2 = mkIf cfg.enablePAM {};
 
-    services.dovecot2.protocols =
+    security.dhparams = mkIf (cfg.sslServerCert != null) {
+      enable = true;
+      params.dovecot2 = {};
+    };
+   services.dovecot2.protocols =
      optional cfg.enableImap "imap"
      ++ optional cfg.enablePop3 "pop3"
      ++ optional cfg.enableLmtp "lmtp";
 
-    users.extraUsers = [
+    users.users = [
       { name = "dovenull";
         uid = config.ids.uids.dovenull2;
         description = "Dovecot user for untrusted logins";
-        group = cfg.group;
+        group = "dovenull";
       }
     ] ++ optional (cfg.user == "dovecot2")
          { name = "dovecot2";
            uid = config.ids.uids.dovecot2;
            description = "Dovecot user";
            group = cfg.group;
-         };
+         }
+      ++ optional (cfg.createMailUser && cfg.mailUser != null)
+         ({ name = cfg.mailUser;
+            description = "Virtual Mail User";
+         } // optionalAttrs (cfg.mailGroup != null) {
+           group = cfg.mailGroup;
+         });
 
-    users.extraGroups = optional (cfg.group == "dovecot2")
+    users.groups = optional (cfg.group == "dovecot2")
       { name = "dovecot2";
         gid = config.ids.gids.dovecot2;
+      }
+    ++ optional (cfg.createMailUser && cfg.mailGroup != null)
+      { name = cfg.mailGroup;
+      }
+    ++ singleton
+      { name = "dovenull";
+        gid = config.ids.gids.dovenull2;
       };
 
     environment.etc."dovecot/modules".source = modulesDir;
@@ -227,8 +344,7 @@ in
     systemd.services.dovecot2 = {
       description = "Dovecot IMAP/POP3 server";
 
-      after = [ "keys.target" "network.target" ];
-      wants = [ "keys.target" ];
+      after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       restartTriggers = [ cfg.configFile ];
 
@@ -267,14 +383,14 @@ in
       { assertion = intersectLists cfg.protocols [ "pop3" "imap" ] != [];
         message = "dovecot needs at least one of the IMAP or POP3 listeners enabled";
       }
-      { assertion = isNull cfg.sslServerCert == isNull cfg.sslServerKey
-          && (!(isNull cfg.sslCACert) -> !(isNull cfg.sslServerCert || isNull cfg.sslServerKey));
+      { assertion = (cfg.sslServerCert == null) == (cfg.sslServerKey == null)
+          && (cfg.sslCACert != null -> !(cfg.sslServerCert == null || cfg.sslServerKey == null));
         message = "dovecot needs both sslServerCert and sslServerKey defined for working crypto";
       }
       { assertion = cfg.showPAMFailure -> cfg.enablePAM;
         message = "dovecot is configured with showPAMFailure while enablePAM is disabled";
       }
-      { assertion = (cfg.sieveScripts != {}) -> ((cfg.mailUser != null) && (cfg.mailGroup != null));
+      { assertion = cfg.sieveScripts != {} -> (cfg.mailUser != null && cfg.mailGroup != null);
         message = "dovecot requires mailUser and mailGroup to be set when sieveScripts is set";
       }
     ];

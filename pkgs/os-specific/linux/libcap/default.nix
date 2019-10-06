@@ -1,18 +1,17 @@
-{ stdenv, fetchurl, attr, perl, pam ? null }:
-assert pam != null -> stdenv.isLinux;
+{ stdenv, buildPackages, fetchurl, attr, perl, pam }:
 
 stdenv.mkDerivation rec {
-  name = "libcap-${version}";
-  version = "2.25";
+  pname = "libcap";
+  version = "2.27";
 
   src = fetchurl {
-    url = "mirror://kernel/linux/libs/security/linux-privs/libcap2/${name}.tar.xz";
-    sha256 = "0qjiqc5pknaal57453nxcbz3mn1r4hkyywam41wfcglq3v2qlg39";
+    url = "mirror://kernel/linux/libs/security/linux-privs/libcap2/${pname}-${version}.tar.xz";
+    sha256 = "0sj8kidl7qgf2qwxcbw1vadnlb30y4zvjzxswsmfdghq04npkhfs";
   };
 
-  outputs = [ "out" "dev" "lib" "doc" ]
-    ++ stdenv.lib.optional (pam != null) "pam";
+  outputs = [ "out" "dev" "lib" "man" "doc" "pam" ];
 
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
   nativeBuildInputs = [ perl ];
 
   buildInputs = [ pam ];
@@ -21,7 +20,9 @@ stdenv.mkDerivation rec {
 
   makeFlags = [
     "lib=lib"
-    (stdenv.lib.optional (pam != null) "PAM_CAP=yes")
+    "PAM_CAP=yes"
+    "BUILD_CC=$(CC_FOR_BUILD)"
+    "CC:=$(CC)"
   ];
 
   prePatch = ''
@@ -30,9 +31,8 @@ stdenv.mkDerivation rec {
 
     # ensure capsh can find bash in $PATH
     substituteInPlace progs/capsh.c --replace execve execvpe
-  '';
 
-  preInstall = ''
+    # set prefixes
     substituteInPlace Make.Rules \
       --replace 'prefix=/usr' "prefix=$lib" \
       --replace 'exec_prefix=' "exec_prefix=$out" \
@@ -45,8 +45,8 @@ stdenv.mkDerivation rec {
 
   postInstall = ''
     rm "$lib"/lib/*.a
-    mkdir -p "$doc/share/doc/${name}"
-    cp License "$doc/share/doc/${name}/"
+    mkdir -p "$doc/share/doc/${pname}-${version}"
+    cp License "$doc/share/doc/${pname}-${version}/"
   '' + stdenv.lib.optionalString (pam != null) ''
     mkdir -p "$pam/lib/security"
     mv "$lib"/lib/security "$pam/lib"
@@ -55,5 +55,6 @@ stdenv.mkDerivation rec {
   meta = {
     description = "Library for working with POSIX capabilities";
     platforms = stdenv.lib.platforms.linux;
+    license = stdenv.lib.licenses.bsd3;
   };
 }

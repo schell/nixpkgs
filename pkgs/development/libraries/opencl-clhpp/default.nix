@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, cmake, python, opencl-headers }:
 
 stdenv.mkDerivation rec {
-  name = "opencl-clhpp-${version}";
+  pname = "opencl-clhpp";
   version = "2.0.10";
 
   src = fetchFromGitHub {
@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "OpenCL Host API C++ bindings";
-    homepage = "http://github.khronos.org/OpenCL-CLHPP/";
+    homepage = http://github.khronos.org/OpenCL-CLHPP/;
     license = licenses.mit;
     platforms = platforms.unix;
   };

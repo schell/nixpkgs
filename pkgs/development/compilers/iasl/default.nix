@@ -1,15 +1,17 @@
-{stdenv, fetchurl, bison, flex}:
+{stdenv, fetchurl, fetchpatch, bison, flex}:
 
 stdenv.mkDerivation rec {
-  name = "iasl-${version}";
-  version = "20170303";
+  pname = "iasl";
+  version = "20190108";
 
   src = fetchurl {
     url = "https://acpica.org/sites/acpica/files/acpica-unix-${version}.tar.gz";
-    sha256 = "1dc933rr11gv1nlaf5j8ih1chdakbjbjkn34jgbm330zppmck4y0";
+    sha256 = "0bqhr3ndchvfhxb31147z8gd81dysyz5dwkvmp56832d0js2564q";
   };
 
-  NIX_CFLAGS_COMPILE = "-O3";
+  NIX_CFLAGS_COMPILE = [
+    "-O3"
+  ];
 
   buildFlags = "iasl";
 
@@ -25,6 +27,6 @@ stdenv.mkDerivation rec {
     description = "Intel ACPI Compiler";
     homepage = http://www.acpica.org/;
     license = stdenv.lib.licenses.iasl;
-    platforms = stdenv.lib.platforms.linux;
+    platforms = stdenv.lib.platforms.unix;
   };
 }

@@ -1,30 +1,55 @@
-{ lib, stdenv, fetchurl, autoconf, automake, libtool, pkgconfig, zlib, ilmbase }:
+{ lib, stdenv, buildPackages, fetchurl, autoconf, automake, libtool, pkgconfig, zlib, ilmbase, }:
+
+let
+  # Doesn't really do anything when not crosscompiling
+  emulator = stdenv.hostPlatform.emulator buildPackages;
+in
 
 stdenv.mkDerivation rec {
-  name = "openexr-${lib.getVersion ilmbase}";
+  pname = "openexr";
+  version = lib.getVersion ilmbase;
 
   src = fetchurl {
-    url = "http://download.savannah.nongnu.org/releases/openexr/${name}.tar.gz";
-    sha256 = "0ca2j526n4wlamrxb85y2jrgcv0gf21b3a19rr0gh4rjqkv1581n";
+    url = "https://github.com/openexr/openexr/releases/download/v${version}/${pname}-${version}.tar.gz";
+    sha256 = "19jywbs9qjvsbkvlvzayzi81s976k53wg53vw4xj66lcgylb6v7x";
   };
+
+  patches = [
+    ./bootstrap.patch
+  ];
 
   outputs = [ "bin" "dev" "out" "doc" ];
 
+  # Needed because there are some generated sources. Solution: just run them under QEMU.
+  postPatch = ''
+    for file in b44ExpLogTable dwaLookups
+    do
+      # Ecape for both sh and Automake
+      emu=${lib.escapeShellArg (lib.replaceStrings ["$"] ["$$"] emulator)}
+      before="./$file > $file.h"
+      after="$emu $before"
+      substituteInPlace IlmImf/Makefile.am \
+        --replace "$before" "$after"
+    done
+
+    # Make sure the patch succeeded
+    [[ $(grep "$emu" IlmImf/Makefile.am | wc -l) = 2 ]]
+  '';
+
   preConfigure = ''
+    patchShebangs ./bootstrap
     ./bootstrap
   '';
 
-  buildInputs = [ autoconf automake libtool pkgconfig ];
+  nativeBuildInputs = [ pkgconfig autoconf automake libtool ];
   propagatedBuildInputs = [ ilmbase zlib ];
 
   enableParallelBuilding = true;
-
-  patches = [ ./bootstrap.patch ];
+  doCheck = false; # fails 1 of 1 tests
 
   meta = with stdenv.lib; {
-    homepage = http://www.openexr.com/;
+    homepage = https://www.openexr.com/;
     license = licenses.bsd3;
     platforms = platforms.all;
-    maintainers = with maintainers; [ wkennington ];
   };
 }

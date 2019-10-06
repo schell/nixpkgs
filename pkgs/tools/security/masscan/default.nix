@@ -1,19 +1,23 @@
-{ stdenv, fetchFromGitHub, libpcap }:
+{ stdenv, fetchFromGitHub, makeWrapper, libpcap }:
 
 stdenv.mkDerivation rec {
-  name = "masscan-${version}";
-  version = "2016-11-03";
+  pname = "masscan";
+  version = "1.0.5";
 
   src = fetchFromGitHub {
     owner  = "robertdavidgraham";
     repo   = "masscan";
-    rev    = "dc88677a11dc3d9a5f6aa55cc1377bc17dba1496";
-    sha256 = "1mdjqkn4gnbwr5nci6i6xn7qzkjgq7dx37fzd6gghv87xgw7cdbg";
+    rev    = version;
+    sha256 = "0q0c7bsf0pbl8napry1qyg0gl4pd8wn872h4mz9b56dx4rx90vqg";
   };
 
-  buildInputs = [ libpcap ];
+  nativeBuildInputs = [ makeWrapper ];
 
-  makeFlags = [ "PREFIX=$(out)" "CC=cc" "-j" ];
+  makeFlags = [ "PREFIX=$(out)" "GITVER=${version}" "CC=cc" ];
+
+  preInstall = ''
+    mkdir -p $out/bin
+  '';
 
   postInstall = ''
     mkdir -p $out/share/man/man8
@@ -21,16 +25,18 @@ stdenv.mkDerivation rec {
     mkdir -p $out/etc/masscan
 
     cp data/exclude.conf $out/etc/masscan
-    cp -t $out/share/doc/masscan doc/algorithm.js doc/howto-afl.md doc/bot.hml
+    cp -t $out/share/doc/masscan doc/algorithm.js doc/howto-afl.md doc/bot.html
     cp doc/masscan.8 $out/share/man/man8/masscan.8
     cp LICENSE $out/share/licenses/masscan/LICENSE
+
+    wrapProgram $out/bin/masscan --prefix LD_LIBRARY_PATH : "${libpcap}/lib"
   '';
 
   meta = with stdenv.lib; {
     description = "Fast scan of the Internet";
     homepage    = https://github.com/robertdavidgraham/masscan;
     license     = licenses.agpl3;
-    platforms   = with platforms; allBut darwin;
+    platforms   = platforms.unix;
     maintainers = with maintainers; [ rnhmjoj ];
   };
 }

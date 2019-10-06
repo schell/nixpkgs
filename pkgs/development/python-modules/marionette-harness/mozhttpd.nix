@@ -1,5 +1,4 @@
 { lib
-, stdenv
 , buildPythonPackage
 , fetchPypi
 , moznetwork
@@ -8,7 +7,6 @@
 buildPythonPackage rec {
   pname = "mozhttpd";
   version = "0.7";
-  name = "${pname}-${version}";
 
   src = fetchPypi {
     inherit pname version;
@@ -19,7 +17,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "Webserver for Mozilla testing";
-    homepage = "https://wiki.mozilla.org/Auto-tools/Projects/Mozbase";
+    homepage = https://wiki.mozilla.org/Auto-tools/Projects/Mozbase;
     license = lib.licenses.mpl20;
     maintainers = with lib.maintainers; [ raskin ];
   };

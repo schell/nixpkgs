@@ -1,6 +1,5 @@
-{ stdenv, fetchFromGitHub, cmake, vlc
-, withQt4 ? false, qt4
-, withQt5 ? true, qtbase, qtsvg, qttools, makeQtWrapper
+{ mkDerivation, lib, fetchFromGitHub, cmake, pkgconfig, vlc
+, qtbase, qtmultimedia, qtsvg, qttools
 
 # Cantata doesn't build with cdparanoia enabled so we disable that
 # default for now until I (or someone else) figure it out.
@@ -19,11 +18,6 @@
 , withStreams ? true
 }:
 
-# One and only one front-end.
-assert withQt5 -> withQt4 == false;
-assert withQt4 -> withQt5 == false;
-assert withQt4 || withQt5;
-
 # Inter-dependencies.
 assert withCddb -> withCdda && withTaglib;
 assert withCdda -> withCddb && withMusicbrainz;
@@ -34,72 +28,61 @@ assert withOnlineServices -> withTaglib;
 assert withReplaygain -> withTaglib;
 
 let
-  version = "2.0.1";
+  version = "2.3.3";
   pname = "cantata";
   fstat = x: fn: "-DENABLE_" + fn + "=" + (if x then "ON" else "OFF");
   fstats = x: map (fstat x);
-in
 
-stdenv.mkDerivation rec {
+  withUdisks = (withTaglib && withDevices);
+
+in mkDerivation {
   name = "${pname}-${version}";
 
   src = fetchFromGitHub {
-    owner = "CDrummond";
-    repo = "cantata";
-    rev = "v${version}";
-    sha256 = "18fiz3cav41dpap42qwj9hwxf2k9fmhyg2r34yggxqi2cjlsil36";
+    owner  = "CDrummond";
+    repo   = "cantata";
+    rev    = "v${version}";
+    sha256 = "1m651fmdbnb50glym75kzma0bllvqbmrb2afp1g9g5cxm1898c0f";
   };
 
-  buildInputs =
-    [ cmake vlc ]
-    ++ stdenv.lib.optional withQt4 qt4
-    ++ stdenv.lib.optionals withQt5 [ qtbase qtsvg qttools ]
-    ++ stdenv.lib.optionals withTaglib [ taglib taglib_extras ]
-    ++ stdenv.lib.optionals withReplaygain [ ffmpeg speex mpg123 ]
-    ++ stdenv.lib.optional withCdda cdparanoia
-    ++ stdenv.lib.optional withCddb libcddb
-    ++ stdenv.lib.optional withLame lame
-    ++ stdenv.lib.optional withMtp libmtp
-    ++ stdenv.lib.optional withMusicbrainz libmusicbrainz5
-    ++ stdenv.lib.optional (withTaglib && withDevices) udisks2;
+  buildInputs = [ vlc qtbase qtmultimedia qtsvg ]
+    ++ lib.optionals withTaglib [ taglib taglib_extras ]
+    ++ lib.optionals withReplaygain [ ffmpeg speex mpg123 ]
+    ++ lib.optional  withCdda cdparanoia
+    ++ lib.optional  withCddb libcddb
+    ++ lib.optional  withLame lame
+    ++ lib.optional  withMtp libmtp
+    ++ lib.optional  withMusicbrainz libmusicbrainz5
+    ++ lib.optional  withUdisks udisks2;
 
-  nativeBuildInputs = stdenv.lib.optional withQt5 makeQtWrapper;
+  nativeBuildInputs = [ cmake pkgconfig qttools ];
 
-  cmakeFlags = stdenv.lib.flatten [
-    (fstat withQt5 "QT5")
-    (fstats withTaglib [ "TAGLIB" "TAGLIB_EXTRAS" ])
-    (fstats withReplaygain [ "FFMPEG" "MPG123" "SPEEXDSP" ])
-    (fstat withCdda "CDPARANOIA")
-    (fstat withCddb "CDDB")
-    (fstat withLame "LAME")
-    (fstat withMtp "MTP")
-    (fstat withMusicbrainz "MUSICBRAINZ")
+  enableParallelBuilding = true;
+
+  cmakeFlags = lib.flatten [
+    (fstats withTaglib        [ "TAGLIB" "TAGLIB_EXTRAS" ])
+    (fstats withReplaygain    [ "FFMPEG" "MPG123" "SPEEXDSP" ])
+    (fstat withCdda           "CDPARANOIA")
+    (fstat withCddb           "CDDB")
+    (fstat withLame           "LAME")
+    (fstat withMtp            "MTP")
+    (fstat withMusicbrainz    "MUSICBRAINZ")
     (fstat withOnlineServices "ONLINE_SERVICES")
-    (fstat withDynamic "DYNAMIC")
-    (fstat withDevices "DEVICES_SUPPORT")
-    (fstat withHttpServer "HTTP_SERVER")
-    (fstat withStreams "STREAMS")
+    (fstat withDynamic        "DYNAMIC")
+    (fstat withDevices        "DEVICES_SUPPORT")
+    (fstat withHttpServer     "HTTP_SERVER")
+    (fstat withStreams        "STREAMS")
+    (fstat withUdisks         "UDISKS2")
     "-DENABLE_HTTPS_SUPPORT=ON"
-    "-DENABLE_UDISKS2=ON"
   ];
 
-  # This is already fixed upstream but not released yet. Maybe in version 2.
-  preConfigure = ''
-    sed -i -e 's/STRLESS/VERSION_LESS/g' cmake/FindTaglib.cmake
-  '';
-
-  postInstall = stdenv.lib.optionalString withQt5 ''
-    wrapQtProgram "$out/bin/cantata"
-  '';
-
-  meta = with stdenv.lib; {
-    homepage = https://github.com/cdrummond/cantata;
+  meta = with lib; {
+    homepage    = https://github.com/cdrummond/cantata;
     description = "A graphical client for MPD";
-    license = licenses.gpl3;
-
+    license     = licenses.gpl3;
+    maintainers = with maintainers; [ fuuzetsu peterhoeg ];
     # Technically Cantata can run on Windows so if someone wants to
     # bother figuring that one out, be my guest.
-    platforms = platforms.linux;
-    maintainers = [ maintainers.fuuzetsu ];
+    platforms   = platforms.linux;
   };
 }

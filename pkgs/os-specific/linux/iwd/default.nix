@@ -1,36 +1,90 @@
-{ stdenv, fetchgit, autoreconfHook, readline }:
+{ stdenv
+, fetchgit
+, fetchpatch
+, autoreconfHook
+, pkgconfig
+, ell
+, coreutils
+, readline
+, python3Packages
+}:
 
-let
-  ell = fetchgit {
-     url = https://git.kernel.org/pub/scm/libs/ell/ell.git;
-     rev = "58e873d7463f3a7f91e02260585bfa50cbc77668";
-     sha256 = "12k1f1iarm29j8k16mhw83xx7r3bama4lp0fchhnj7iwxrpgs4gh";
-  };
-in stdenv.mkDerivation rec {
-  name = "iwd-unstable-2017-04-21";
+stdenv.mkDerivation rec {
+  pname = "iwd";
+  version = "0.20";
 
   src = fetchgit {
     url = https://git.kernel.org/pub/scm/network/wireless/iwd.git;
-    rev = "f64dea81b8490e5e09888be645a4325419bb269c";
-    sha256 = "0maqhx5264ykgmwaf90s2806i1kx2028if34ph2axlirxrhdd3lg";
+    rev = version;
+    sha256 = "03ca47d4hn28vkf5fr6ck1gz5py4lm1pw3nw9s1ckw7cqxw961sf";
   };
 
+  patches = [
+    # Undo creating ReadWritePaths as instalation target.
+    (fetchpatch {
+      name = "revert-create-dirs-on-install.patch";
+      url = "https://git.kernel.org/pub/scm/network/wireless/iwd.git/patch/?id=5a96c11664eb553bc28a2142af382b190254edbb";
+      sha256 = "08gkz3ia1l5xsh3pbx4abimgf7m88wygfpfyg77yi6dwavjqm6cx";
+      revert = true;
+    })
+  ];
+
+  nativeBuildInputs = [
+    autoreconfHook
+    pkgconfig
+    python3Packages.wrapPython
+  ];
+
+  buildInputs = [
+    ell
+    python3Packages.python
+    readline
+  ];
+
+  pythonPath = [
+    python3Packages.dbus-python
+    python3Packages.pygobject3
+  ];
+
   configureFlags = [
-    "--with-dbusconfdir=$(out)/etc/"
+    "--enable-external-ell"
+    "--enable-wired"
+    "--localstatedir=/var/"
+    "--with-dbus-busdir=${placeholder "out"}/share/dbus-1/system-services/"
+    "--with-dbus-datadir=${placeholder "out"}/share/"
+    "--with-systemd-modloaddir=${placeholder "out"}/etc/modules-load.d/" # maybe
+    "--with-systemd-unitdir=${placeholder "out"}/lib/systemd/system/"
   ];
 
   postUnpack = ''
-    ln -s ${ell} ell
+    patchShebangs .
   '';
 
-  nativeBuildInputs = [ autoreconfHook ];
+  postInstall = ''
+    cp -a test/* $out/bin/
+    mkdir -p $out/share
+    cp -a doc $out/share/
+    cp -a README AUTHORS TODO $out/share/doc/
+  '';
 
-  buildInputs = [ readline ];
+  preFixup = ''
+    wrapPythonPrograms
+  '';
+
+  postFixup = ''
+    substituteInPlace $out/share/dbus-1/system-services/net.connman.ead.service \
+      --replace /bin/false ${coreutils}/bin/false
+    substituteInPlace $out/share/dbus-1/system-services/net.connman.iwd.service \
+      --replace /bin/false ${coreutils}/bin/false
+  '';
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     homepage = https://git.kernel.org/pub/scm/network/wireless/iwd.git;
     description = "Wireless daemon for Linux";
+    license = licenses.lgpl21;
     platforms = platforms.linux;
-    maintainers = [ maintainers.mic92 ];
+    maintainers = with maintainers; [ dtzWill ];
   };
 }

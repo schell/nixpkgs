@@ -1,32 +1,36 @@
-{ lib, stdenv, fetchurl, pkgconfig, libatomic_ops, enableLargeConfig ? false }:
+{ lib, stdenv, fetchurl
+, enableLargeConfig ? false # doc: https://github.com/ivmai/bdwgc/blob/v7.6.6/doc/README.macros#L179
+}:
 
 stdenv.mkDerivation rec {
-  name = "boehm-gc-7.6.0";
+  pname = "boehm-gc";
+  version = "8.0.4";
 
   src = fetchurl {
-    url = http://www.hboehm.info/gc/gc_source/gc-7.6.0.tar.gz;
-    sha256 = "143x7g0d0k6250ai6m2x3l4y352mzizi4wbgrmahxscv2aqjhjm1";
+    urls = [
+      "https://github.com/ivmai/bdwgc/releases/download/v${version}/gc-${version}.tar.gz"
+      "http://www.hboehm.info/gc/gc_source/gc-${version}.tar.gz"
+    ];
+    sha256 = "1798rp3mcfkgs38ynkbg2p47bq59pisrc6mn0l20pb5iczf0ssj3";
   };
 
-  buildInputs = [ libatomic_ops ];
-  nativeBuildInputs = [ pkgconfig ];
-
   outputs = [ "out" "dev" "doc" ];
+  separateDebugInfo = stdenv.isLinux && stdenv.hostPlatform.libc != "musl";
+
+  preConfigure = stdenv.lib.optionalString (stdenv.hostPlatform.libc == "musl") ''
+    export NIX_CFLAGS_COMPILE+=" -D_GNU_SOURCE -DUSE_MMAP -DHAVE_DL_ITERATE_PHDR"
+  '';
+
+  patches = # https://github.com/ivmai/bdwgc/pull/208
+    lib.optional stdenv.hostPlatform.isRiscV ./riscv.patch;
 
   configureFlags =
-    [ "--enable-cplusplus" ]
+    [ "--enable-cplusplus" "--with-libatomic-ops=none" ]
     ++ lib.optional enableLargeConfig "--enable-large-config";
 
-  doCheck = true;
+  doCheck = true; # not cross;
 
-  # Don't run the native `strip' when cross-compiling.
-  dontStrip = stdenv ? cross;
-
-  postInstall =
-    ''
-      mkdir -p $out/share/doc
-      mv $out/share/gc $out/share/doc/gc
-    '';
+  enableParallelBuilding = true;
 
   meta = {
     description = "The Boehm-Demers-Weiser conservative garbage collector for C and C++";

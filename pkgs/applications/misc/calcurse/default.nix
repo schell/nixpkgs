@@ -1,20 +1,22 @@
-{stdenv, fetchurl, ncurses, gettext, python3, makeWrapper }:
+{ stdenv, fetchurl, ncurses, gettext, python3, python3Packages, makeWrapper }:
 
 stdenv.mkDerivation rec {
-  name = "calcurse-${version}";
-  version = "4.2.2";
+  pname = "calcurse";
+  version = "4.5.0";
 
   src = fetchurl {
-    url = "http://calcurse.org/files/${name}.tar.gz";
-    sha256 = "0il0y06akdqgy0f9p40m4x6arn66nh7sr1w1i41bszycs7div266";
+    url = "https://calcurse.org/files/${pname}-${version}.tar.gz";
+    sha256 = "1vjwcmp51h7dsvwn0qx93w9chp3wp970v7d9mjhk7jyamcbfywn3";
   };
 
-  buildInputs = [ncurses gettext python3 ];
+  buildInputs = [ ncurses gettext python3 python3Packages.wrapPython ];
   nativeBuildInputs = [ makeWrapper ];
 
   postInstall = ''
-    makeWrapper ${python3}/bin/python3 $out/bin/calcurse-caldav 
-      '';
+    patchShebangs .
+    buildPythonPath ${python3Packages.httplib2}
+    patchPythonScript $out/bin/calcurse-caldav
+  '';
 
   meta = with stdenv.lib; {
     description = "A calendar and scheduling application for the command line";

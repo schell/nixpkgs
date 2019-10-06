@@ -1,14 +1,14 @@
 { stdenv, fetchFromGitHub, cmake, python }:
 
 stdenv.mkDerivation rec {
-  name = "bear-${version}";
-  version = "2.2.1";
+  pname = "bear";
+  version = "2.4.2";
 
   src = fetchFromGitHub {
     owner = "rizsotto";
-    repo = "Bear";
+    repo = pname;
     rev = version;
-    sha256 = "1rwar5nvvhfqws4nwyifaysqs3nxpphp48lx9mdg5n6l4z7drz0n";
+    sha256 = "1w1kyjzvvy5lj16kn3yyf7iil2cqlfkszi8kvagql7f5h5l6w9b1";
   };
 
   nativeBuildInputs = [ cmake ];
@@ -16,7 +16,7 @@ stdenv.mkDerivation rec {
 
   doCheck = false; # all fail
 
-  patches = [ ./ignore_wrapper.patch ];
+  patches = [ ./ignore_wrapper.patch ./cmakepaths.patch ];
 
   meta = with stdenv.lib; {
     description = "Tool that generates a compilation database for clang tooling";
@@ -28,7 +28,6 @@ stdenv.mkDerivation rec {
     homepage = https://github.com/rizsotto/Bear;
     license = licenses.gpl3Plus;
     platforms = platforms.unix;
-    maintainers = [ maintainers.vcunat ];
+    maintainers = [ maintainers.babariviere ];
   };
 }
-

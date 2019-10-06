@@ -1,32 +1,34 @@
-{ stdenv, fetchurl, texinfo, libXext, xextproto, libX11, xproto
+{ stdenv, fetchFromGitHub, fetchpatch, texinfo, libXext, xorgproto, libX11
 , libXpm, libXt, libXcursor, alsaLib, cmake, zlib, libpng, libvorbis
-, libXxf86dga, libXxf86misc, xf86dgaproto, xf86miscproto
-, xf86vidmodeproto, libXxf86vm, openal, mesa, kbproto, libjpeg, flac
-, inputproto, libXi, fixesproto, libXfixes, freetype, libopus, libtheora
+, libXxf86dga, libXxf86misc
+, libXxf86vm, openal, libGLU_combined, libjpeg, flac
+, libXi, libXfixes, freetype, libopus, libtheora
 , physfs, enet, pkgconfig, gtk2, pcre, libpulseaudio, libpthreadstubs
 , libXdmcp
 }:
 
 stdenv.mkDerivation rec {
-  name = "allegro-${version}";
-  version = "5.2.1.1";
+  pname = "allegro";
+  version = "5.2.5.0";
 
-  src = fetchurl {
-    url = "http://download.gna.org/allegro/allegro/${version}/${name}.tar.gz";
-    sha256 = "0waalic7lyaf6i33nikmkc29bndci5c5090c4ra2vmy67cqdzndm";
+  src = fetchFromGitHub {
+    owner = "liballeg";
+    repo = "allegro5";
+    rev = version;
+    sha256 = "1jrnizpwznyxz2c7zb75lfy7l51ww5jlqfaahcrycfj1xay9mpqp";
   };
 
   buildInputs = [
-    texinfo libXext xextproto libX11 xproto libXpm libXt libXcursor
+    texinfo libXext xorgproto libX11 libXpm libXt libXcursor
     alsaLib cmake zlib libpng libvorbis libXxf86dga libXxf86misc
-    xf86dgaproto xf86miscproto xf86vidmodeproto libXxf86vm openal mesa
-    kbproto libjpeg flac
-    inputproto libXi fixesproto libXfixes
+    libXxf86vm openal libGLU_combined
+    libjpeg flac
+    libXi libXfixes
     enet libtheora freetype physfs libopus pkgconfig gtk2 pcre libXdmcp
     libpulseaudio libpthreadstubs
   ];
 
-  patchPhase = ''
+  postPatch = ''
     sed -e 's@/XInput2.h@/XI2.h@g' -i CMakeLists.txt "src/"*.c
   '';
 
@@ -34,7 +36,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A game programming library";
-    homepage = http://liballeg.org/;
+    homepage = https://liballeg.org/;
     license = licenses.zlib;
     maintainers = [ maintainers.raskin ];
     platforms = platforms.linux;

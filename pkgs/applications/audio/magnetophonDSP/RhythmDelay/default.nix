@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub, faust2jaqt, faust2lv2 }:
 stdenv.mkDerivation rec {
-  name = "RhythmDelay-${version}";
+  pname = "RhythmDelay";
   version = "2.1";
 
   src = fetchFromGitHub {
@@ -14,7 +14,6 @@ stdenv.mkDerivation rec {
 
   buildPhase = ''
     faust2jaqt -time -vec -t 99999 RhythmDelay.dsp
-    sed -i "s|\[ *scale *: *log *\]||g ; s|\btgroup\b|hgroup|g" "RhythmDelay.dsp"
     faust2lv2  -time -vec -t 99999 -gui RhythmDelay.dsp
   '';
 

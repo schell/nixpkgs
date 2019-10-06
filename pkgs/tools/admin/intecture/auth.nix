@@ -1,20 +1,20 @@
-{ stdenv, lib, fetchFromGitHub, rustPlatform
+{ lib, fetchFromGitHub, rustPlatform
 , openssl, zeromq, czmq, pkgconfig, cmake, zlib }:
 
 with rustPlatform;
 
 buildRustPackage rec {
-  name = "intecture-auth-${version}";
-  version = "0.1.0";
+  pname = "intecture-auth";
+  version = "0.1.2";
 
   src = fetchFromGitHub {
     owner = "intecture";
     repo = "auth";
     rev = version;
-    sha256 = "1p3jahha8k139f22ijg050cl8akfzxda4gzvijpqv869hmhc70py";
+    sha256 = "0c7ar3pc7n59lzfy74lwz51p09s2bglc870rfr4c0vmc91jl0pj2";
   };
 
-  depsSha256 = "0mki57yzb29y9fhh16xvpi5gfp6c14r5q3f45f3v8sdj95rjahz1";
+  cargoSha256 = "1rnhhb4mpf1j7c7a2pz4741hzbf2s2wb0bm25j049n64j49j3jq8";
 
   buildInputs = [ openssl zeromq czmq zlib ];
 

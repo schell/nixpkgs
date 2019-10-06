@@ -1,7 +1,10 @@
-{ stdenv, fetchurl, python, bzip2, zlib, autoconf, automake, cmake, gnumake, help2man , texinfo, libtool , cppzmq , libarchive, avro-cpp, boost, jansson, zeromq, openssl , pam, libiodbc, kerberos, gcc, libcxx, which }:
+{ stdenv, fetchurl, bzip2, zlib, autoconf, automake, cmake, gnumake, help2man , texinfo, libtool , cppzmq , libarchive, avro-cpp_llvm, boost, jansson, zeromq, openssl , pam, libiodbc, kerberos, gcc, libcxx, which }:
 
 with stdenv;
 
+let
+  avro-cpp=avro-cpp_llvm;
+in
 let
   common = import ./common.nix {
     inherit stdenv bzip2 zlib autoconf automake cmake gnumake
@@ -13,19 +16,25 @@ in rec {
 
   # irods: libs and server package
   irods = stdenv.mkDerivation (common // rec {
-    version = "4.2.0";
+    version = "4.2.2";
     prefix = "irods";
     name = "${prefix}-${version}";
 
     src = fetchurl {
       url = "https://github.com/irods/irods/releases/download/${version}/irods-${version}.tar.gz";
-      sha256 = "b5c0d7209219629da139058ce462a237ecc22ad4dae613413a428961e4ff9d3e";
+      sha256 = "0b89hs7sizwrs2ja7jl521byiwb58g297p0p7zg5frxmv4ig8dw7";
     };
 
     # Patches:
     # irods_root_path.patch : the root path is obtained by stripping 3 items of the path,
     #                         but we don't use /usr with nix, so remove only 2 items.
     patches = [ ./irods_root_path.patch ];
+
+    NIX_CFLAGS_COMPILE = [
+      # fix build with recent llvm versions
+      "-Wno-deprecated-register"
+      "-Wno-deprecated-declarations"
+    ];
 
     preConfigure = common.preConfigure + ''
       patchShebangs ./test
@@ -40,6 +49,8 @@ in rec {
         -DCMAKE_MODULE_LINKER_FLAGS=-Wl,-rpath,$out/lib
         -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath,$out/lib
         "
+
+      substituteInPlace cmake/server.cmake --replace SETUID ""
     '';
 
     meta = common.meta // {
@@ -51,16 +62,14 @@ in rec {
 
   # icommands (CLI) package, depends on the irods package
   irods-icommands = stdenv.mkDerivation (common // rec {
-     version = "4.2.0";
+     version = "4.2.2";
      name = "irods-icommands-${version}";
      src = fetchurl {
-       url = "http://github.com/irods/irods_client_icommands/archive/${version}.tar.gz";
-       sha256 = "b581067c8139b5ef7897f15fc1fc79f69d2e784a0f36d96e8fa3cb260b6378ce";
+       url = "https://github.com/irods/irods_client_icommands/archive/${version}.tar.gz";
+       sha256 = "15zcxrx0q5c3rli3snd0b2q4i0hs3zzcrbpnibbhsip855qvs77h";
      };
 
      buildInputs = common.buildInputs ++ [ irods ];
-
-     propagateBuildInputs = [ boost ];
 
      preConfigure = common.preConfigure + ''
        patchShebangs ./bin

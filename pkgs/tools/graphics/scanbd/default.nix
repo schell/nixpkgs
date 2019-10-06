@@ -2,12 +2,12 @@
 , dbus, libconfuse, libjpeg, sane-backends, systemd }:
 
 stdenv.mkDerivation rec {
-  name = "scanbd-${version}";
-  version = "1.4.4";
+  pname = "scanbd";
+  version = "1.5.1";
 
   src = fetchurl {
-    sha256 = "07a59jk9b2hh49v5lcpckp64f5lny9sq8h0h2p2jcs9cqazf6q9s";
-    url = "mirror://sourceforge/scanbd/${name}.tgz";
+    sha256 = "0pvy4qirfjdfm8aj6x5rkbgl7hk3jfa2s21qkk8ic5dqfjjab75n";
+    url = "mirror://sourceforge/scanbd/${pname}-${version}.tgz";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -49,9 +49,8 @@ stdenv.mkDerivation rec {
       scanbuttond project. 
     '';
     homepage = http://scanbd.sourceforge.net/;
-    downloadPage = http://sourceforge.net/projects/scanbd/;
+    downloadPage = https://sourceforge.net/projects/scanbd/;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

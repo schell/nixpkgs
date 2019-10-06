@@ -1,13 +1,20 @@
 { fetchurl, stdenv }:
 
 stdenv.mkDerivation rec {
-  name = "paperkey-${version}";
-  version = "1.4";
+  pname = "paperkey";
+  version = "1.6";
 
   src = fetchurl {
-    url = "http://www.jabberwocky.com/software/paperkey/${name}.tar.gz";
-    sha256 = "0vrkryxqbsjcmqalsnxvc3pahg6vvyrn139aj8md29sihgnb0az1";
+    url = "https://www.jabberwocky.com/software/paperkey/${pname}-${version}.tar.gz";
+    sha256 = "1xq5gni6gksjkd5avg0zpd73vsr97appksfx0gx2m38s4w9zsid2";
   };
+
+  postPatch = ''
+    for a in checks/*.sh ; do
+      substituteInPlace $a \
+        --replace /bin/echo echo
+    done
+  '';
 
   enableParallelBuilding = true;
 
@@ -19,9 +26,9 @@ stdenv.mkDerivation rec {
       retention qualities - far longer than the magnetic or optical means that
       are generally used to back up computer data.
     '';
-    homepage = "http://www.jabberwocky.com/software/paperkey/";
+    homepage = "https://www.jabberwocky.com/software/paperkey/";
     license = licenses.gpl2;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
     maintainers = with maintainers; [ skeidel ];
   };
 }

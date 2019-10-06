@@ -1,7 +1,7 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''cl-ppcre-template'';
-  version = ''cl-unification-20170124-git'';
+  version = ''cl-unification-20190107-git'';
 
   description = ''A system used to conditionally load the CL-PPCRE Template.
 
@@ -9,34 +9,30 @@ This system is not required and it is handled only if CL-PPCRE is
 available.  If it is, then the library provides the
 REGULAR-EXPRESSION-TEMPLATE.'';
 
-  deps = [ args."cl-ppcre" ];
+  deps = [ args."cl-ppcre" args."cl-unification" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/cl-unification/2017-01-24/cl-unification-20170124-git.tgz'';
-    sha256 = ''0gwk40y5byg6q0hhd41rqf8g8i1my0h4lshc63xfnh3mfgcc8bx9'';
+    url = ''http://beta.quicklisp.org/archive/cl-unification/2019-01-07/cl-unification-20190107-git.tgz'';
+    sha256 = ''0mp40wh58afnpqx9i9wg5x364g35rkd6c9d5hb9g6pdxadqx0cfv'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/cl-ppcre-template[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "cl-ppcre-template";
+
+  asdFilesToKeep = ["cl-ppcre-template.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM cl-ppcre-template DESCRIPTION A system used to conditionally load the CL-PPCRE Template.
+/* (SYSTEM cl-ppcre-template DESCRIPTION
+    A system used to conditionally load the CL-PPCRE Template.
 
 This system is not required and it is handled only if CL-PPCRE is
 available.  If it is, then the library provides the
 REGULAR-EXPRESSION-TEMPLATE.
-    SHA256 0gwk40y5byg6q0hhd41rqf8g8i1my0h4lshc63xfnh3mfgcc8bx9 URL http://beta.quicklisp.org/archive/cl-unification/2017-01-24/cl-unification-20170124-git.tgz
-    MD5 dd277adaf3a0ee41fd0731f78519b1b1 NAME cl-ppcre-template TESTNAME NIL FILENAME cl-ppcre-template DEPS ((NAME cl-ppcre)) DEPENDENCIES (cl-ppcre) VERSION
-    cl-unification-20170124-git SIBLINGS (cl-unification-lib cl-unification-test cl-unification)) */
+    SHA256 0mp40wh58afnpqx9i9wg5x364g35rkd6c9d5hb9g6pdxadqx0cfv URL
+    http://beta.quicklisp.org/archive/cl-unification/2019-01-07/cl-unification-20190107-git.tgz
+    MD5 a7a12789cc48e571b0871d55cef11b7f NAME cl-ppcre-template FILENAME
+    cl-ppcre-template DEPS
+    ((NAME cl-ppcre FILENAME cl-ppcre)
+     (NAME cl-unification FILENAME cl-unification))
+    DEPENDENCIES (cl-ppcre cl-unification) VERSION cl-unification-20190107-git
+    SIBLINGS (cl-unification-lib cl-unification-test cl-unification) PARASITES
+    NIL) */

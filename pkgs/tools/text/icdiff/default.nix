@@ -1,14 +1,14 @@
 { stdenv, fetchFromGitHub, pythonPackages }:
 
 pythonPackages.buildPythonApplication rec {
-  name = "icdiff-${version}";
-  version = "1.9.0";
+  pname = "icdiff";
+  version = "1.9.5";
 
   src = fetchFromGitHub {
     owner = "jeffkaufman";
     repo = "icdiff";
     rev = "release-${version}";
-    sha256 = "03gcgj3xsqasvgkr8r0q1ljbw2kd2xmfb21qpxhk9lqqm2gl11sv";
+    sha256 = "080v8h09pv8qwplin4kwfm0kmqjwdqjfxbpcdrv16sv4hwfwl5qd";
   };
 
   meta = with stdenv.lib; {

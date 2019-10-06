@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, pkgconfig, libsixel }:
 
-stdenv.mkDerivation rec {
-  name    = "SDL_sixel-${version}";
+stdenv.mkDerivation {
+  pname = "SDL_sixel";
   version = "1.2-nightly";
 
   src = fetchFromGitHub {
@@ -13,7 +13,8 @@ stdenv.mkDerivation rec {
 
   configureFlags = [ "--enable-video-sixel" ];
 
-  buildInputs = [ pkgconfig libsixel ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ libsixel ];
 
   meta = with stdenv.lib; {
     description = "A cross-platform multimedia library, that supports sixel graphics on consoles";

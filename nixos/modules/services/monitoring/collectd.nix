@@ -7,7 +7,6 @@ let
 
   conf = pkgs.writeText "collectd.conf" ''
     BaseDir "${cfg.dataDir}"
-    PIDFile "${cfg.pidFile}"
     AutoLoadPlugin ${boolToString cfg.autoLoadPlugin}
     Hostname "${config.networking.hostName}"
 
@@ -26,13 +25,7 @@ let
 
 in {
   options.services.collectd = with types; {
-    enable = mkOption {
-      default = false;
-      description = ''
-        Whether to enable collectd agent.
-      '';
-      type = bool;
-    };
+    enable = mkEnableOption "collectd agent";
 
     package = mkOption {
       default = pkgs.collectd;
@@ -55,14 +48,6 @@ in {
       default = "/var/lib/collectd";
       description = ''
         Data directory for collectd agent.
-      '';
-      type = path;
-    };
-
-    pidFile = mkOption {
-      default = "/var/run/collectd.pid";
-      description = ''
-        Location of collectd pid file.
       '';
       type = path;
     };
@@ -94,33 +79,25 @@ in {
   };
 
   config = mkIf cfg.enable {
+    systemd.tmpfiles.rules = [
+      "d '${cfg.dataDir}' - ${cfg.user} - - -"
+    ];
+
     systemd.services.collectd = {
       description = "Collectd Monitoring Agent";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
-        ExecStart = "${cfg.package}/sbin/collectd -C ${conf} -P ${cfg.pidFile}";
-        Type = "forking";
-        PIDFile = cfg.pidFile;
-        User = optional (cfg.user!="root") cfg.user;
-        PermissionsStartOnly = true;
+        ExecStart = "${cfg.package}/sbin/collectd -C ${conf} -f";
+        User = cfg.user;
+        Restart = "on-failure";
+        RestartSec = 3;
       };
+    };
 
-      preStart = ''
-        mkdir -p ${cfg.dataDir}
-        chmod 755 ${cfg.dataDir}
-        install -D /dev/null ${cfg.pidFile}
-        if [ "$(id -u)" = 0 ]; then
-          chown -R ${cfg.user} ${cfg.dataDir};
-          chown ${cfg.user} ${cfg.pidFile}
-        fi
-      '';
-    }; 
-
-    users.extraUsers = optional (cfg.user == "collectd") {
+    users.users = optional (cfg.user == "collectd") {
       name = "collectd";
-      uid = config.ids.uids.collectd;
     };
   };
 }

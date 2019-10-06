@@ -1,42 +1,82 @@
-{ stdenv, pkgconfig, fetchurl, itstool, intltool, libxml2, glib, gtk3
-, pythonPackages, makeWrapper, gnome3, libwnck3 }:
+{ stdenv
+, pkgconfig
+, fetchurl
+, meson
+, ninja
+, glib
+, gtk3
+, python3
+, wrapGAppsHook
+, gnome3
+, libwnck3
+, gobject-introspection
+, gettext
+, itstool
+}:
 
-let
-  version = "${major}.11";
-  major = "0.3";
-in pythonPackages.buildPythonApplication rec {
-  name = "d-feet-${version}";
+python3.pkgs.buildPythonApplication rec {
+  pname = "d-feet";
+  version = "0.3.15";
+
   format = "other";
 
   src = fetchurl {
-    url = "mirror://gnome/sources/d-feet/${major}/d-feet-${version}.tar.xz";
-    sha256 = "a3dc940c66f84b996c328531e3034d475ec690d7ff639445ff7ca746aa8cb9c2";
+    url = "mirror://gnome/sources/d-feet/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "1cgxgpj546jgpyns6z9nkm5k48lid8s36mvzj8ydkjqws2d19zqz";
   };
 
-  buildInputs = [ pkgconfig libxml2 itstool intltool glib gtk3
-    gnome3.defaultIconTheme makeWrapper libwnck3
+  nativeBuildInputs = [
+    gettext
+    gobject-introspection
+    itstool
+    meson
+    ninja
+    pkgconfig
+    python3
+    wrapGAppsHook
   ];
 
-  propagatedBuildInputs = with pythonPackages; [ pygobject3 pep8 ];
+  buildInputs = [
+    glib
+    gnome3.adwaita-icon-theme
+    gtk3
+    libwnck3
+  ];
 
-  preFixup =
-    ''
-      wrapProgram $out/bin/d-feet \
-        --prefix GI_TYPELIB_PATH : "$GI_TYPELIB_PATH" \
-        --prefix XDG_DATA_DIRS : "$XDG_ICON_DIRS:$out/share"
-    '';
+  propagatedBuildInputs = with python3.pkgs; [
+    pygobject3
+  ];
 
-  meta = {
+  mesonFlags = [
+    "-Dtests=false" # needs dbus
+  ];
+
+  # Temporary fix
+  # See https://github.com/NixOS/nixpkgs/issues/56943
+  strictDeps = false;
+
+  postPatch = ''
+    chmod +x meson_post_install.py
+    patchShebangs meson_post_install.py
+  '';
+
+  passthru = {
+    updateScript = gnome3.updateScript {
+      packageName = pname;
+      attrPath = "dfeet";
+      versionPolicy = "none";
+    };
+  };
+
+  meta = with stdenv.lib; {
     description = "D-Feet is an easy to use D-Bus debugger";
-
     longDescription = ''
       D-Feet can be used to inspect D-Bus interfaces of running programs
       and invoke methods on those interfaces.
     '';
-
-    homepage = https://wiki.gnome.org/action/show/Apps/DFeet;
-    platforms = stdenv.lib.platforms.all;
-    license = stdenv.lib.licenses.gpl2;
-    maintainers = with stdenv.lib.maintainers; [ ktosiek ];
+    homepage = https://wiki.gnome.org/Apps/DFeet;
+    platforms = platforms.linux;
+    license = licenses.gpl2;
+    maintainers = with maintainers; [ ktosiek ];
   };
 }

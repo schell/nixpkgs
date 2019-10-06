@@ -31,13 +31,13 @@
 #
 # Good luck.
 stdenv.mkDerivation rec {
-  name = "rt-${version}";
+  pname = "rt";
 
-  version = "4.4.0";
+  version = "4.4.4";
 
   src = fetchurl {
-    url = "https://download.bestpractical.com/pub/rt/release/${name}.tar.gz";
-    sha256 = "1hgz50fxv9zdcngww083aqh8vzyk148lm7mcivxflpnsqfw3696x";
+    url = "https://download.bestpractical.com/pub/rt/release/${pname}-${version}.tar.gz";
+    sha256 = "1108jhz1gvalcfnbzgpbk7fkxzxkkc7m74a3bnwyjzldlyj1dhrl";
   };
 
   patches = [ ./override-generated.patch ];

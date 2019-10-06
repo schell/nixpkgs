@@ -1,42 +1,50 @@
-{ stdenv, fetchurl, buildPythonPackage, python, astroid, isort,
-  pytest, pytestrunner,  mccabe, configparser, backports_functools_lru_cache }:
+{ stdenv, lib, buildPythonPackage, fetchPypi, pythonOlder, astroid,
+  isort, mccabe, pytest, pytestrunner }:
 
-  buildPythonPackage rec {
-    name = "${pname}-${version}";
-    pname = "pylint";
-    version = "1.7.1";
+buildPythonPackage rec {
+  pname = "pylint";
+  version = "2.3.1";
 
-    src = fetchurl {
-      url = "mirror://pypi/p/${pname}/${name}.tar.gz";
-      sha256 = "8b4a7ab6cf5062e40e2763c0b4a596020abada1d7304e369578b522e46a6264a";
-    };
+  disabled = pythonOlder "3.4";
 
-    buildInputs = [ pytest pytestrunner mccabe configparser backports_functools_lru_cache ];
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "1wgzq0da87m7708hrc9h4bc5m4z2p7379i4xyydszasmjns3sgkj";
+  };
 
-    propagatedBuildInputs = [ astroid isort ];
+  nativeBuildInputs = [ pytestrunner ];
 
-    postPatch = ''
-      # Remove broken darwin tests
-      sed -i -e '/test_parallel_execution/,+2d' pylint/test/test_self.py
-      sed -i -e '/test_py3k_jobs_option/,+4d' pylint/test/test_self.py
-      rm -vf pylint/test/test_functional.py
-    '';
+  checkInputs = [ pytest ];
 
-    checkPhase = ''
-      cd pylint/test
-      ${python.interpreter} -m unittest discover -p "*test*"
-    '';
+  propagatedBuildInputs = [ astroid isort mccabe ];
 
-    postInstall = ''
-      mkdir -p $out/share/emacs/site-lisp
-      cp "elisp/"*.el $out/share/emacs/site-lisp/
-    '';
+  postPatch = lib.optionalString stdenv.isDarwin ''
+    # Remove broken darwin test
+    rm -vf pylint/test/test_functional.py
+  '';
 
-    meta = with stdenv.lib; {
-      homepage = http://www.logilab.org/project/pylint;
-      description = "A bug and style checker for Python";
-      platforms = platforms.all;
-      license = licenses.gpl1Plus;
-      maintainers = with maintainers; [ nand0p ];
-    };
-  }
+  checkPhase = ''
+    pytest pylint/test -k "not ${lib.concatStringsSep " and not " (
+      # Broken tests
+      [ "member_checks_py37" "iterable_context_py36" ] ++
+      # Disable broken darwin tests
+      lib.optionals stdenv.isDarwin [
+        "test_parallel_execution"
+        "test_py3k_jobs_option"
+      ]
+    )}"
+  '';
+
+  postInstall = ''
+    mkdir -p $out/share/emacs/site-lisp
+    cp "elisp/"*.el $out/share/emacs/site-lisp/
+  '';
+
+  meta = with lib; {
+    homepage = https://github.com/PyCQA/pylint;
+    description = "A bug and style checker for Python";
+    platforms = platforms.all;
+    license = licenses.gpl1Plus;
+    maintainers = with maintainers; [ nand0p ];
+  };
+}

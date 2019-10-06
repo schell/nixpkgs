@@ -14,7 +14,7 @@ config:
 # Scripts
 , coreutils, gawk, gnused, gnugrep, diffutils, multipath-tools
 , iproute, inetutils, iptables, bridge-utils, openvswitch, nbd, drbd
-, lvm2, utillinux, procps
+, lvm2, utillinux, procps, systemd
 
 # Documentation
 # python2Packages.markdown
@@ -53,15 +53,16 @@ stdenv.mkDerivation (rec {
 
   hardeningDisable = [ "stackprotector" "fortify" "pic" ];
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    cmake pkgconfig which
+    cmake which
 
     # Xen
     bison bzip2 checkpolicy dev86 figlet flex gettext glib iasl libaio
     libiconv libuuid ncurses openssl perl python2Packages.python xz yajl zlib
 
     # oxenstored
-    ocamlPackages.findlib ocamlPackages.ocaml
+    ocamlPackages.findlib ocamlPackages.ocaml systemd
 
     # Python fixes
     python2Packages.wrapPython
@@ -85,14 +86,14 @@ stdenv.mkDerivation (rec {
 
     # Fake git: just print what it wants and die
     cat > fake-bin/wget << EOF
-    #!/bin/sh -e
+    #!${stdenv.shell} -e
     echo ===== FAKE WGET: Not fetching \$*
     [ -e \$3 ]
     EOF
 
     # Fake git: just print what it wants and die
     cat > fake-bin/git << EOF
-    #!/bin/sh
+    #!${stdenv.shell}
     echo ===== FAKE GIT: Not cloning \$*
     [ -e \$3 ]
     EOF
@@ -108,7 +109,7 @@ stdenv.mkDerivation (rec {
     # (prefetched stuff has lots of files)
     find . -type f | xargs sed -i 's@/usr/bin/\(python\|perl\)@/usr/bin/env \1@g'
     find . -type f -not -path "./tools/hotplug/Linux/xendomains.in" \
-      | xargs sed -i 's@/bin/bash@/bin/sh@g'
+      | xargs sed -i 's@/bin/bash@${stdenv.shell}@g'
 
     # Get prefetched stuff
     ${withXenfiles (name: x: ''
@@ -119,8 +120,9 @@ stdenv.mkDerivation (rec {
   '';
 
   patches = [ ./0000-fix-ipxe-src.patch
-              ./0000-fix-install-python.patch ]
-         ++ (config.patches or []);
+              ./0000-fix-install-python.patch
+            ] ++ optional (versionOlder version "4.8.5") ./acpica-utils-20180427.patch
+            ++ (config.patches or []);
 
   postPatch = ''
     ### Hacks
@@ -153,12 +155,19 @@ stdenv.mkDerivation (rec {
     substituteInPlace tools/xenstat/Makefile \
       --replace /usr/include/curses.h ${ncurses.dev}/include/curses.h
 
-    # TODO: use this as a template and support our own if-up scripts instead?
-    substituteInPlace tools/hotplug/Linux/xen-backend.rules.in \
-      --replace "@XEN_SCRIPT_DIR@" $out/etc/xen/scripts
+    ${optionalString (builtins.compareVersions config.version "4.8" >= 0) ''
+      substituteInPlace tools/hotplug/Linux/launch-xenstore.in \
+        --replace /bin/mkdir mkdir
+    ''}
 
-    # blktap is not provided by xen, but by xapi
-    sed -i '/blktap/d' tools/hotplug/Linux/xen-backend.rules.in
+    ${optionalString (builtins.compareVersions config.version "4.6" < 0) ''
+      # TODO: use this as a template and support our own if-up scripts instead?
+      substituteInPlace tools/hotplug/Linux/xen-backend.rules.in \
+        --replace "@XEN_SCRIPT_DIR@" $out/etc/xen/scripts
+
+      # blktap is not provided by xen, but by xapi
+      sed -i '/blktap/d' tools/hotplug/Linux/xen-backend.rules.in
+    ''}
 
     ${withTools "patches" (name: x: ''
       ${concatMapStringsSep "\n" (p: ''
@@ -191,7 +200,7 @@ stdenv.mkDerivation (rec {
   '';
 
   installPhase = ''
-    mkdir -p $out $out/share
+    mkdir -p $out $out/share $out/share/man
     cp -prvd dist/install/nix/store/*/* $out/
     cp -prvd dist/install/boot $out/boot
     cp -prvd dist/install/etc $out
@@ -213,6 +222,9 @@ stdenv.mkDerivation (rec {
     done
   '';
 
+  enableParallelBuilding = true;
+
+  # TODO(@oxij): Stop referencing args here
   meta = {
     homepage = http://www.xen.org/;
     description = "Xen hypervisor and related components"
@@ -223,5 +235,6 @@ stdenv.mkDerivation (rec {
                     + withXenfiles (name: x: ''* ${name}: ${x.meta.description or "(No description)"}.'');
     platforms = [ "x86_64-linux" ];
     maintainers = with stdenv.lib.maintainers; [ eelco tstrobel oxij ];
-  };
+    license = stdenv.lib.licenses.gpl2;
+  } // (config.meta or {});
 } // removeAttrs config [ "xenfiles" "buildInputs" "patches" "postPatch" "meta" ])

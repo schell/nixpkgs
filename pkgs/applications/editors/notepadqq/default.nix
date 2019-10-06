@@ -1,13 +1,13 @@
-{ stdenv, fetchgit, pkgconfig, which, qtbase, qtsvg, qttools, qtwebkit }:
+{ mkDerivation, lib, fetchFromGitHub, pkgconfig, which, qtbase, qtsvg, qttools, qtwebkit }:
 
-let
-  version = "0.53.0";
-in stdenv.mkDerivation {
-  name = "notepadqq-${version}";
-  src = fetchgit {
-    url = "https://github.com/notepadqq/notepadqq.git";
-    rev = "3b0751277fb268ec72b466b37d0f0977c536bc1b";
-    sha256 = "0hw94mn2xg2r58afvz1xg990jinv9aa33942zgwq54qwj61r93hi";
+mkDerivation rec {
+  pname = "notepadqq";
+  version = "1.4.8";
+  src = fetchFromGitHub {
+    owner = "notepadqq";
+    repo = "notepadqq";
+    rev = "v${version}";
+    sha256 = "0lbv4s7ng31dkznzbkmp2cvkqglmfj6lv4mbg3r410fif2nrva7k";
     fetchSubmodules = true;
   };
 
@@ -23,11 +23,19 @@ in stdenv.mkDerivation {
     export LRELEASE="lrelease"
   '';
 
-  meta = {
-    homepage = "http://notepadqq.altervista.org/";
+  dontWrapQtApps = true;
+
+  preFixup = ''
+    wrapQtApp $out/bin/notepadqq
+  '';
+
+  enableParallelBuilding = true;
+
+  meta = with lib; {
+    homepage = https://notepadqq.com/;
     description = "Notepad++-like editor for the Linux desktop";
-    license = stdenv.lib.licenses.gpl3;
-    platforms = stdenv.lib.platforms.linux;
-    maintainers = with stdenv.lib.maintainers; [ rszibele ];
+    license = licenses.gpl3;
+    platforms = platforms.linux;
+    maintainers = [ maintainers.rszibele ];
   };
 }

@@ -1,33 +1,28 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''clss'';
-  version = ''20170124-git'';
+  version = ''20190710-git'';
 
   description = ''A DOM tree searching engine based on CSS selectors.'';
 
-  deps = [ args."array-utils" args."plump" ];
+  deps = [ args."array-utils" args."documentation-utils" args."plump" args."trivial-indent" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/clss/2017-01-24/clss-20170124-git.tgz'';
-    sha256 = ''0rrg3brzash1b14n686xjx6d5glm2vg32g0i8hyvaffqd82493pb'';
+    url = ''http://beta.quicklisp.org/archive/clss/2019-07-10/clss-20190710-git.tgz'';
+    sha256 = ''1gvnvwjrvinp8545gzav108pzrh00wx3vx2v7l6z18a80kn0h9vs'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/clss[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "clss";
+
+  asdFilesToKeep = ["clss.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM clss DESCRIPTION A DOM tree searching engine based on CSS selectors. SHA256 0rrg3brzash1b14n686xjx6d5glm2vg32g0i8hyvaffqd82493pb URL
-    http://beta.quicklisp.org/archive/clss/2017-01-24/clss-20170124-git.tgz MD5 f05606cab3a75e01c57fd264d1c71863 NAME clss TESTNAME NIL FILENAME clss DEPS
-    ((NAME array-utils) (NAME plump)) DEPENDENCIES (array-utils plump) VERSION 20170124-git SIBLINGS NIL) */
+/* (SYSTEM clss DESCRIPTION A DOM tree searching engine based on CSS selectors.
+    SHA256 1gvnvwjrvinp8545gzav108pzrh00wx3vx2v7l6z18a80kn0h9vs URL
+    http://beta.quicklisp.org/archive/clss/2019-07-10/clss-20190710-git.tgz MD5
+    c5a918fe272b71af7c4b6e71a7faad46 NAME clss FILENAME clss DEPS
+    ((NAME array-utils FILENAME array-utils)
+     (NAME documentation-utils FILENAME documentation-utils)
+     (NAME plump FILENAME plump) (NAME trivial-indent FILENAME trivial-indent))
+    DEPENDENCIES (array-utils documentation-utils plump trivial-indent) VERSION
+    20190710-git SIBLINGS NIL PARASITES NIL) */

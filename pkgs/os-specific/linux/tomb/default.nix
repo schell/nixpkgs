@@ -1,15 +1,19 @@
-{ stdenv, lib, fetchFromGitHub, gettext, zsh, pinentry, cryptsetup, gnupg, makeWrapper }:
+{ stdenv, lib, fetchFromGitHub, makeWrapper
+, gettext, zsh, pinentry, cryptsetup, gnupg, utillinux, e2fsprogs, sudo
+}:
 
 stdenv.mkDerivation rec {
-  name = "tomb-${version}";
-  version = "2.4";
+  pname = "tomb";
+  version = "2.6";
 
   src = fetchFromGitHub {
     owner  = "dyne";
     repo   = "Tomb";
     rev    = "v${version}";
-    sha256 = "192jpgn02mvi4d4inbq2q11zl7xw6njymvali7al8wmygkkycrw4";
+    sha256 = "0pr0lw1byxwkgv857zfmd8yqa03a7mckhzklrf9rkv1l6nisz0z0";
   };
+
+  buildInputs = [ sudo zsh pinentry ];
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -19,20 +23,15 @@ stdenv.mkDerivation rec {
       --replace 'TOMBEXEC=$0' 'TOMBEXEC=tomb'
   '';
 
-  buildPhase = ''
-    # manually patch the interpreter
-    sed -i -e "1s|.*|#!${zsh}/bin/zsh|g" tomb
-  '';
+  doInstallCheck = true;
+  installCheckPhase = "$out/bin/tomb -h";
 
   installPhase = ''
     install -Dm755 tomb       $out/bin/tomb
     install -Dm644 doc/tomb.1 $out/share/man/man1/tomb.1
 
-    # it works fine with gnupg v2, but it looks for an executable named gpg
-    ln -s ${gnupg}/bin/gpg2 $out/bin/gpg
-
     wrapProgram $out/bin/tomb \
-      --prefix PATH : $out/bin:${lib.makeBinPath [ cryptsetup gettext pinentry ]}
+      --prefix PATH : $out/bin:${lib.makeBinPath [ cryptsetup gettext gnupg pinentry utillinux e2fsprogs ]}
   '';
 
   meta = with stdenv.lib; {

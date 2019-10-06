@@ -2,7 +2,6 @@
 , stdenv
 , buildPythonPackage
 , fetchPypi
-, pythonOlder
 # Build dependencies
 , glibcLocales
 # Test dependencies
@@ -13,7 +12,6 @@
 , mock
 # Runtime dependencies
 , backports_shutil_get_terminal_size
-, jedi
 , decorator
 , pathlib2
 , pickleshare
@@ -27,12 +25,11 @@
 
 buildPythonPackage rec {
   pname = "ipython";
-  version = "5.3.0";
-  name = "${pname}-${version}";
+  version = "5.8.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "bf5e615e7d96dac5a61fbf98d9e2926d98aa55582681bea7e9382992a3f43c1d";
+    sha256 = "4bac649857611baaaf76bc82c173aa542f7486446c335fe1a6c05d0d491c8906";
   };
 
   prePatch = stdenv.lib.optionalString stdenv.isDarwin ''
@@ -60,6 +57,6 @@ buildPythonPackage rec {
     description = "IPython: Productive Interactive Computing";
     homepage = http://ipython.org/;
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ bjornfor jgeerds orivej lnl7 ];
+    maintainers = with lib.maintainers; [ bjornfor orivej lnl7 ];
   };
 }

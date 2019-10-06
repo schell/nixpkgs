@@ -1,5 +1,6 @@
 { stdenv, fetchurl
-, windows ? null, variant ? null, pcre
+, pcre, windows ? null
+, variant ? null
 }:
 
 with stdenv.lib;
@@ -7,31 +8,37 @@ with stdenv.lib;
 assert elem variant [ null "cpp" "pcre16" "pcre32" ];
 
 let
-  version = "8.40";
+  version = "8.43";
   pname = if (variant == null) then "pcre"
     else  if (variant == "cpp") then "pcre-cpp"
     else  variant;
 
-in stdenv.mkDerivation rec {
+in stdenv.mkDerivation {
   name = "${pname}-${version}";
 
   src = fetchurl {
-    url = "ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-${version}.tar.bz2";
-    sha256 = "1x7lpjn7jhk0n3sdvggxrlrhab8kkfjwl7qix0ypw9nlx8lpmqh0";
+    url = "https://ftp.pcre.org/pub/pcre/pcre-${version}.tar.bz2";
+    sha256 = "0sxg1wlknq05ryq63h21cchjmcjkin9lmnqsmhs3h08301965rwi";
   };
 
   outputs = [ "bin" "dev" "out" "doc" "man" ];
 
-  configureFlags = [
-    "--enable-jit"
+  configureFlags = optional (!stdenv.hostPlatform.isRiscV) "--enable-jit" ++ [
     "--enable-unicode-properties"
     "--disable-cpp"
   ]
     ++ optional (variant != null) "--enable-${variant}";
 
-  patches = [ ./CVE-2017-7186.patch ];
+  buildInputs = optional (stdenv.hostPlatform.libc == "msvcrt") windows.mingw_w64_pthreads;
 
-  doCheck = with stdenv; !(isCygwin || isFreeBSD);
+  # https://bugs.exim.org/show_bug.cgi?id=2173
+  patches = [ ./stacksize-detection.patch ];
+
+  preCheck = ''
+    patchShebangs RunGrepTest
+  '';
+
+  doCheck = !(with stdenv.hostPlatform; isCygwin || isFreeBSD) && stdenv.hostPlatform == stdenv.buildPlatform;
     # XXX: test failure on Cygwin
     # we are running out of stack on both freeBSDs on Hydra
 
@@ -42,12 +49,8 @@ in stdenv.mkDerivation rec {
     ln -sf -t "$out/lib/" '${pcre.out}'/lib/libpcre{,posix}.{so.*.*.*,*dylib}
   '';
 
-  crossAttrs = optionalAttrs (stdenv.cross.libc == "msvcrt") {
-    buildInputs = [ windows.mingw_w64_pthreads.crossDrv ];
-  };
-
   meta = {
-    homepage = "http://www.pcre.org/";
+    homepage = http://www.pcre.org/;
     description = "A library for Perl Compatible Regular Expressions";
     license = stdenv.lib.licenses.bsd3;
 

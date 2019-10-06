@@ -1,25 +1,29 @@
-{ stdenv, fetchurl, pkgconfig, intltool, iconnamingutils, hicolor_icon_theme }:
+{ stdenv, fetchurl, pkgconfig, intltool, iconnamingutils, librsvg, hicolor-icon-theme, gtk3 }:
 
 stdenv.mkDerivation rec {
-  name = "mate-icon-theme-${version}";
-  version = "${major-ver}.${minor-ver}";
-  major-ver = "1.18";
-  minor-ver = "1";
+  pname = "mate-icon-theme";
+  version = "1.22.2";
 
   src = fetchurl {
-    url = "http://pub.mate-desktop.org/releases/${major-ver}/${name}.tar.xz";
-    sha256 = "1217nza3ilmy6x3b9i1b75lpq7lpvhs18s0c2n3j6zhxdqy61nlm";
+    url = "http://pub.mate-desktop.org/releases/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "0r2bk4flb6kjj97badj2lnml4lfwpl2ym5hkf7r6f7cj8g6pzc4r";
   };
 
   nativeBuildInputs = [ pkgconfig intltool iconnamingutils ];
 
-  buildInputs = [ hicolor_icon_theme ];
+  buildInputs = [ librsvg hicolor-icon-theme ];
+
+  postInstall = ''
+    for theme in "$out"/share/icons/*; do
+      "${gtk3.out}/bin/gtk-update-icon-cache" "$theme"
+    done
+  '';
 
   meta = {
     description = "Icon themes from MATE";
-    homepage = "http://mate-desktop.org";
+    homepage = https://mate-desktop.org;
     license = stdenv.lib.licenses.lgpl3;
-    platforms = stdenv.lib.platforms.unix;
+    platforms = stdenv.lib.platforms.linux;
     maintainers = [ stdenv.lib.maintainers.romildo ];
   };
 }

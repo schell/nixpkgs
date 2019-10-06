@@ -1,16 +1,14 @@
-{ stdenv, fetchFromGitHub, gnome3 }:
+{ stdenv, fetchFromGitHub }:
 
 stdenv.mkDerivation rec {
-  name = "e17gtk-${version}";
-  version = "${gnome3.version}.1";
+  pname = "e17gtk";
+  version = "3.22.2";
 
   src = fetchFromGitHub {
     owner = "tsujan";
     repo = "E17gtk";
     rev = "V${version}";
-    sha256 = {
-      "3.22" = "0y1v5hamssgzgcmwbr60iz7wipb9yzzj3ypzkc6i65mp4pyazrv8";
-    }."${gnome3.version}";
+    sha256 = "1qwj1hmdlk8sdqhkrh60p2xg4av1rl0lmipdg5j0i40318pmiml1";
   };
 
   installPhase = ''
@@ -20,7 +18,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "An Enlightenment-like GTK+ theme with sharp corners";
+    description = "An Enlightenment-like GTK theme with sharp corners";
     homepage = https://github.com/tsujan/E17gtk;
     license = stdenv.lib.licenses.gpl3;
     platforms = stdenv.lib.platforms.unix;

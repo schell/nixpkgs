@@ -1,18 +1,19 @@
-{ stdenv, fetchFromGitHub, cln, gmp, swig, pkgconfig, readline, libantlr3c,
-boost, jdk, autoreconfHook, python2, antlr3_4 }:
+{ stdenv, fetchurl, cln, gmp, swig, pkgconfig
+, readline, libantlr3c, boost, jdk, autoreconfHook
+, python3, antlr3_4
+}:
 
 stdenv.mkDerivation rec {
-  name = "cvc4-unstable-${version}";
-  version = "2017-05-18";
+  pname = "cvc4";
+  version = "1.6";
 
-  src = fetchFromGitHub {
-    owner = "CVC4";
-    repo = "CVC4";
-    rev = "d77107cc56b0a089364c3d1512813701c155ea93";
-    sha256 = "085bjrrm33rl5pwqx13af9sgni9cfbg70wag6lm08jj41ws411xs";
+  src = fetchurl {
+    url = "https://cvc4.cs.stanford.edu/downloads/builds/src/cvc4-${version}.tar.gz";
+    sha256 = "1iw793zsi48q91lxpf8xl8lnvv0jsj4whdad79rakywkm1gbs62w";
   };
 
-  buildInputs = [ gmp cln pkgconfig readline swig libantlr3c antlr3_4 boost jdk autoreconfHook python2 ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ gmp cln readline swig libantlr3c antlr3_4 boost jdk python3 ];
   configureFlags = [
     "--enable-language-bindings=c,c++,java"
     "--enable-gpl"
@@ -20,15 +21,23 @@ stdenv.mkDerivation rec {
     "--with-readline"
     "--with-boost=${boost.dev}"
   ];
+
+  prePatch = ''
+    patch -p1 -i ${./minisat-fenv.patch} -d src/prop/minisat
+    patch -p1 -i ${./minisat-fenv.patch} -d src/prop/bvminisat
+  '';
+
   preConfigure = ''
     patchShebangs ./src/
   '';
 
+  enableParallelBuilding = true;
+
   meta = with stdenv.lib; {
     description = "A high-performance theorem prover and SMT solver";
-    homepage    = http://cvc4.cs.nyu.edu/web/;
+    homepage    = http://cvc4.cs.stanford.edu/web/;
     license     = licenses.gpl3;
     platforms   = platforms.unix;
-    maintainers = with maintainers; [ vbgl thoughtpolice ];
+    maintainers = with maintainers; [ vbgl thoughtpolice gebner ];
   };
 }

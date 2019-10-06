@@ -1,54 +1,73 @@
-{ stdenv, fetchurl, pkgconfig
+{ stdenv, fetchurl, pkgconfig, meson, ninja
 , libevdev, mtdev, udev, libwacom
 , documentationSupport ? false, doxygen ? null, graphviz ? null # Documentation
 , eventGUISupport ? false, cairo ? null, glib ? null, gtk3 ? null # GUI event viewer support
-, testsSupport ? false, check ? null, valgrind ? null
-, autoconf, automake
+, testsSupport ? false, check ? null, valgrind ? null, python3 ? null
 }:
 
-assert documentationSupport -> doxygen != null && graphviz != null;
+assert documentationSupport -> doxygen != null && graphviz != null && python3 != null;
 assert eventGUISupport -> cairo != null && glib != null && gtk3 != null;
-assert testsSupport -> check != null && valgrind != null;
+assert testsSupport -> check != null && valgrind != null && python3 != null;
 
 let
-  mkFlag = optSet: flag: if optSet then "--enable-${flag}" else "--disable-${flag}";
+  mkFlag = optSet: flag: "-D${flag}=${stdenv.lib.boolToString optSet}";
+
+  sphinx-build = if documentationSupport then
+    python3.pkgs.sphinx.overrideAttrs (super: {
+      propagatedBuildInputs = super.propagatedBuildInputs ++ (with python3.pkgs; [ recommonmark sphinx_rtd_theme ]);
+
+      postFixup = super.postFixup or "" + ''
+        # Do not propagate Python
+        rm $out/nix-support/propagated-build-inputs
+      '';
+    })
+  else null;
 in
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "libinput-${version}";
-  version = "1.7.2";
+  pname = "libinput";
+  version = "1.14.1";
 
   src = fetchurl {
-    url = "http://www.freedesktop.org/software/libinput/${name}.tar.xz";
-    sha256 = "0b1e5a6c106ccc609ccececd9e33e6b27c8b01fc7457ddb4c1dd266e780d6bc2";
+    url = "https://www.freedesktop.org/software/libinput/${pname}-${version}.tar.xz";
+    sha256 = "0w7fas37mp2k06f12i3lnj717lw73asziknj6z51kh1m50ja6cz3";
   };
 
-  outputs = [ "out" "dev" ];
+  outputs = [ "bin" "out" "dev" ];
 
-  configureFlags = [
+  mesonFlags = [
     (mkFlag documentationSupport "documentation")
-    (mkFlag eventGUISupport "event-gui")
+    (mkFlag eventGUISupport "debug-gui")
     (mkFlag testsSupport "tests")
+    "--libexecdir=${placeholder "bin"}/libexec"
   ];
 
-  nativeBuildInputs = [ pkgconfig ];
+  nativeBuildInputs = [ pkgconfig meson ninja ]
+    ++ optionals documentationSupport [ doxygen graphviz sphinx-build ]
+    ++ optionals testsSupport [ valgrind ];
 
-  buildInputs = [ libevdev mtdev libwacom autoconf automake ]
+  buildInputs = [ libevdev mtdev libwacom (python3.withPackages (pkgs: with pkgs; [ evdev ])) ]
     ++ optionals eventGUISupport [ cairo glib gtk3 ]
-    ++ optionals documentationSupport [ doxygen graphviz ]
-    ++ optionals testsSupport [ check valgrind ];
+    ++ optionals testsSupport [ check ];
 
   propagatedBuildInputs = [ udev ];
 
   patches = [ ./udev-absolute-path.patch ];
-  patchFlags = [ "-p0" ];
+
+  postPatch = ''
+    patchShebangs tools/helper-copy-and-exec-from-tmp.sh
+    patchShebangs test/symbols-leak-test
+    patchShebangs test/check-leftover-udev-rules.sh
+  '';
+
+  doCheck = testsSupport && stdenv.hostPlatform == stdenv.buildPlatform;
 
   meta = {
     description = "Handles input devices in Wayland compositors and provides a generic X.Org input driver";
     homepage    = http://www.freedesktop.org/wiki/Software/libinput;
     license     = licenses.mit;
     platforms   = platforms.unix;
-    maintainers = with maintainers; [ codyopel wkennington ];
+    maintainers = with maintainers; [ codyopel ];
   };
 }

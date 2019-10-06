@@ -1,31 +1,10 @@
-{ stdenv, fetchurl, openssl }:
+{ stdenv, callPackage, fetchurl }:
 
-stdenv.mkDerivation rec {
-  name    = "gambit-${version}";
-  version = "4.8.6";
-  devver  = "4_8_6";
-
+callPackage ./build.nix {
+  version = "4.9.3";
   src = fetchurl {
-    url    = "http://www.iro.umontreal.ca/~gambit/download/gambit/v4.8/source/gambit-v${devver}-devel.tgz";
-    sha256 = "0j3ka76cfb007rlcc3nv5p1s6vh31cwp87hwwabawf16vs1jb7bl";
+    url = "http://www.iro.umontreal.ca/~gambit/download/gambit/v4.9/source/gambit-v4_9_3.tgz";
+    sha256 = "1p6172vhcrlpjgia6hsks1w4fl8rdyjf9xjh14wxfkv7dnx8a5hk";
   };
-
-  configureFlags = [
-    "--enable-single-host"
-    "--enable-shared"
-    "--enable-absolute-shared-libs"
-    "--enable-c-opt=-O6" "--enable-gcc-opts" "--enable-inline-jumps"
-    "--enable-thread-system=posix" "--enable-dynamic-tls"
-    "--enable-openssl"
-  ];
-
-  buildInputs = [ openssl ];
-
-  meta = {
-    description = "Optimizing Scheme to C compiler";
-    homepage    = "http://gambitscheme.org";
-    license     = stdenv.lib.licenses.lgpl2;
-    platforms   = stdenv.lib.platforms.linux;
-    maintainers = with stdenv.lib.maintainers; [ thoughtpolice raskin ];
-  };
+  inherit stdenv;
 }

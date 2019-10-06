@@ -1,22 +1,27 @@
-{ stdenv, lib, fetchurl, ncurses, xlibsWrapper, libXaw, libXpm, Xaw3d
-, pkgconfig, gettext, libXft, dbus, libpng, libjpeg, libungif
+{ stdenv, lib, fetchurl, ncurses, xlibsWrapper, libXaw, libXpm
+, Xaw3d, libXcursor,  pkgconfig, gettext, libXft, dbus, libpng, libjpeg, libungif
 , libtiff, librsvg, gconf, libxml2, imagemagick, gnutls, libselinux
-, alsaLib, cairo, acl, gpm, AppKit, CoreWLAN, Kerberos, GSS, ImageIO
+, alsaLib, cairo, acl, gpm, AppKit, GSS, ImageIO, m17n_lib, libotf
+, systemd ? null
 , withX ? !stdenv.isDarwin
-, withGTK2 ? false, gtk2 ? null
-, withGTK3 ? true, gtk3 ? null, gsettings_desktop_schemas ? null
-, withXwidgets ? false, webkitgtk24x ? null, wrapGAppsHook ? null, glib_networking ? null
+, withNS ? stdenv.isDarwin
+, withGTK2 ? false, gtk2-x11 ? null
+, withGTK3 ? true, gtk3-x11 ? null, gsettings-desktop-schemas ? null
+, withXwidgets ? false, webkitgtk ? null, wrapGAppsHook ? null
 , withCsrc ? true
 , srcRepo ? false, autoconf ? null, automake ? null, texinfo ? null
+, siteStart ? ./site-start.el
 }:
 
 assert (libXft != null) -> libpng != null;      # probably a bug
 assert stdenv.isDarwin -> libXaw != null;       # fails to link otherwise
-assert withGTK2 -> withX || stdenv.isDarwin;
-assert withGTK3 -> withX || stdenv.isDarwin;
-assert withGTK2 -> !withGTK3 && gtk2 != null;
-assert withGTK3 -> !withGTK2 && gtk3 != null;
-assert withXwidgets -> withGTK3 && webkitgtk24x != null;
+assert withNS -> !withX;
+assert withNS -> stdenv.isDarwin;
+assert (withGTK2 && !withNS) -> withX;
+assert (withGTK3 && !withNS) -> withX;
+assert withGTK2 -> !withGTK3 && gtk2-x11 != null;
+assert withGTK3 -> !withGTK2 && gtk3-x11 != null;
+assert withXwidgets -> withGTK3 && webkitgtk != null;
 
 let
   toolkit =
@@ -26,15 +31,26 @@ let
 in
 stdenv.mkDerivation rec {
   name = "emacs-${version}${versionModifier}";
-  version = "25.2";
+  version = "26.3";
   versionModifier = "";
 
   src = fetchurl {
     url = "mirror://gnu/emacs/${name}.tar.xz";
-    sha256 = "1ykkq0xl28ljdg61bm6gzy04ww86ajms98gix72qg6cpr6a53dar";
+    sha256 = "119ldpk7sgn9jlpyngv5y4z3i7bb8q3xp4p0qqi7i5nq39syd42d";
   };
 
-  patches = (lib.optional stdenv.isDarwin ./at-fdcwd.patch);
+  enableParallelBuilding = true;
+
+  patches = [
+    ./clean-env.patch
+    ./tramp-detect-wrapped-gvfsd.patch
+  ];
+
+  postPatch = lib.optionalString srcRepo ''
+    rm -fr .git
+  '';
+
+  CFLAGS = "-DMAC_OS_X_VERSION_MAX_ALLOWED=101200";
 
   nativeBuildInputs = [ pkgconfig ]
     ++ lib.optionals srcRepo [ autoconf automake texinfo ]
@@ -42,22 +58,28 @@ stdenv.mkDerivation rec {
 
   buildInputs =
     [ ncurses gconf libxml2 gnutls alsaLib acl gpm gettext ]
-    ++ lib.optionals stdenv.isLinux [ dbus libselinux ]
+    ++ lib.optionals stdenv.isLinux [ dbus libselinux systemd ]
     ++ lib.optionals withX
       [ xlibsWrapper libXaw Xaw3d libXpm libpng libjpeg libungif libtiff librsvg libXft
-        imagemagick gconf ]
-    ++ lib.optional (withX && withGTK2) gtk2
-    ++ lib.optionals (withX && withGTK3) [ gtk3 gsettings_desktop_schemas ]
+        gconf ]
+    ++ lib.optionals (withX || withNS) [ imagemagick ]
+    ++ lib.optionals (stdenv.isLinux && withX) [ m17n_lib libotf ]
+    ++ lib.optional (withX && withGTK2) gtk2-x11
+    ++ lib.optionals (withX && withGTK3) [ gtk3-x11 gsettings-desktop-schemas ]
     ++ lib.optional (stdenv.isDarwin && withX) cairo
-    ++ lib.optionals (withX && withXwidgets) [ webkitgtk24x glib_networking ];
-
-  propagatedBuildInputs = lib.optionals stdenv.isDarwin [ AppKit GSS ImageIO ];
+    ++ lib.optionals (withX && withXwidgets) [ webkitgtk ]
+    ++ lib.optionals withNS [ AppKit GSS ImageIO ];
 
   hardeningDisable = [ "format" ];
 
-  configureFlags = [ "--with-modules" ] ++
-   (if stdenv.isDarwin
-      then [ "--with-ns" "--disable-ns-self-contained" ]
+  configureFlags = [
+    "--disable-build-details" # for a (more) reproducible build
+    "--with-modules"
+  ] ++
+    (lib.optional stdenv.isDarwin
+      (lib.withFeature withNS "ns")) ++
+    (if withNS
+      then [ "--disable-ns-self-contained" ]
     else if withX
       then [ "--with-x-toolkit=${toolkit}" "--with-xft" ]
       else [ "--with-x=no" "--with-xpm=no" "--with-jpeg=no" "--with-png=no"
@@ -79,7 +101,7 @@ stdenv.mkDerivation rec {
 
   postInstall = ''
     mkdir -p $out/share/emacs/site-lisp
-    cp ${./site-start.el} $out/share/emacs/site-lisp/site-start.el
+    cp ${siteStart} $out/share/emacs/site-lisp/site-start.el
     $out/bin/emacs --batch -f batch-byte-compile $out/share/emacs/site-lisp/site-start.el
 
     rm -rf $out/var
@@ -92,16 +114,27 @@ stdenv.mkDerivation rec {
       cp $srcdir/TAGS $dstdir
       echo '((nil . ((tags-file-name . "TAGS"))))' > $dstdir/.dir-locals.el
     done
-  '' + lib.optionalString stdenv.isDarwin ''
+  '' + lib.optionalString withNS ''
     mkdir -p $out/Applications
     mv nextstep/Emacs.app $out/Applications
   '';
 
+  postFixup =
+    let libPath = lib.makeLibraryPath [
+      libXcursor
+    ];
+    in lib.optionalString (stdenv.isLinux && withX && toolkit == "lucid") ''
+      patchelf --set-rpath \
+        "$(patchelf --print-rpath "$out/bin/emacs"):${libPath}" \
+        "$out/bin/emacs"
+      patchelf --add-needed "libXcursor.so.1" "$out/bin/emacs"
+    '';
+
   meta = with stdenv.lib; {
     description = "The extensible, customizable GNU text editor";
-    homepage    = http://www.gnu.org/software/emacs/;
+    homepage    = https://www.gnu.org/software/emacs/;
     license     = licenses.gpl3Plus;
-    maintainers = with maintainers; [ chaoflow lovek323 peti the-kenny jwiegley ];
+    maintainers = with maintainers; [ lovek323 peti the-kenny jwiegley ];
     platforms   = platforms.all;
 
     longDescription = ''

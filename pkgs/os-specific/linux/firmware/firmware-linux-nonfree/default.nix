@@ -1,35 +1,30 @@
-{ stdenv, fetchFromGitHub }:
+{ stdenv, fetchgit }:
 
 stdenv.mkDerivation rec {
-  name = "firmware-linux-nonfree-${version}";
-  version = "2017-04-16";
+  pname = "firmware-linux-nonfree";
+  version = "2019-08-15";
 
-  # This repo is built by merging the latest versions of
-  # http://git.kernel.org/cgit/linux/kernel/git/firmware/linux-firmware.git/
-  # and
-  # http://git.kernel.org/cgit/linux/kernel/git/iwlwifi/linux-firmware.git/
-  # for any given date. This gives us up to date iwlwifi firmware as well as
-  # the usual set of firmware. firmware/linux-firmware usually lags kernel releases
-  # so iwlwifi cards will fail to load on newly released kernels.
-  src = fetchFromGitHub {
-    owner = "fpletz";
-    repo = "linux-firmware";
-    rev = version;
-    sha256 = "0ar29vjjpsw7r7pqqa8b0jxx03k230cn7x8fkqi23bj68bd9x5pc";
+  src = fetchgit {
+    url = "https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git";
+    rev = "20190815";
+    sha256 = "06p6scpmhdifzi3yhg5n4f2kqp4pl20xhh0k2kw70p10zgxg2l4r";
   };
 
-  preInstall = ''
-    mkdir -p $out
-  '';
-
   installFlags = [ "DESTDIR=$(out)" ];
+
+  # Firmware blobs do not need fixing and should not be modified
+  dontFixup = true;
+
+  outputHashMode = "recursive";
+  outputHashAlgo = "sha256";
+  outputHash = "1dgclb44li70z0vkk9qxlbsj2jnqwx97gd7c429i2nv9lhgm14vx";
 
   meta = with stdenv.lib; {
     description = "Binary firmware collection packaged by kernel.org";
     homepage = http://packages.debian.org/sid/firmware-linux-nonfree;
     license = licenses.unfreeRedistributableFirmware;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ wkennington fpletz ];
+    maintainers = with maintainers; [ fpletz ];
     priority = 6; # give precedence to kernel firmware
   };
 

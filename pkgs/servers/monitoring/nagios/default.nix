@@ -1,12 +1,12 @@
 { stdenv, fetchurl, perl, php, gd, libpng, zlib, unzip }:
 
 stdenv.mkDerivation rec {
-  name = "nagios-${version}";
-  version = "4.2.4";
+  pname = "nagios";
+  version = "4.4.5";
 
   src = fetchurl {
-    url = "mirror://sourceforge/nagios/nagios-4.x/${name}/${name}.tar.gz";
-    sha256 = "0w0blbwiw0ps04b7gkyyk89qkgwsxh6gydhmggbm1kl3ar3mq1dh";
+    url = "mirror://sourceforge/nagios/nagios-4.x/${pname}-${version}/${pname}-${version}.tar.gz";
+    sha256 = "079rgi3dqdg6h511c96hrch62rxsap9p4x37hm2nj672zb9f4sdz";
   };
 
   patches = [ ./nagios.patch ];
@@ -23,7 +23,7 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "A host, service and network monitoring program";
-    homepage    = http://www.nagios.org/;
+    homepage    = https://www.nagios.org/;
     license     = stdenv.lib.licenses.gpl2;
     platforms   = stdenv.lib.platforms.linux;
     maintainers = with stdenv.lib.maintainers; [ thoughtpolice relrod ];

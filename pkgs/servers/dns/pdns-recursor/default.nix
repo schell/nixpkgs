@@ -1,36 +1,36 @@
 { stdenv, fetchurl, pkgconfig, boost
 , openssl, systemd, lua, luajit, protobuf
-, enableLua ? false
 , enableProtoBuf ? false
 }:
-
-assert enableLua      -> lua != null && luajit != null;
 assert enableProtoBuf -> protobuf != null;
 
 with stdenv.lib;
 
 stdenv.mkDerivation rec {
-  name = "pdns-recursor-${version}";
-  version = "4.0.4";
+  pname = "pdns-recursor";
+  version = "4.2.0";
 
   src = fetchurl {
     url = "https://downloads.powerdns.com/releases/pdns-recursor-${version}.tar.bz2";
-    sha256 = "0k8y9zxj2lz4rq782vgzr28yd43q0hwlnvszwq0k9l6c967pff13";
+    sha256 = "1hn2nw8v6gccwxwm36xczsac4bhxf8b8r7akri2wdp3gh70p4g7h";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    boost openssl pkgconfig systemd
-  ] ++ optional enableLua [ lua luajit ]
-    ++ optional enableProtoBuf protobuf;
+    boost openssl systemd
+    lua luajit
+  ] ++ optional enableProtoBuf protobuf;
 
   configureFlags = [
     "--enable-reproducible"
     "--with-systemd"
   ];
 
+  enableParallelBuilding = true;
+
   meta = {
     description = "A recursive DNS server";
-    homepage = http://www.powerdns.com/;
+    homepage = https://www.powerdns.com/;
     platforms = platforms.linux;
     license = licenses.gpl2;
     maintainers = with maintainers; [ rnhmjoj ];

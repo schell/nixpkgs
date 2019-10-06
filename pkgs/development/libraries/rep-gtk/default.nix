@@ -3,16 +3,17 @@
 with stdenv.lib;
 stdenv.mkDerivation rec {
 
-  name = "rep-gtk-${version}";
+  pname = "rep-gtk";
   version = "0.90.8.3";
   sourceName = "rep-gtk_${version}";
 
   src = fetchurl {
-    url = "http://download.tuxfamily.org/librep/rep-gtk/${sourceName}.tar.xz";
+    url = "https://download.tuxfamily.org/librep/rep-gtk/${sourceName}.tar.xz";
     sha256 = "0hgkkywm8zczir3lqr727bn7ybgg71x9cwj1av8fykkr8pdpard9";
   };
 
-  buildInputs = [ pkgconfig autoreconfHook ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ ];
   propagatedBuildInputs = [ librep gtk2 ];
 
   patchPhase = ''
@@ -20,7 +21,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "GTK+ bindings for librep";
+    description = "GTK bindings for librep";
     homepage = http://sawfish.wikia.com;
     license = licenses.gpl2;
     maintainers = [ maintainers.AndersonTorres ];

@@ -1,26 +1,26 @@
-{ stdenv, fetchurl, unzip }:
+{ lib, fetchzip }:
 
-stdenv.mkDerivation rec {
+let
+  version = "4.47.0";
+in fetchzip {
   name = "terminus-font-ttf-${version}";
-  version = "4.40.1";
 
-  src = fetchurl {
-    url = "http://files.ax86.net/terminus-ttf/files/${version}/terminus-ttf-${version}.zip";
-    sha256 = "c3cb690c2935123035a0b1f3bfdd9511c282dab489cd423e161a47c592edf188";
-  };
+  url = "http://files.ax86.net/terminus-ttf/files/${version}/terminus-ttf-${version}.zip";
 
-  buildInputs = [unzip];
+  postFetch = ''
+    unzip -j $downloadedFile
 
-  installPhase = ''
     for i in *.ttf; do
       local destname="$(echo "$i" | sed -E 's|-[[:digit:].]+\.ttf$|.ttf|')"
       install -Dm 644 "$i" "$out/share/fonts/truetype/$destname"
     done
 
-    install -Dm 644 COPYING "$out/share/doc/COPYING"
+    install -Dm 644 COPYING "$out/share/doc/terminus-font-ttf/COPYING"
   '';
 
-  meta = with stdenv.lib; {
+  sha256 = "1mnx3vlnl0r15yzsa4zb9qqab4hpi603gdwhlbw960wg03i3xn8z";
+
+  meta = with lib; {
     description = "A clean fixed width TTF font";
     longDescription = ''
       Monospaced bitmap font designed for long work with computers
@@ -29,6 +29,5 @@ stdenv.mkDerivation rec {
     homepage = http://files.ax86.net/terminus-ttf;
     license = licenses.ofl;
     maintainers = with maintainers; [ okasu ];
-    platforms = platforms.linux;
   };
 }

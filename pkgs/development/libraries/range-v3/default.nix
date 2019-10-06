@@ -1,27 +1,28 @@
-{ stdenv, fetchFromGitHub }:
+{ stdenv, fetchFromGitHub, cmake }:
 
 stdenv.mkDerivation rec {
-  name = "range-v3-${version}";
-  version = "2017-01-30";
+  pname = "range-v3";
+  version = "0.9.1";
 
   src = fetchFromGitHub {
     owner = "ericniebler";
     repo = "range-v3";
-    rev = "bab29767cce120e11872d79a2537bc6f0be76963";
-    sha256 = "0kncpxms3f0nmn6jppp484244xq15d9298g3h3nlm1wvq8ib1jhi";
+    rev = version;
+    sha256 = "0qga2fnfrlrzrvnnk1z1plpmvcr8b4c75g5xz0jv0sav0kmq5zwn";
   };
 
-  dontBuild = true;
-  installPhase = ''
-    mkdir -p $out/include
-    mv include/ $out/
-  '';
+  nativeBuildInputs = [ cmake ];
+
+  doCheck = true;
+  checkTarget = "test";
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     description = "Experimental range library for C++11/14/17";
     homepage = https://github.com/ericniebler/range-v3;
     license = licenses.boost;
     platforms = platforms.all;
-    maintainers = with maintainers; [ xwvvvvwx ];
+    maintainers = with maintainers; [ primeos xwvvvvwx ];
   };
 }

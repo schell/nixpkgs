@@ -3,16 +3,16 @@
 , expat, libjpeg, libpng, libiconv
 , flex
 , libXp, libXau
-, demoSupport ? false, autoconf, automake
+, demoSupport ? false
 }:
 # refer to the gentoo package
 
 stdenv.mkDerivation rec {
-  name = "motif-${version}";
+  pname = "motif";
   version = "2.3.6";
 
   src = fetchurl {
-    url = "mirror://sourceforge/motif/${name}.tar.gz";
+    url = "mirror://sourceforge/motif/${pname}-${version}.tar.gz";
     sha256 = "1ksqbp0bzdw6wcrx8s4hj4ivvxmw54hz85l2xfigb87cxmmhx0gs";
   };
 
@@ -22,7 +22,7 @@ stdenv.mkDerivation rec {
     expat libjpeg libpng libiconv
   ];
 
-  nativeBuildInputs = [ pkgconfig flex ] ++ stdenv.lib.optionals (!demoSupport) [ autoconf automake ];
+  nativeBuildInputs = [ pkgconfig flex ];
 
   propagatedBuildInputs = [ libXp libXau ];
 
@@ -30,16 +30,19 @@ stdenv.mkDerivation rec {
 
   makeFlags = [ "CFLAGS=-fno-strict-aliasing" ];
 
-  prePatch = ''rm lib/Xm/Xm.h'';
+  prePatch = ''
+    rm lib/Xm/Xm.h
+  '' + stdenv.lib.optionalString (!demoSupport) ''
+    sed '/^SUBDIRS =,^$/s/\<demos\>//' -i Makefile.{am,in}
+  '';
 
   patches = [ ./Remove-unsupported-weak-refs-on-darwin.patch
               ./Use-correct-header-for-malloc.patch
               ./Add-X.Org-to-bindings-file.patch
-            ]
-            ++ stdenv.lib.optional (!demoSupport) ./Do-not-compile-demos.patch;
+            ];
 
   meta = with stdenv.lib; {
-    homepage = http://motif.ics.com;
+    homepage = https://motif.ics.com;
     description = "Unix standard widget-toolkit and window-manager";
     platforms = with platforms; linux ++ darwin;
     license = with licenses; [ lgpl21 ];

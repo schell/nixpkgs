@@ -1,31 +1,40 @@
-{ stdenv, fetchurl, cmake, gettext
+{ stdenv, fetchFromGitHub, cmake, gettext, perl, asciidoc
 , libjpeg, libtiff, libungif, libpng, imlib, expat
-, freetype, fontconfig, pkgconfig, gdk_pixbuf
+, freetype, fontconfig, pkgconfig, gdk-pixbuf
 , mkfontdir, libX11, libXft, libXext, libXinerama
 , libXrandr, libICE, libSM, libXpm, libXdmcp, libxcb
-, libpthreadstubs }:
+, libpthreadstubs, pcre, libXdamage, libXcomposite, libXfixes
+, libsndfile, fribidi }:
 
-with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "icewm-${version}";
-  version = "1.3.12";
+  pname = "icewm";
+  version = "1.6.0";
 
-  buildInputs =
-  [ cmake gettext libjpeg libtiff libungif libpng imlib expat
-    freetype fontconfig pkgconfig gdk_pixbuf mkfontdir libX11
-    libXft libXext libXinerama libXrandr libICE libSM libXpm
-    libXdmcp libxcb libpthreadstubs ];
-
-  src = fetchurl {
-    url = "https://github.com/bbidulock/icewm/archive/${version}.tar.gz";
-    sha256 = "0cmjnf0yvafwg73qy5wq7ghiknpn1jf1978c1yj7yabyn07zxq77";
+  src = fetchFromGitHub {
+    owner  = "bbidulock";
+    repo   = "icewm";
+    rev    = version;
+    sha256 = "1l8hjmb19d7ds7z21cx207h86wkjcmmmamcnalgkwh4alvbawc2p";
   };
 
-  preConfigure = ''
-    export cmakeFlags="-DPREFIX=$out -DCFGDIR=/etc/icewm"
+  nativeBuildInputs = [ cmake pkgconfig perl asciidoc ];
+
+  buildInputs = [
+    gettext libjpeg libtiff libungif libpng imlib expat
+    freetype fontconfig gdk-pixbuf mkfontdir libX11
+    libXft libXext libXinerama libXrandr libICE libSM libXpm
+    libXdmcp libxcb libpthreadstubs pcre libsndfile fribidi
+    libXdamage libXcomposite libXfixes
+  ];
+
+  cmakeFlags = [ "-DPREFIX=$out" "-DCFGDIR=/etc/icewm" ];
+
+  # install legacy themes
+  postInstall = ''
+    cp -r ../lib/themes/{gtk2,Natural,nice,nice2,warp3,warp4,yellowmotif} $out/share/icewm/themes/
   '';
 
-  meta = {
+  meta = with stdenv.lib; {
     description = "A simple, lightweight X window manager";
     longDescription = ''
       IceWM is a window manager for the X Window System. The goal of
@@ -34,6 +43,6 @@ stdenv.mkDerivation rec {
     homepage = http://www.icewm.org/;
     license = licenses.lgpl2;
     maintainers = [ maintainers.AndersonTorres ];
-    platforms = platforms.unix;
+    platforms = platforms.linux;
   };
 }

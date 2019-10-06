@@ -1,29 +1,20 @@
-{stdenv, fetchurl, buildOcaml, ocaml, findlib, ocamlbuild, topkg, opam}:
+{ stdenv, fetchurl, ocaml, findlib, ocamlbuild, topkg }:
 
-buildOcaml rec {
+stdenv.mkDerivation rec {
   version = "0.8.3";
-  name = "astring";
+  name = "ocaml${ocaml.version}-astring-${version}";
 
   src = fetchurl {
-    url = "http://erratique.ch/software/astring/releases/astring-${version}.tbz";
+    url = "https://erratique.ch/software/astring/releases/astring-${version}.tbz";
     sha256 = "0ixjwc3plrljvj24za3l9gy0w30lsbggp8yh02lwrzw61ls4cri0";
   };
 
-  unpackCmd = "tar -xf $curSrc";
+  buildInputs = [ ocaml findlib ocamlbuild topkg ];
 
-  buildInputs = [ ocaml findlib ocamlbuild topkg opam ];
-
-  buildPhase = ''
-    ocaml -I ${findlib}/lib/ocaml/${ocaml.version}/site-lib/ pkg/pkg.ml build
-  '';
-
-  installPhase = ''
-    opam-installer --script --prefix=$out astring.install | sh
-    ln -s $out/lib/astring $out/lib/ocaml/${ocaml.version}/site-lib/
-  '';
+  inherit (topkg) buildPhase installPhase;
 
   meta = {
-    homepage = http://erratique.ch/software/astring;
+    homepage = https://erratique.ch/software/astring;
     description = "Alternative String module for OCaml";
     longDescription = ''
       Astring exposes an alternative String module for OCaml. This module tries

@@ -3,14 +3,15 @@
 import ./make-test.nix ({ pkgs, ...} : {
   name = "docker";
   meta = with pkgs.stdenv.lib.maintainers; {
-    maintainers = [ offline ];
+    maintainers = [ nequissimus offline ];
   };
 
   nodes = {
     docker =
-      { config, pkgs, ... }:
+      { pkgs, ... }:
         {
           virtualisation.docker.enable = true;
+          virtualisation.docker.package = pkgs.docker;
 
           users.users = {
             noprivs = {
@@ -39,5 +40,8 @@ import ./make-test.nix ({ pkgs, ...} : {
     $docker->succeed("sudo -u hasprivs docker ps");
     $docker->fail("sudo -u noprivs docker ps");
     $docker->succeed("docker stop sleeping");
+
+    # Must match version twice to ensure client and server versions are correct
+    $docker->succeed('[ $(docker version | grep ${pkgs.docker.version} | wc -l) = "2" ]');
   '';
 })

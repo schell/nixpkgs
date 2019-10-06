@@ -1,17 +1,13 @@
-{ stdenv, fetchgit, pythonPackages, makeWrapper, nettools, libtorrentRasterbar, imagemagick
-, enablePlayer ? true, vlc ? null }:
+{ stdenv, fetchurl, pythonPackages, makeWrapper, imagemagick
+, enablePlayer ? true, vlc ? null, qt5 }:
 
 stdenv.mkDerivation rec {
   pname = "tribler";
-  name = "${pname}-${version}";
-  version = "7.0.0-beta";
-  revision = "1d3ddb8";
+  version = "7.1.2";
 
-  src = fetchgit {
-    url = "https://github.com/Tribler/tribler";
-    rev = revision;
-    sha256 = "16mk76qgg7fgca11yvpygicxqbkc0kn6r82x73fly2310pagd845";
-    fetchSubmodules = true;
+  src = fetchurl {
+    url = "https://github.com/Tribler/tribler/releases/download/v${version}/Tribler-v${version}.tar.gz";
+    sha256 = "1ayzqx4358qlx56hsnsn5s8xl6mzdb6nw4kwsalmp86dw6vmmis8";
   };
 
   buildInputs = [
@@ -22,7 +18,7 @@ stdenv.mkDerivation rec {
   ];
 
   pythonPath = [
-    libtorrentRasterbar
+    pythonPackages.libtorrentRasterbar
     pythonPackages.apsw
     pythonPackages.twisted
     pythonPackages.netifaces
@@ -41,6 +37,12 @@ stdenv.mkDerivation rec {
     pythonPackages.plyvel
     pythonPackages.decorator
     pythonPackages.feedparser
+    pythonPackages.service-identity
+    pythonPackages.psutil
+    pythonPackages.meliae
+    pythonPackages.sip
+    pythonPackages.pillow
+    pythonPackages.networkx
   ];
 
   postPatch = ''
@@ -58,6 +60,7 @@ stdenv.mkDerivation rec {
     wrapPythonPrograms
     cp -prvd ./* $out/
     makeWrapper ${pythonPackages.python}/bin/python $out/bin/tribler \
+        --set QT_QPA_PLATFORM_PLUGIN_PATH ${qt5.qtbase.bin}/lib/qt-*/plugins/platforms \
         --set _TRIBLERPATH $out \
         --set PYTHONPATH $out:$program_PYTHONPATH \
         --set NO_AT_BRIDGE 1 \
@@ -70,7 +73,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     maintainers = with maintainers; [ xvapx ];
-    homepage = http://www.tribler.org/;
+    homepage = https://www.tribler.org/;
     description = "A completely decentralised P2P filesharing client based on the Bittorrent protocol";
     license = licenses.lgpl21;
     platforms = platforms.linux;

@@ -15,7 +15,9 @@ let
     else cfg.database.port;
 
   poolName = "tt-rss";
-  phpfpmSocketName = "/var/run/phpfpm/${poolName}.sock";
+
+  mysqlLocal = cfg.database.createLocally && cfg.database.type == "mysql";
+  pgsqlLocal = cfg.database.createLocally && cfg.database.type == "pgsql";
 
   tt-rss-config = pkgs.writeText "config.php" ''
     <?php
@@ -34,7 +36,14 @@ let
       define('DB_HOST', '${optionalString (cfg.database.host != null) cfg.database.host}');
       define('DB_USER', '${cfg.database.user}');
       define('DB_NAME', '${cfg.database.name}');
-      define('DB_PASS', '${optionalString (cfg.database.password != null) (escape ["'" "\\"] cfg.database.password)}');
+      define('DB_PASS', ${
+        if (cfg.database.password != null) then
+          "'${(escape ["'" "\\"] cfg.database.password)}'"
+        else if (cfg.database.passwordFile != null) then
+          "file_get_contents('${cfg.database.passwordFile}')"
+        else
+          "''"
+      });
       define('DB_PORT', '${toString dbPort}');
 
       define('AUTH_AUTO_CREATE', ${boolToString cfg.auth.autoCreate});
@@ -46,7 +55,17 @@ let
       define('SINGLE_USER_MODE', ${boolToString cfg.singleUserMode});
 
       define('SIMPLE_UPDATE_MODE', ${boolToString cfg.simpleUpdateMode});
-      define('CHECK_FOR_UPDATES', ${boolToString cfg.checkForUpdates});
+
+      // Never check for updates - the running version of the code should be
+      // controlled entirely by the version of TT-RSS active in the current Nix
+      // profile. If TT-RSS updates itself to a version requiring a database
+      // schema upgrade, and then the SystemD tt-rss.service is restarted, the
+      // old code copied from the Nix store will overwrite the updated version,
+      // causing the code to detect the need for a schema "upgrade" (since the
+      // schema version in the database is different than in the code), but the
+      // update schema operation in TT-RSS will do nothing because the schema
+      // version in the database is newer than that in the code.
+      define('CHECK_FOR_UPDATES', false);
 
       define('FORCE_ARTICLE_PURGE', ${toString cfg.forceArticlePurge});
       define('SESSION_COOKIE_LIFETIME', ${toString cfg.sessionCookieLifetime});
@@ -76,6 +95,8 @@ let
       define('SMTP_FROM_NAME', '${escape ["'" "\\"] cfg.email.fromName}');
       define('SMTP_FROM_ADDRESS', '${escape ["'" "\\"] cfg.email.fromAddress}');
       define('DIGEST_SUBJECT', '${escape ["'" "\\"] cfg.email.digestSubject}');
+
+      ${cfg.extraConfig}
   '';
 
  in {
@@ -99,8 +120,8 @@ let
 
       user = mkOption {
         type = types.str;
-        default = "nginx";
-        example = "nginx";
+        default = "tt_rss";
+        example = "tt_rss";
         description = ''
           User account under which both the update daemon and the web-application run.
         '';
@@ -166,6 +187,14 @@ let
           '';
         };
 
+        passwordFile = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            The database user's password.
+          '';
+        };
+
         port = mkOption {
           type = types.nullOr types.int;
           default = null;
@@ -173,6 +202,12 @@ let
             The database's port. If not set, the default ports will be provided (5432
             and 3306 for pgsql and mysql respectively).
           '';
+        };
+
+        createLocally = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Create the database and database user locally.";
         };
       };
 
@@ -397,14 +432,6 @@ let
         '';
       };
 
-      checkForUpdates = mkOption {
-        type = types.bool;
-        default = true;
-        description = ''
-          Check for updates automatically if running Git version
-        '';
-      };
-
       enableGZipOutput = mkOption {
         type = types.bool;
         default = true;
@@ -431,6 +458,26 @@ let
         '';
       };
 
+      pluginPackages = mkOption {
+        type = types.listOf types.package;
+        default = [];
+        description = ''
+          List of plugins to install. The list elements are expected to
+          be derivations. All elements in this derivation are automatically
+          copied to the <literal>plugins.local</literal> directory.
+        '';
+      };
+
+      themePackages = mkOption {
+        type = types.listOf types.package;
+        default = [];
+        description = ''
+          List of themes to install. The list elements are expected to
+          be derivations. All elements in this derivation are automatically
+          copied to the <literal>themes.local</literal> directory.
+        '';
+      };
+
       logDestination = mkOption {
         type = types.enum ["" "sql" "syslog"];
         default = "sql";
@@ -441,54 +488,84 @@ let
           error.log).
         '';
       };
+
+      extraConfig = mkOption {
+        type = types.lines;
+        default = "";
+        description = ''
+          Additional lines to append to <literal>config.php</literal>.
+        '';
+      };
     };
   };
 
+  imports = [
+    (mkRemovedOptionModule ["services" "tt-rss" "checkForUpdates"] ''
+      This option was removed because setting this to true will cause TT-RSS
+      to be unable to start if an automatic update of the code in
+      services.tt-rss.root leads to a database schema upgrade that is not
+      supported by the code active in the Nix store.
+    '')
+  ];
 
   ###### implementation
 
   config = mkIf cfg.enable {
 
-    services.phpfpm.poolConfigs = mkIf (cfg.pool == "${poolName}") {
-      "${poolName}" = ''
-        listen = "${phpfpmSocketName}";
-        listen.owner = nginx
-        listen.group = nginx
-        listen.mode = 0600
-        user = ${cfg.user}
-        pm = dynamic
-        pm.max_children = 75
-        pm.start_servers = 10
-        pm.min_spare_servers = 5
-        pm.max_spare_servers = 20
-        pm.max_requests = 500
-        catch_workers_output = 1
-      '';
-    };
+    assertions = [
+      {
+        assertion = cfg.database.password != null -> cfg.database.passwordFile == null;
+        message = "Cannot set both password and passwordFile";
+      }
+    ];
 
-    services.nginx.virtualHosts = mkIf (cfg.virtualHost != null) {
-      "${cfg.virtualHost}" = {
-        root = "${cfg.root}";
-
-        locations."/" = {
-          index = "index.php";
-        };
-
-        locations."~ \.php$" = {
-          extraConfig = ''
-            fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            fastcgi_pass unix:${phpfpmSocketName};
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME ${cfg.root}/$fastcgi_script_name;
-          '';
+    services.phpfpm.pools = mkIf (cfg.pool == "${poolName}") {
+      ${poolName} = {
+        inherit (cfg) user;
+        settings = mapAttrs (name: mkDefault) {
+          "listen.owner" = "nginx";
+          "listen.group" = "nginx";
+          "listen.mode" = "0600";
+          "pm" = "dynamic";
+          "pm.max_children" = 75;
+          "pm.start_servers" = 10;
+          "pm.min_spare_servers" = 5;
+          "pm.max_spare_servers" = 20;
+          "pm.max_requests" = 500;
+          "catch_workers_output" = 1;
         };
       };
     };
 
+    # NOTE: No configuration is done if not using virtual host
+    services.nginx = mkIf (cfg.virtualHost != null) {
+      enable = true;
+      virtualHosts = {
+        ${cfg.virtualHost} = {
+          root = "${cfg.root}";
 
-    systemd.services.tt-rss = let
-      dbService = if cfg.database.type == "pgsql" then "postgresql.service" else "mysql.service";
-    in {
+          locations."/" = {
+            index = "index.php";
+          };
+
+          locations."~ \\.php$" = {
+            extraConfig = ''
+              fastcgi_split_path_info ^(.+\.php)(/.+)$;
+              fastcgi_pass unix:${config.services.phpfpm.pools.${cfg.pool}.socket};
+              fastcgi_index index.php;
+            '';
+          };
+        };
+      };
+    };
+
+    systemd.tmpfiles.rules = [
+      "d '${cfg.root}' 0755 ${cfg.user} tt_rss - -"
+      "Z '${cfg.root}' 0755 ${cfg.user} tt_rss - -"
+    ];
+
+    systemd.services.tt-rss =
+      {
 
         description = "Tiny Tiny RSS feeds update daemon";
 
@@ -496,14 +573,15 @@ let
           callSql = e:
               if cfg.database.type == "pgsql" then ''
                   ${optionalString (cfg.database.password != null) "PGPASSWORD=${cfg.database.password}"} \
-                  ${pkgs.postgresql95}/bin/psql \
+                  ${optionalString (cfg.database.passwordFile != null) "PGPASSWORD=$(cat ${cfg.database.passwordFile})"} \
+                  ${config.services.postgresql.package}/bin/psql \
                     -U ${cfg.database.user} \
                     ${optionalString (cfg.database.host != null) "-h ${cfg.database.host} --port ${toString dbPort}"} \
                     -c '${e}' \
                     ${cfg.database.name}''
 
               else if cfg.database.type == "mysql" then ''
-                  echo '${e}' | ${pkgs.mysql}/bin/mysql \
+                  echo '${e}' | ${config.services.mysql.package}/bin/mysql \
                     -u ${cfg.database.user} \
                     ${optionalString (cfg.database.password != null) "-p${cfg.database.password}"} \
                     ${optionalString (cfg.database.host != null) "-h ${cfg.database.host} -P ${toString dbPort}"} \
@@ -513,10 +591,18 @@ let
 
         in ''
           rm -rf "${cfg.root}/*"
-          mkdir -m 755 -p "${cfg.root}"
           cp -r "${pkgs.tt-rss}/"* "${cfg.root}"
+          ${optionalString (cfg.pluginPackages != []) ''
+            for plugin in ${concatStringsSep " " cfg.pluginPackages}; do
+              cp -r "$plugin"/* "${cfg.root}/plugins.local/"
+            done
+          ''}
+          ${optionalString (cfg.themePackages != []) ''
+            for theme in ${concatStringsSep " " cfg.themePackages}; do
+              cp -r "$theme"/* "${cfg.root}/themes.local/"
+            done
+          ''}
           ln -sf "${tt-rss-config}" "${cfg.root}/config.php"
-          chown -R "${cfg.user}" "${cfg.root}"
           chmod -R 755 "${cfg.root}"
         ''
 
@@ -544,15 +630,47 @@ let
 
         serviceConfig = {
           User = "${cfg.user}";
+          Group = "tt_rss";
           ExecStart = "${pkgs.php}/bin/php ${cfg.root}/update.php --daemon";
           StandardOutput = "syslog";
           StandardError = "syslog";
-          PermissionsStartOnly = true;
         };
 
         wantedBy = [ "multi-user.target" ];
-        requires = ["${dbService}"];
-        after = ["network.target" "${dbService}"];
+        requires = optional mysqlLocal "mysql.service" ++ optional pgsqlLocal "postgresql.service";
+        after = [ "network.target" ] ++ optional mysqlLocal "mysql.service" ++ optional pgsqlLocal "postgresql.service";
     };
+
+    services.mysql = mkIf mysqlLocal {
+      enable = true;
+      package = mkDefault pkgs.mysql;
+      ensureDatabases = [ cfg.database.name ];
+      ensureUsers = [
+        {
+          name = cfg.user;
+          ensurePermissions = {
+            "${cfg.database.name}.*" = "ALL PRIVILEGES";
+          };
+        }
+      ];
+    };
+
+    services.postgresql = mkIf pgsqlLocal {
+      enable = mkDefault true;
+      ensureDatabases = [ cfg.database.name ];
+      ensureUsers = [
+        { name = cfg.user;
+          ensurePermissions = { "DATABASE ${cfg.database.name}" = "ALL PRIVILEGES"; };
+        }
+      ];
+    };
+
+    users.users.tt_rss = optionalAttrs (cfg.user == "tt_rss") {
+      description = "tt-rss service user";
+      isSystemUser = true;
+      group = "tt_rss";
+    };
+
+    users.groups.tt_rss = {};
   };
 }

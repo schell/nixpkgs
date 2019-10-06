@@ -1,14 +1,14 @@
-{ stdenv, fetchFromGitHub, jdk, ant, python2, python2Packages, watchman, unzip, bash, makeWrapper }:
+{ stdenv, fetchFromGitHub, jdk, ant, python2, python2Packages, watchman, bash, makeWrapper }:
 
 stdenv.mkDerivation rec {
-  name = "buck-${version}";
-  version = "v2017.05.31.01";
+  pname = "buck";
+  version = "2019.09.12.01";
 
   src = fetchFromGitHub {
     owner = "facebook";
-    repo = "buck";
-    rev = "0b8b3828a11afa79dc128832cb55b106f07e48aa";
-    sha256 = "1g3yg8qq91cdhsq7zmir7wxw3767l120f5zhq969gppdw9apqy0s";
+    repo = pname;
+    rev = "v${version}";
+    sha256 = "02rid0r0swxa6n6hl89lcll7hgxn1wjh2kjzxcj4arm7d34243bw";
   };
 
   patches = [ ./pex-mtime.patch ];
@@ -20,29 +20,23 @@ stdenv.mkDerivation rec {
   buildInputs = [ jdk ant python2 watchman python2Packages.pywatchman ];
   nativeBuildInputs = [ makeWrapper ];
 
-  targets = [ "buck" "buckd" ];
-
   buildPhase = ''
     ant
 
-    for exe in ${toString targets}; do
-      ./bin/buck build //programs:$exe
-    done
+    PYTHONDONTWRITEBYTECODE=true ./bin/buck build -c buck.release_version=${version} buck
   '';
 
   installPhase = ''
-    for exe in ${toString targets}; do
-      install -D -m755 buck-out/gen/programs/$exe.pex $out/bin/$exe
-      wrapProgram $out/bin/$exe \
-        --prefix PYTHONPATH : $PYTHONPATH \
-        --prefix PATH : "${stdenv.lib.makeBinPath [jdk watchman]}"
-    done
+    install -D -m755 buck-out/gen/programs/buck.pex $out/bin/buck
+    wrapProgram $out/bin/buck \
+      --prefix PYTHONPATH : $PYTHONPATH \
+      --prefix PATH : "${stdenv.lib.makeBinPath [jdk watchman]}"
   '';
 
   meta = with stdenv.lib; {
-    homepage = https://buckbuild.com/;
+    homepage = "https://buck.build/";
     description = "A high-performance build tool";
-    maintainers = [ maintainers.jgertm ];
+    maintainers = [ maintainers.jgertm maintainers.marsam ];
     license = licenses.asl20;
     platforms = platforms.all;
   };

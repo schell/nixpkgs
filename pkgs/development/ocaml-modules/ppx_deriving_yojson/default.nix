@@ -1,32 +1,30 @@
-{ stdenv, fetchFromGitHub, ocaml, findlib, ocamlbuild, opam, topkg, cppo
-, ppx_import, ppx_deriving, yojson, ounit
+{ lib, buildDunePackage, fetchFromGitHub, ppxfind, ounit
+, ppx_deriving, yojson
 }:
 
-stdenv.mkDerivation rec {
-  name = "ocaml${ocaml.version}-ppx_deriving_yojson-${version}";
-  version = "3.0";
+buildDunePackage rec {
+  pname = "ppx_deriving_yojson";
+  version = "3.5.1";
+
+  minimumOCamlVersion = "4.04";
 
   src = fetchFromGitHub {
-    owner = "whitequark";
+    owner = "ocaml-ppx";
     repo = "ppx_deriving_yojson";
     rev = "v${version}";
-    sha256 = "1id1a29qq0ax9qp98b5hv6p2q2r0vp4fbkkwzm1bxdhnasw97msk";
+    sha256 = "13nscby635vab9jf5pl1wgmdmqw192nf2r26m3gr01hp3bpn38zh";
   };
 
-  buildInputs = [ ocaml findlib ocamlbuild opam cppo ounit ppx_import ];
+  buildInputs = [ ppxfind ounit ];
 
   propagatedBuildInputs = [ ppx_deriving yojson ];
 
-  inherit (topkg) installPhase;
-
   doCheck = true;
-  checkTarget = "test";
 
   meta = {
-    description = "A Yojson codec generator for OCaml >= 4.02.";
+    description = "A Yojson codec generator for OCaml >= 4.04";
     inherit (src.meta) homepage;
-    license = stdenv.lib.licenses.mit;
-    maintainers = [ stdenv.lib.maintainers.vbgl ];
-    inherit (ocaml.meta) platforms;
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.vbgl ];
   };
 }

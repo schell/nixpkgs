@@ -1,13 +1,12 @@
 { stdenv, fetchurl, python2Packages }:
 
 python2Packages.buildPythonApplication rec {
-  version = "4.54.0";
-  name = "getmail-${version}";
-  namePrefix = "";
+  pname = "getmail";
+  version = "5.14";
 
   src = fetchurl {
-    url = "http://pyropus.ca/software/getmail/old-versions/${name}.tar.gz";
-    sha256 = "0r9s91zrdm6xklnj1fwzz74cxhkbmrgrrp86n62qgijkafa5fmnl";
+    url = "http://pyropus.ca/software/getmail/old-versions/${pname}-${version}.tar.gz";
+    sha256 = "1hcrd9h4g12f5gvl1djsbchcjry02ghq4icdr897s8v48pkrzagk";
   };
 
   doCheck = false;
@@ -23,8 +22,9 @@ python2Packages.buildPythonApplication rec {
     maintainers = [ stdenv.lib.maintainers.raskin stdenv.lib.maintainers.domenkozar ];
     platforms = stdenv.lib.platforms.linux;
 
-    homepage = "http://pyropus.ca/software/getmail/";
+    homepage = http://pyropus.ca/software/getmail/;
     inherit version;
     updateWalker = true;
+    license = stdenv.lib.licenses.gpl2Plus;
   };
 }

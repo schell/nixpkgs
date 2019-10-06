@@ -1,32 +1,30 @@
 { stdenv, fetchurl, which, coq, ssreflect }:
 
 let param =
-  let
-  v2_1_1 = {
-    version = "2.1.1";
-    url = https://gforge.inria.fr/frs/download.php/file/35429/coquelicot-2.1.1.tar.gz;
-    sha256 = "1wxds73h26q03r2xiw8shplh97rsbim2i2s0r7af0fa490bp44km";
-  };
-  v2_1_2 = {
-    version = "2.1.2";
-    url = https://gforge.inria.fr/frs/download.php/file/36320/coquelicot-2.1.2.tar.gz;
-    sha256 = "09q9xbzyndx8i68hn3ir4pmzgqd1q33qpk3xghf2l849g8w3q5an";
-  };
-  in {
-  "8.4" = v2_1_1;
-  "8.5" = v2_1_2;
-  "8.6" = v2_1_2;
-}."${coq.coq-version}"; in
+  if stdenv.lib.versionAtLeast coq.coq-version "8.8"
+  then {
+    version = "3.0.3";
+    uid = "38105";
+    sha256 = "0y52lqx1jphv6fwf0d702vzprxmfmxggnh1hy3fznxyl4isfpg4j";
+  } else {
+    version = "3.0.2";
+    uid = "37523";
+    sha256 = "1biia7nfqf7vaqq5gmykl4rwjyvrcwss6r2jdf0in5pvp2rnrj2w";
+  }
+; in
 
 stdenv.mkDerivation {
   name = "coq${coq.coq-version}-coquelicot-${param.version}";
-  src = fetchurl { inherit (param) url sha256; };
+  src = fetchurl {
+    url = "https://gforge.inria.fr/frs/download.php/file/${param.uid}/coquelicot-${param.version}.tar.gz";
+    inherit (param) sha256;
+  };
 
   nativeBuildInputs = [ which ];
   buildInputs = [ coq ];
   propagatedBuildInputs = [ ssreflect ];
 
-  configureFlags = "--libdir=$out/lib/coq/${coq.coq-version}/user-contrib/Coquelicot";
+  configureFlags = [ "--libdir=$out/lib/coq/${coq.coq-version}/user-contrib/Coquelicot" ];
   buildPhase = "./remake";
   installPhase = "./remake install";
 
@@ -37,4 +35,9 @@ stdenv.mkDerivation {
     maintainers = [ stdenv.lib.maintainers.vbgl ];
     inherit (coq.meta) platforms;
   };
+
+  passthru = {
+    compatibleCoqVersions = v: builtins.elem v [ "8.5" "8.6" "8.7" "8.8" "8.9" "8.10" ];
+  };
+
 }

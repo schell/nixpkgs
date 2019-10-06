@@ -1,21 +1,32 @@
-{ stdenv, fetchurl, readline, ncurses }:
+{ stdenv, fetchFromGitHub, readline, ncurses
+, autoreconfHook, pkgconfig, gettext }:
 
-let
-  version = "1.22";
-in
 stdenv.mkDerivation rec {
+  pname = "hstr";
+  version = "2.0";
 
-  name = "hstr-${version}";
-
-  src = fetchurl {
-    url = "https://github.com/dvorka/hstr/releases/download/${version}/hh-${version}-src.tgz";
-    sha256 = "09rh510x8qc5jbpnfzazbv9wc3bqmf5asydcl2wijpqm5bi21iqp";
+  src = fetchFromGitHub {
+    owner  = "dvorka";
+    repo   = "hstr";
+    rev    = version;
+    sha256 = "1y9vsfbg07gbic0daqy569d9pb9i1d07fym3q7a0a99hbng85s20";
   };
 
-  buildInputs = [ readline ncurses ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ readline ncurses gettext ];
+
+  configurePhase = ''
+    autoreconf -fvi
+    ./configure
+  '';
+
+  installPhase = ''
+    mkdir -p $out/bin/
+    mv src/hstr $out/bin/
+  '';
 
   meta = {
-    homepage = "https://github.com/dvorka/hstr";
+    homepage = https://github.com/dvorka/hstr;
     description = "Shell history suggest box - easily view, navigate, search and use your command history";
     license = stdenv.lib.licenses.asl20;
     maintainers = [ stdenv.lib.maintainers.matthiasbeyer ];

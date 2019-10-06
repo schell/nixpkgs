@@ -5,41 +5,35 @@ with lib;
 let
   cfg = config.services.elasticsearch;
 
-  es5 = builtins.compareVersions (builtins.parseDrvName cfg.package.name).version "5" >= 0;
+  es6 = builtins.compareVersions cfg.package.version "6" >= 0;
 
   esConfig = ''
     network.host: ${cfg.listenAddress}
     cluster.name: ${cfg.cluster_name}
 
-    ${if es5 then ''
-      http.port: ${toString cfg.port}
-      transport.tcp.port: ${toString cfg.tcp_port}
-    '' else ''
-      network.port: ${toString cfg.port}
-      network.tcp.port: ${toString cfg.tcp_port}
-      # TODO: find a way to enable security manager
-      security.manager.enabled: false
-    ''}
+    http.port: ${toString cfg.port}
+    transport.tcp.port: ${toString cfg.tcp_port}
 
     ${cfg.extraConf}
   '';
 
-  configDir = pkgs.buildEnv {
-    name = "elasticsearch-config";
-    paths = [
-      (pkgs.writeTextDir "elasticsearch.yml" esConfig)
-      (if es5 then (pkgs.writeTextDir "log4j2.properties" cfg.logging)
-              else (pkgs.writeTextDir "logging.yml" cfg.logging))
-    ];
-    # Elasticsearch 5.x won't start when the scripts directory does not exist
-    postBuild = if es5 then "${pkgs.coreutils}/bin/mkdir -p $out/scripts" else "";
+  configDir = cfg.dataDir + "/config";
+
+  elasticsearchYml = pkgs.writeTextFile {
+    name = "elasticsearch.yml";
+    text = esConfig;
+  };
+
+  loggingConfigFilename = "log4j2.properties";
+  loggingConfigFile = pkgs.writeTextFile {
+    name = loggingConfigFilename;
+    text = cfg.logging;
   };
 
   esPlugins = pkgs.buildEnv {
     name = "elasticsearch-plugins";
     paths = cfg.plugins;
-    # Elasticsearch 5.x won't start when the plugins directory does not exist
-    postBuild = if es5 then "${pkgs.coreutils}/bin/mkdir -p $out/plugins" else "";
+    postBuild = "${pkgs.coreutils}/bin/mkdir -p $out/plugins";
   };
 
 in {
@@ -55,8 +49,8 @@ in {
 
     package = mkOption {
       description = "Elasticsearch package to use.";
-      default = pkgs.elasticsearch2;
-      defaultText = "pkgs.elasticsearch2";
+      default = pkgs.elasticsearch;
+      defaultText = "pkgs.elasticsearch";
       type = types.package;
     };
 
@@ -92,37 +86,23 @@ in {
         node.name: "elasticsearch"
         node.master: true
         node.data: false
-        index.number_of_shards: 5
-        index.number_of_replicas: 1
       '';
     };
 
     logging = mkOption {
       description = "Elasticsearch logging configuration.";
-      default =
-        if es5 then ''
-          logger.action.name = org.elasticsearch.action
-          logger.action.level = info
+      default = ''
+        logger.action.name = org.elasticsearch.action
+        logger.action.level = info
 
-          appender.console.type = Console
-          appender.console.name = console
-          appender.console.layout.type = PatternLayout
-          appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] %marker%m%n
+        appender.console.type = Console
+        appender.console.name = console
+        appender.console.layout.type = PatternLayout
+        appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] %marker%m%n
 
-          rootLogger.level = info
-          rootLogger.appenderRef.console.ref = console
-        '' else ''
-          rootLogger: INFO, console
-          logger:
-            action: INFO
-            com.amazonaws: WARN
-          appender:
-            console:
-              type: console
-              layout:
-                type: consolePattern
-                conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
-        '';
+        rootLogger.level = info
+        rootLogger.appenderRef.console.ref = console
+      '';
       type = types.str;
     };
 
@@ -151,6 +131,7 @@ in {
       description = "Extra elasticsearch plugins";
       default = [];
       type = types.listOf types.package;
+      example = lib.literalExample "[ pkgs.elasticsearchPlugins.discovery-ec2 ]";
     };
 
   };
@@ -165,7 +146,10 @@ in {
       path = [ pkgs.inetutils ];
       environment = {
         ES_HOME = cfg.dataDir;
-        ES_JAVA_OPTS = toString ([ "-Des.path.conf=${configDir}" ] ++ cfg.extraJavaOptions);
+        ES_JAVA_OPTS = toString ( optional (!es6) [ "-Des.path.conf=${configDir}" ]
+                                  ++ cfg.extraJavaOptions);
+      } // optionalAttrs es6 {
+        ES_PATH_CONF = configDir;
       };
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/elasticsearch ${toString cfg.extraCmdLineOptions}";
@@ -174,11 +158,13 @@ in {
         LimitNOFILE = "1024000";
       };
       preStart = ''
-        # Only set vm.max_map_count if lower than ES required minimum
-        # This avoids conflict if configured via boot.kernel.sysctl
-        if [ `${pkgs.procps}/bin/sysctl -n vm.max_map_count` -lt 262144 ]; then
-          ${pkgs.procps}/bin/sysctl -w vm.max_map_count=262144
-        fi
+        ${optionalString (!config.boot.isContainer) ''
+          # Only set vm.max_map_count if lower than ES required minimum
+          # This avoids conflict if configured via boot.kernel.sysctl
+          if [ `${pkgs.procps}/bin/sysctl -n vm.max_map_count` -lt 262144 ]; then
+            ${pkgs.procps}/bin/sysctl -w vm.max_map_count=262144
+          fi
+        ''}
 
         mkdir -m 0700 -p ${cfg.dataDir}
 
@@ -186,7 +172,24 @@ in {
         ln -sfT ${esPlugins}/plugins ${cfg.dataDir}/plugins
         ln -sfT ${cfg.package}/lib ${cfg.dataDir}/lib
         ln -sfT ${cfg.package}/modules ${cfg.dataDir}/modules
-        if [ "$(id -u)" = 0 ]; then chown -R elasticsearch ${cfg.dataDir}; fi
+
+        # elasticsearch needs to create the elasticsearch.keystore in the config directory
+        # so this directory needs to be writable.
+        mkdir -m 0700 -p ${configDir}
+
+        # Note that we copy config files from the nix store instead of symbolically linking them
+        # because otherwise X-Pack Security will raise the following exception:
+        # java.security.AccessControlException:
+        # access denied ("java.io.FilePermission" "/var/lib/elasticsearch/config/elasticsearch.yml" "read")
+
+        cp ${elasticsearchYml} ${configDir}/elasticsearch.yml
+        # Make sure the logging configuration for old elasticsearch versions is removed:
+        rm -f "${configDir}/logging.yml"
+        cp ${loggingConfigFile} ${configDir}/${loggingConfigFilename}
+        mkdir -p ${configDir}/scripts
+        ${optionalString es6 "cp ${cfg.package}/config/jvm.options ${configDir}/jvm.options"}
+
+        if [ "$(id -u)" = 0 ]; then chown -R elasticsearch:elasticsearch ${cfg.dataDir}; fi
       '';
     };
 

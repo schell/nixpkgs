@@ -1,12 +1,12 @@
 { stdenv, fetchurl, pkgconfig, libtool, perl }:
 
 stdenv.mkDerivation rec {
-  name = "ace-${version}";
-  version = "6.4.2";
+  pname = "ace";
+  version = "6.5.6";
 
   src = fetchurl {
     url = "http://download.dre.vanderbilt.edu/previous_versions/ACE-${version}.tar.bz2";
-    sha256 = "0dscvlgxy0fwma63azjkdbc85mh8k751ik67s88w6w75j0psld73";
+    sha256 = "15lfjc8r854hvjfvimhnqc3987b3cdngilhkii9rwpzginbyipi4";
   };
 
   enableParallelBuilding = true;
@@ -16,7 +16,7 @@ stdenv.mkDerivation rec {
 
   patchPhase = ''substituteInPlace ./MPC/prj_install.pl \
     --replace /usr/bin/perl "${perl}/bin/perl"'';
-  
+
   preConfigure = ''
     export INSTALL_PREFIX=$out
     export ACE_ROOT=$(pwd)

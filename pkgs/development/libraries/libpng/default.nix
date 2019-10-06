@@ -3,22 +3,20 @@
 assert zlib != null;
 
 let
-  version = "1.6.29";
-  patchVersion = "1.6.26";
-  # patchVersion = version;
-  sha256 = "0fgjqp7x6jynacmqh6dj72cn6nnf6yxjfqqqfsxrx0pyx22bcia2";
+  patchVersion = "1.6.37";
   patch_src = fetchurl {
     url = "mirror://sourceforge/libpng-apng/libpng-${patchVersion}-apng.patch.gz";
-    sha256 = "0b6p2k4afvhk1svargpllcvhxb4g3p857wkqk85cks0yv42ckph1";
+    sha256 = "1dh0250mw9b2hx7cdmnb2blk7ddl49n6vx8zz7jdmiwxy38v4fw2";
   };
   whenPatched = stdenv.lib.optionalString apngSupport;
 
 in stdenv.mkDerivation rec {
   name = "libpng" + whenPatched "-apng" + "-${version}";
+  version = "1.6.37";
 
   src = fetchurl {
     url = "mirror://sourceforge/libpng/libpng-${version}.tar.xz";
-    inherit sha256;
+    sha256 = "1jl8in381z0128vgxnvn33nln6hzckl7l7j9nqvkaf1m9n1p0pjh";
   };
   postPatch = whenPatched "gunzip < ${patch_src} | patch -Np1";
 
@@ -27,16 +25,14 @@ in stdenv.mkDerivation rec {
 
   propagatedBuildInputs = [ zlib ];
 
-  # it's hard to cross-run tests and some check programs didn't compile anyway
-  makeFlags = stdenv.lib.optional (!doCheck) "check_PROGRAMS=";
-  doCheck = ! stdenv ? cross;
+  doCheck = true;
 
   passthru = { inherit zlib; };
 
   meta = with stdenv.lib; {
     description = "The official reference implementation for the PNG file format" + whenPatched " with animation patch";
     homepage = http://www.libpng.org/pub/png/libpng.html;
-    license = licenses.libpng;
+    license = licenses.libpng2;
     platforms = platforms.all;
     maintainers = [ maintainers.vcunat maintainers.fuuzetsu ];
   };

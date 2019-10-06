@@ -1,23 +1,24 @@
 { lib
 , fetchurl
 , buildPythonPackage
-, git
-, mercurial
-, bazaar
 , psutil
 , pygit2
 }:
 
+# The source of this package needs to be patched to include the full path to
+# the executables of git, mercurial and bazaar.
+
 buildPythonPackage rec {
-  rev  = "2.6";
-  name = "powerline-${rev}";
+  version  = "2.7";
+  pname = "powerline";
+
   src = fetchurl {
-    url    = "https://github.com/powerline/powerline/archive/${rev}.tar.gz";
-    name   = "${name}.tar.gz";
-    sha256 = "c108f11fe10dc910febb94b87d3abded85d4363fb950366a9e30282b9ba7c272";
+    url    = "https://github.com/powerline/powerline/archive/${version}.tar.gz";
+    name   = "${pname}-${version}.tar.gz";
+    sha256 = "1h1j2rfphvfdq6mmfyn5bql45hzrwxkhpc2jcwf0vrl3slzkl5s5";
   };
 
-  propagatedBuildInputs = [ git mercurial bazaar psutil pygit2];
+  propagatedBuildInputs = [ psutil pygit2];
 
 # error: This is still beta and some tests still fail
   doCheck = false;

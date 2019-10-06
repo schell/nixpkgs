@@ -1,20 +1,45 @@
-{ stdenv, fetchFromGitHub, cmake, bison }:
+{ stdenv, fetchFromGitHub
+, bison
+, cmake
+, jq
+, python3
+, spirv-headers
+, spirv-tools
+}:
 
 stdenv.mkDerivation rec {
-  name = "glslang-git-${version}";
-  version = "2017-03-29";
+  pname = "glslang";
+  version = "7.11.3214";
 
-  # `vulkan-loader` requires a specific version of `glslang` as specified in
-  # `<vulkan-loader-repo>/external_revisions/glslang_revision`.
   src = fetchFromGitHub {
     owner = "KhronosGroup";
     repo = "glslang";
-    rev = "714e58b2fc5a45714596e6aa2f6ac8f64260365c";
-    sha256 = "0ihnd0c4mr6ppbv9g7z1abrn8vx66simfzx5q48nqcpnywn35jxv";
+    rev = version;
+    sha256 = "0dqjga0lcza006fhac26zp2plbq4gx8a6nsmrwkqlzji6lw1jins";
   };
 
-  buildInputs = [ cmake bison ];
+  # These get set at all-packages, keep onto them for child drvs
+  passthru = {
+    inherit spirv-tools spirv-headers;
+  };
+
+  nativeBuildInputs = [ cmake python3 bison jq ];
   enableParallelBuilding = true;
+
+  postPatch = ''
+    cp --no-preserve=mode -r "${spirv-tools.src}" External/spirv-tools
+    ln -s "${spirv-headers.src}" External/spirv-tools/external/spirv-headers
+  '';
+
+  # Ensure spirv-headers and spirv-tools match exactly to what is expected
+  preConfigure = ''
+    HEADERS_COMMIT=$(jq -r < known_good.json '.commits|map(select(.name=="spirv-tools/external/spirv-headers"))[0].commit')
+    TOOLS_COMMIT=$(jq -r < known_good.json '.commits|map(select(.name=="spirv-tools"))[0].commit')
+    if [ "$HEADERS_COMMIT" != "${spirv-headers.src.rev}" ] || [ "$TOOLS_COMMIT" != "${spirv-tools.src.rev}" ]; then
+      echo "ERROR: spirv-tools commits do not match expected versions: expected tools at $TOOLS_COMMIT, headers at $HEADERS_COMMIT";
+      exit 1;
+    fi
+  '';
 
   meta = with stdenv.lib; {
     inherit (src.meta) homepage;

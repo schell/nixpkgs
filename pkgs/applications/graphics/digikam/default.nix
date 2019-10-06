@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, cmake, extra-cmake-modules, makeQtWrapper
+{ mkDerivation, lib, fetchFromGitHub, cmake, doxygen, extra-cmake-modules, wrapGAppsHook
 
 # For `digitaglinktree`
 , perl, sqlite
@@ -6,8 +6,10 @@
 , qtbase
 , qtxmlpatterns
 , qtsvg
-, qtwebkit
+, qtwebengine
 
+, akonadi-contacts
+, kcalcore
 , kconfigwidgets
 , kcoreaddons
 , kdoctools
@@ -22,18 +24,22 @@
 , boost
 , eigen
 , exiv2
+, ffmpeg
 , flex
 , jasper
 , lcms2
 , lensfun
 , libgphoto2
 , libkipi
+, libksane
 , liblqr1
 , libqtav
 , libusb1
 , marble
-, mysql
-, opencv
+, libGL
+, libGLU
+, opencv3
+, pcre
 , threadweaver
 
 # For panorama and focus stacking
@@ -44,28 +50,49 @@
 , oxygen
 }:
 
-stdenv.mkDerivation rec {
-  name    = "digikam-${version}";
-  version = "5.4.0";
+mkDerivation rec {
+  pname   = "digikam";
+  version = "6.2.0";
 
-  src = fetchurl {
-    url = "http://download.kde.org/stable/digikam/${name}.tar.xz";
-    sha256 = "0dgsgji14l5zvxny36hrfsp889fsfrsbbn9bg57m18404xp903kg";
+  src = fetchFromGitHub {
+    owner  = "KDE";
+    repo   = "digikam";
+    rev    = "v${version}";
+    sha256 = "1l1nb1nwicmip2jxhn5gzr7h60igvns0zs3kzp36r6qf4wvg3v2z";
   };
 
-  nativeBuildInputs = [ cmake extra-cmake-modules makeQtWrapper ];
-
-  patches = [ ./0001-Disable-fno-operator-names.patch ];
+  nativeBuildInputs = [ cmake doxygen extra-cmake-modules kdoctools wrapGAppsHook ];
 
   buildInputs = [
+    bison
+    boost
+    eigen
+    exiv2
+    ffmpeg
+    flex
+    jasper
+    lcms2
+    lensfun
+    libgphoto2
+    libkipi
+    libksane
+    liblqr1
+    libqtav
+    libusb1
+    libGL
+    libGLU
+    opencv3
+    pcre
+
     qtbase
     qtxmlpatterns
     qtsvg
-    qtwebkit
+    qtwebengine
 
+    akonadi-contacts
+    kcalcore
     kconfigwidgets
     kcoreaddons
-    kdoctools
     kfilemetadata
     knotifications
     knotifyconfig
@@ -73,53 +100,33 @@ stdenv.mkDerivation rec {
     kwidgetsaddons
     kxmlgui
 
-    bison
-    boost
-    eigen
-    exiv2
-    flex
-    jasper
-    lcms2
-    lensfun
-    libgphoto2
-    libkipi
-    liblqr1
-    libqtav
-    libusb1
-    marble.unwrapped
-    mysql
-    opencv
-    threadweaver
-
+    marble
     oxygen
+    threadweaver
   ];
 
   enableParallelBuilding = true;
 
   cmakeFlags = [
-    "-DLIBUSB_LIBRARIES=${libusb1.out}/lib"
-    "-DLIBUSB_INCLUDE_DIR=${libusb1.dev}/include/libusb-1.0"
     "-DENABLE_MYSQLSUPPORT=1"
     "-DENABLE_INTERNALMYSQL=1"
     "-DENABLE_MEDIAPLAYER=1"
+    "-DENABLE_QWEBENGINE=on"
   ];
 
-  fixupPhase = ''
+  preFixup = ''
+    gappsWrapperArgs+=(--prefix PATH : ${lib.makeBinPath [ gnumake hugin enblend-enfuse ]})
+    gappsWrapperArgs+=(--suffix DK_PLUGIN_PATH : ${placeholder "out"}/${qtbase.qtPluginPrefix}/${pname})
     substituteInPlace $out/bin/digitaglinktree \
       --replace "/usr/bin/perl" "${perl}/bin/perl" \
       --replace "/usr/bin/sqlite3" "${sqlite}/bin/sqlite3"
-
-    wrapQtProgram $out/bin/digikam \
-      --prefix PATH : "${gnumake}/bin:${hugin}/bin:${enblend-enfuse}/bin"
-
-    wrapQtProgram $out/bin/showfoto
   '';
 
-  meta = {
+  meta = with lib; {
     description = "Photo Management Program";
-    license = stdenv.lib.licenses.gpl2;
-    homepage = http://www.digikam.org;
-    maintainers = with stdenv.lib.maintainers; [ the-kenny ];
-    platforms = stdenv.lib.platforms.linux;
+    license = licenses.gpl2;
+    homepage = https://www.digikam.org;
+    maintainers = with maintainers; [ the-kenny ];
+    platforms = platforms.linux;
   };
 }

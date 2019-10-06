@@ -1,7 +1,7 @@
 { stdenv, fetchurl, libelf, txt2man }:
 
-stdenv.mkDerivation rec {
-  name = "bin_replace_string-${version}";
+stdenv.mkDerivation {
+  pname = "bin_replace_string";
   version = "0.2";
 
   src = fetchurl {
@@ -27,6 +27,5 @@ stdenv.mkDerivation rec {
     downloadPage = ftp://ohnopub.net/mirror/;
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

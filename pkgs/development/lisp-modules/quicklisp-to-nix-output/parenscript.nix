@@ -1,34 +1,28 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''parenscript'';
-  version = ''Parenscript-2.6'';
+  version = ''Parenscript-2.7.1'';
 
   description = ''Lisp to JavaScript transpiler'';
 
-  deps = [ args."named-readtables" args."cl-ppcre" args."anaphora" ];
+  deps = [ args."anaphora" args."cl-ppcre" args."named-readtables" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/parenscript/2016-03-18/Parenscript-2.6.tgz'';
-    sha256 = ''1hvr407fz7gzaxqbnki4k3l44qvl7vk6p5pn7811nrv6lk3kp5li'';
+    url = ''http://beta.quicklisp.org/archive/parenscript/2018-12-10/Parenscript-2.7.1.tgz'';
+    sha256 = ''1vbldjzj9py8vqyk0f3rb795cjai0h7p858dflm4l8p0kp4mll6f'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/parenscript[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "parenscript";
+
+  asdFilesToKeep = ["parenscript.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM parenscript DESCRIPTION Lisp to JavaScript transpiler SHA256 1hvr407fz7gzaxqbnki4k3l44qvl7vk6p5pn7811nrv6lk3kp5li URL
-    http://beta.quicklisp.org/archive/parenscript/2016-03-18/Parenscript-2.6.tgz MD5 dadecc13f2918bc618fb143e893deb99 NAME parenscript TESTNAME NIL FILENAME
-    parenscript DEPS ((NAME named-readtables) (NAME cl-ppcre) (NAME anaphora)) DEPENDENCIES (named-readtables cl-ppcre anaphora) VERSION Parenscript-2.6
-    SIBLINGS (parenscript.test)) */
+/* (SYSTEM parenscript DESCRIPTION Lisp to JavaScript transpiler SHA256
+    1vbldjzj9py8vqyk0f3rb795cjai0h7p858dflm4l8p0kp4mll6f URL
+    http://beta.quicklisp.org/archive/parenscript/2018-12-10/Parenscript-2.7.1.tgz
+    MD5 047c9a72bd36f1b4a5ec67af9453a0b9 NAME parenscript FILENAME parenscript
+    DEPS
+    ((NAME anaphora FILENAME anaphora) (NAME cl-ppcre FILENAME cl-ppcre)
+     (NAME named-readtables FILENAME named-readtables))
+    DEPENDENCIES (anaphora cl-ppcre named-readtables) VERSION Parenscript-2.7.1
+    SIBLINGS (parenscript.tests) PARASITES NIL) */

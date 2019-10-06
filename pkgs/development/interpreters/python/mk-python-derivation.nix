@@ -1,19 +1,33 @@
-/* Generic builder for Python packages that come without a setup.py. */
+# Generic builder.
 
 { lib
+, config
 , python
 , wrapPython
-, setuptools
 , unzip
-, ensureNewerSourcesHook
+, ensureNewerSourcesForZipFilesHook
+# Whether the derivation provides a Python module or not.
+, toPythonModule
+, namePrefix
+, update-python-libraries
+, setuptools
+, flitBuildHook
+, pipBuildHook
+, pipInstallHook
+, pythonCatchConflictsHook
+, pythonImportsCheckHook
+, pythonRemoveBinBytecodeHook
+, setuptoolsBuildHook
+, setuptoolsCheckHook
+, wheelUnpackHook
 }:
 
-{ name
+{ name ? "${attrs.pname}-${attrs.version}"
 
-# by default prefix `name` e.g. "python3.3-${name}"
-, namePrefix ? python.libPrefix + "-"
+# Build-time dependencies for the package
+, nativeBuildInputs ? []
 
-# Dependencies for building the package
+# Run-time dependencies for the package
 , buildInputs ? []
 
 # Dependencies needed for running the checkPhase.
@@ -26,6 +40,9 @@
 
 # DEPRECATED: use propagatedBuildInputs
 , pythonPath ? []
+
+# Enabled to detect some (native)BuildInputs mistakes
+, strictDeps ? true
 
 # used to disable derivation, useful for specific python versions
 , disabled ? false
@@ -40,11 +57,32 @@
 # Skip wrapping of python programs altogether
 , dontWrapPythonPrograms ? false
 
+# Don't use Pip to install a wheel
+# Note this is actually a variable for the pipInstallPhase in pip's setupHook.
+# It's included here to prevent an infinite recursion.
+, dontUsePipInstall ? false
+
+# Skip setting the PYTHONNOUSERSITE environment variable in wrapped programs
+, permitUserSite ? false
+
+# Remove bytecode from bin folder.
+# When a Python script has the extension `.py`, bytecode is generated
+# Typically, executables in bin have no extension, so no bytecode is generated.
+# However, some packages do provide executables with extensions, and thus bytecode is generated.
+, removeBinBytecode ? true
+
+# Several package formats are supported.
+# "setuptools" : Install a common setuptools/distutils based package. This builds a wheel.
+# "wheel" : Install from a pre-compiled wheel.
+# "flit" : Install a flit package. This builds a wheel.
+# "other" : Provide your own buildPhase and installPhase.
+, format ? "setuptools"
+
 , meta ? {}
 
 , passthru ? {}
 
-, doCheck ? false
+, doCheck ? config.doCheckByDefault or false
 
 , ... } @ attrs:
 
@@ -54,44 +92,78 @@ if disabled
 then throw "${name} not supported for interpreter ${python.executable}"
 else
 
-python.stdenv.mkDerivation (builtins.removeAttrs attrs ["disabled" "checkInputs"] // {
+let
+  inherit (python) stdenv;
+
+  self = toPythonModule (stdenv.mkDerivation ((builtins.removeAttrs attrs [
+    "disabled" "checkPhase" "checkInputs" "doCheck" "doInstallCheck" "dontWrapPythonPrograms" "catchConflicts" "format"
+  ]) // {
 
   name = namePrefix + name;
 
-  inherit pythonPath;
+  nativeBuildInputs = [
+    python
+    wrapPython
+    ensureNewerSourcesForZipFilesHook  # move to wheel installer (pip) or builder (setuptools, flit, ...)?
+  ] ++ lib.optionals catchConflicts [
+    setuptools pythonCatchConflictsHook
+  ] ++ lib.optionals removeBinBytecode [
+    pythonRemoveBinBytecodeHook
+  ] ++ lib.optionals (lib.hasSuffix "zip" (attrs.src.name or "")) [
+    unzip
+  ] ++ lib.optionals (format == "setuptools") [
+    setuptoolsBuildHook
+  ] ++ lib.optionals (format == "flit") [
+    flitBuildHook
+  ] ++ lib.optionals (format == "pyproject") [
+    pipBuildHook
+  ] ++ lib.optionals (format == "wheel") [
+    wheelUnpackHook
+  ] ++ lib.optionals (!(format == "other") || dontUsePipInstall) [
+    pipInstallHook
+  ] ++ lib.optionals (stdenv.buildPlatform == stdenv.hostPlatform) [
+    # This is a test, however, it should be ran independent of the checkPhase and checkInputs
+    pythonImportsCheckHook
+  ] ++ nativeBuildInputs;
 
-  buildInputs = [ wrapPython ] ++ buildInputs ++ pythonPath
-    ++ [ (ensureNewerSourcesHook { year = "1980"; }) ]
-    ++ (lib.optional (lib.hasSuffix "zip" attrs.src.name or "") unzip)
-    ++ lib.optionals doCheck checkInputs;
+  buildInputs = buildInputs ++ pythonPath;
 
-  # propagate python/setuptools to active setup-hook in nix-shell
-  propagatedBuildInputs = propagatedBuildInputs ++ [ python setuptools ];
+  propagatedBuildInputs = propagatedBuildInputs ++ [ python ];
+
+  inherit strictDeps;
+
+  LANG = "${if python.stdenv.isDarwin then "en_US" else "C"}.UTF-8";
 
   # Python packages don't have a checkPhase, only an installCheckPhase
   doCheck = false;
-  doInstallCheck = doCheck;
+  doInstallCheck = attrs.doCheck or true;
+  installCheckInputs = [
+  ] ++ lib.optionals (format == "setuptools") [
+    # Longer-term we should get rid of this and require
+    # users of this function to set the `installCheckPhase` or
+    # pass in a hook that sets it.
+    setuptoolsCheckHook
+  ] ++ checkInputs;
 
   postFixup = lib.optionalString (!dontWrapPythonPrograms) ''
     wrapPythonPrograms
-  '' + lib.optionalString catchConflicts ''
-    # Check if we have two packages with the same name in the closure and fail.
-    # If this happens, something went wrong with the dependencies specs.
-    # Intentionally kept in a subdirectory, see catch_conflicts/README.md.
-    ${python.interpreter} ${./catch_conflicts}/catch_conflicts.py
   '' + attrs.postFixup or '''';
 
-  passthru = {
-    inherit python; # The python interpreter
-  } // passthru;
+  # Python packages built through cross-compilation are always for the host platform.
+  disallowedReferences = lib.optionals (python.stdenv.hostPlatform != python.stdenv.buildPlatform) [ python.pythonForBuild ];
 
-  meta = with lib.maintainers; {
+  meta = {
     # default to python's platforms
     platforms = python.meta.platforms;
-  } // meta // {
-    # add extra maintainer(s) to every package
-    maintainers = (meta.maintainers or []) ++ [ chaoflow ];
-    # a marker for release utilities to discover python packages
     isBuildPythonPackage = python.meta.platforms;
-  };
-})
+  } // meta;
+} // lib.optionalAttrs (attrs?checkPhase) {
+  # If given use the specified checkPhase, otherwise use the setup hook.
+  # Longer-term we should get rid of `checkPhase` and use `installCheckPhase`.
+  installCheckPhase = attrs.checkPhase;
+}));
+
+passthru.updateScript = let
+    filename = builtins.head (lib.splitString ":" self.meta.position);
+  in attrs.passthru.updateScript or [ update-python-libraries filename ];
+in lib.extendDerivation true passthru self

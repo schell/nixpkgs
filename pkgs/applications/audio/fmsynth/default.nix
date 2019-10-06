@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub, gtkmm2, lv2, lvtk, pkgconfig }:
-stdenv.mkDerivation rec {
-  name = "fmsynth-unstable-${version}";
+stdenv.mkDerivation {
+  pname = "fmsynth-unstable";
   version = "2015-02-07";
   src = fetchFromGitHub {
     owner = "Themaister";
@@ -9,7 +9,8 @@ stdenv.mkDerivation rec {
     sha256 = "1bk0bpr069hzx2508rgfbwpxiqgr7dmdkhqdywmd2i4rmibgrm1q";
   };
 
-  buildInputs = [ gtkmm2 lv2 lvtk pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ gtkmm2 lv2 lvtk ];
 
   buildPhase = ''
     cd lv2

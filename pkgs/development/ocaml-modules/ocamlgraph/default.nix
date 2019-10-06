@@ -1,12 +1,12 @@
 {stdenv, fetchurl, ocaml, findlib, lablgtk}:
 
 stdenv.mkDerivation rec {
-  name = "ocamlgraph-${version}";
-  version = "1.8.7";
+  pname = "ocamlgraph";
+  version = "1.8.8";
 
   src = fetchurl {
     url = "http://ocamlgraph.lri.fr/download/ocamlgraph-${version}.tar.gz";
-    sha256 = "1845r537swjil2fcj7lgbibc2zybfwqqasrd2s7bncajs83cl1nz";
+    sha256 = "0m9g16wrrr86gw4fz2fazrh8nkqms0n863w7ndcvrmyafgxvxsnr";
   };
 
   buildInputs = [ ocaml findlib lablgtk ];

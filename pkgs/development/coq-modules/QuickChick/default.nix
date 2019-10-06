@@ -1,30 +1,72 @@
-{stdenv, fetchgit, coq, coqPackages}:
+{ stdenv, fetchFromGitHub, coq, ssreflect, coq-ext-lib, simple-io }:
 
-let revision = "04785ee692036e7ba9f4c4e380b1995128a97bf8"; in
+let params =
+  {
+    "8.5" = {
+      version = "20170512";
+      rev = "31eb050ae5ce57ab402db9726fb7cd945a0b4d03";
+      sha256 = "033ch10i5wmqyw8j6wnr0dlbnibgfpr1vr0c07q3yj6h23xkmqpg";
+    };
 
-stdenv.mkDerivation rec {
+    "8.6" = {
+      version = "20171102";
+      rev = "0fdb769e1dc87a278383b44a9f5102cc7ccbafcf";
+      sha256 = "0fri4nih40vfb0fbr82dsi631ydkw48xszinq43lyinpknf54y17";
+    };
 
-  name = "coq-QuickChick-${coq.coq-version}-${version}";
-  version = "20170422-${builtins.substring 0 7 revision}";
+    "8.8" = {
+      version = "20190311";
+      rev = "22af9e9a223d0038f05638654422e637e863b355";
+      sha256 = "00rnr19lg6lg0haq1sy4ld38p7imzand6fc52fvfq27gblxkp2aq";
+    };
 
-  src = fetchgit {
-    url = git://github.com/QuickChick/QuickChick.git;
-    rev = revision;
-    sha256 = "1x5idk9d9r5mj1w54676a5j92wr1id7c9dmknkpmnh78rgrqzy5j";
+    "8.9" = rec {
+      version = "1.1.0";
+      rev = "v${version}";
+      sha256 = "1c34v1k37rk7v0xk2czv5n79mbjxjrm6nh3llg2mpfmdsqi68wf3";
+    };
+  };
+  param = params.${coq.coq-version};
+in
+
+let recent = stdenv.lib.versionAtLeast coq.coq-version "8.8"; in
+
+stdenv.mkDerivation {
+
+  name = "coq${coq.coq-version}-QuickChick-${param.version}";
+
+  src = fetchFromGitHub {
+    owner = "QuickChick";
+    repo = "QuickChick";
+    inherit (param) rev sha256;
   };
 
-  buildInputs = [ coq.ocaml coq.camlp5 ];
-  propagatedBuildInputs = [ coq coqPackages.ssreflect ];
+  preConfigure = stdenv.lib.optionalString recent
+    "substituteInPlace Makefile --replace quickChickTool.byte quickChickTool.native";
 
-  enableParallelBuilding = true;
+  buildInputs = [ coq ]
+  ++ (with coq.ocamlPackages; [ ocaml camlp5 findlib ])
+  ++ stdenv.lib.optionals recent
+     (with coq.ocamlPackages; [ ocamlbuild num ])
+  ;
+  propagatedBuildInputs = [ ssreflect ]
+  ++ stdenv.lib.optionals recent [ coq-ext-lib simple-io ];
 
-  installFlags = "COQLIB=$(out)/lib/coq/${coq.coq-version}/";
+  enableParallelBuilding = false;
+
+  installPhase = ''
+    make -f Makefile.coq COQLIB=$out/lib/coq/${coq.coq-version}/ install
+  '';
 
   meta = with stdenv.lib; {
-    homepage = git://github.com/QuickChick/QuickChick.git;
+    homepage = https://github.com/QuickChick/QuickChick;
     description = "Randomized property-based testing plugin for Coq; a clone of Haskell QuickCheck";
     maintainers = with maintainers; [ jwiegley ];
     platforms = coq.meta.platforms;
+  };
+
+  passthru = {
+    compatibleCoqVersions = v: builtins.hasAttr v params;
   };
 
 }

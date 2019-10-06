@@ -1,40 +1,18 @@
-{ stdenv, writeText, fetchFromGitHub, ocaml, ocamlbuild, ocplib-endian, sexplib, findlib, ppx_tools
-, async ? null, lwt ? null
-}:
+{ lib, fetchurl, buildDunePackage }:
 
-assert stdenv.lib.versionAtLeast ocaml.version "4.01";
+buildDunePackage rec {
+  pname = "cstruct";
+  version = "4.0.0";
 
-let param =
-  if stdenv.lib.versionAtLeast ocaml.version "4.02"
-  then { version = "2.3.2"; sha256 = "1fykack86hvvqhwngddyxxqlwm3xjljfaszsjbdrvjlrd1nlg079"; }
-  else { version = "1.9.0"; sha256 = "1c1j21zgmxi9spq23imy7byn50qr7hlds1cfpzxlsx9dp309jngy"; };
-in
-
-let opt = b: "--${if b != null then "en" else "dis"}able"; in
-
-stdenv.mkDerivation {
-  name = "ocaml${ocaml.version}-cstruct-${param.version}";
-
-  src = fetchFromGitHub {
-    owner = "mirage";
-    repo = "ocaml-cstruct";
-    rev = "v${param.version}";
-    inherit (param) sha256;
+  src = fetchurl {
+    url = "https://github.com/mirage/ocaml-cstruct/releases/download/v${version}/cstruct-v${version}.tbz";
+    sha256 = "1q4fsc2m6d96yf42g3wb3gcnhpnxw800df5mh3yr25pprj8y4m1a";
   };
 
-  configureFlags = [ "${opt lwt}-lwt" "${opt async}-async" "${opt ppx_tools}-ppx" ];
-
-  buildInputs = [ ocaml findlib ocamlbuild ppx_tools lwt async ];
-  propagatedBuildInputs = [ ocplib-endian sexplib ];
-
-  createFindlibDestdir = true;
-  dontStrip = true;
-
-  meta = with stdenv.lib; {
-    homepage = https://github.com/mirage/ocaml-cstruct;
-    description = "Map OCaml arrays onto C-like structs";
-    license = stdenv.lib.licenses.isc;
-    maintainers = [ maintainers.vbgl maintainers.ericbmerritt ];
-    platforms = ocaml.meta.platforms or [];
+  meta = {
+    description = "Access C-like structures directly from OCaml";
+    license = lib.licenses.isc;
+    homepage = "https://github.com/mirage/ocaml-cstruct";
+    maintainers = [ lib.maintainers.vbgl ];
   };
 }

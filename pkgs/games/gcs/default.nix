@@ -1,7 +1,6 @@
 { stdenv, fetchFromGitHub, runCommand
 , jdk8, ant
 , jre8, makeWrapper
-, findutils
 }:
 
 let
@@ -30,10 +29,10 @@ let
     sha256 = "085jpp9mpv5kw00zds9sywmfq31mrlbrgahnwcjkx0z9i22amz4g";
   };
 in stdenv.mkDerivation rec {
-  name = "gcs-${version}";
+  pname = "gcs";
   version = "4.8.0";
 
-  src = runCommand "${name}-src" { preferLocalBuild = true; } ''
+  src = runCommand "${pname}-${version}-src" { preferLocalBuild = true; } ''
     mkdir -p $out
     cd $out
 
@@ -69,7 +68,7 @@ in stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A stand-alone, interactive, character sheet editor for the GURPS 4th Edition roleplaying game system";
-    homepage = "http://gurpscharactersheet.com/";
+    homepage = http://gurpscharactersheet.com/;
     license = licenses.mpl20;
     platforms = platforms.all;
     maintainers = with maintainers; [];

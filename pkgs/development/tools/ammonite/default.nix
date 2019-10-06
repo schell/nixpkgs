@@ -1,25 +1,27 @@
-{ stdenv, lib, fetchurl, makeWrapper, jre }:
+{ stdenv, fetchurl, jre
+, disableRemoteLogging ? true
+}:
 
+with stdenv.lib;
+
+let
+common = { scalaVersion, sha256 }:
 stdenv.mkDerivation rec {
-  name = "ammonite-${version}";
-  version = "0.9.9";
-  scalaVersion = "2.12";
+  pname = "ammonite";
+  version = "1.7.1";
 
   src = fetchurl {
     url = "https://github.com/lihaoyi/Ammonite/releases/download/${version}/${scalaVersion}-${version}";
-    sha256 = "0qiqy681y1w21gjxw30kn44vxh9615j3825v06aq690p56w3rc63";
+    inherit sha256;
   };
-
-  propagatedBuildInputs = [ jre ] ;
-  buildInputs = [ makeWrapper ] ;
 
   phases = "installPhase";
 
   installPhase = ''
-    mkdir -p $out/bin
-    cp ${src} $out/bin/amm
-    chmod +x $out/bin/amm
-    wrapProgram $out/bin/amm --prefix PATH ":" ${jre}/bin ;
+    install -Dm755 ${src} $out/bin/amm
+    sed -i '0,/java/{s|java|${jre}/bin/java|}' $out/bin/amm
+  '' + optionalString (disableRemoteLogging) ''
+    sed -i '0,/ammonite.Main/{s|ammonite.Main|ammonite.Main --no-remote-logging|}' $out/bin/amm
   '';
 
   meta = {
@@ -31,8 +33,12 @@ stdenv.mkDerivation rec {
         that may be familiar to people coming from IDEs or other REPLs such as IPython or Zsh.
     '';
     homepage = http://www.lihaoyi.com/Ammonite/;
-    license = lib.licenses.mit;
-    platforms = lib.platforms.all;
-    maintainer = [ lib.maintainers.nequissimus ];
+    license = licenses.mit;
+    platforms = platforms.all;
+    maintainers = [ maintainers.nequissimus ];
   };
+};
+in {
+  ammonite_2_12 = common { scalaVersion = "2.12"; sha256 = "0isg9flnzc2ldbx6q0lg0xyg9lnvqkd8qhgfln8p1hbzdq0n6jd0"; };
+  ammonite_2_13 = common { scalaVersion = "2.13"; sha256 = "01dyc6bilhcr1mwrpmhjc8nhzfqgjh44bx36gd3gk9mkvlbys5mp"; };
 }

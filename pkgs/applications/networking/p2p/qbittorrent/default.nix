@@ -1,49 +1,47 @@
-{ stdenv, fetchurl, pkgconfig, which
-, boost, libtorrentRasterbar, qmakeHook, qt5
+{ mkDerivation, lib, fetchFromGitHub, pkgconfig
+, boost, libtorrentRasterbar, qtbase, qttools, qtsvg
 , debugSupport ? false # Debugging
-, guiSupport ? true, dbus_libs ? null # GUI (disable to run headless)
+, guiSupport ? true, dbus ? null # GUI (disable to run headless)
 , webuiSupport ? true # WebUI
 }:
 
-assert guiSupport -> (dbus_libs != null);
+assert guiSupport -> (dbus != null);
+with lib;
 
-with stdenv.lib;
-stdenv.mkDerivation rec {
-  name = "qbittorrent-${version}";
-  version = "3.3.12";
+mkDerivation rec {
+  pname = "qbittorrent";
+  version = "4.1.7";
 
-  src = fetchurl {
-    url = "mirror://sourceforge/qbittorrent/${name}.tar.xz";
-    sha256 = "0vs626khavhqqnq2hrwrxyc8ihbngharcf1fd37nwccvy13qqljn";
+  src = fetchFromGitHub {
+    owner = "qbittorrent";
+    repo = "qbittorrent";
+    rev = "release-${version}";
+    sha256 = "1z4k64h3ik1a7ir4v9g3ar1wq8zfh4r2pq43hr2wvlamm2111gdv";
   };
 
-  nativeBuildInputs = [ pkgconfig which ];
+  # NOTE: 2018-05-31: CMake is working but it is not officially supported
+  nativeBuildInputs = [ pkgconfig ];
 
-  buildInputs = [ boost libtorrentRasterbar qt5.qtbase qt5.qttools ]
-    ++ optional guiSupport dbus_libs;
+  buildInputs = [ boost libtorrentRasterbar qtbase qttools qtsvg ]
+    ++ optional guiSupport dbus; # D(esktop)-Bus depends on GUI support
 
-  preConfigure = ''
-    export QT_QMAKE=$(dirname "$QMAKE")
-  '';
+  # Otherwise qm_gen.pri assumes lrelease-qt5, which does not exist.
+  QMAKE_LRELEASE = "lrelease";
 
   configureFlags = [
     "--with-boost-libdir=${boost.out}/lib"
-    "--with-boost=${boost.dev}"
-    (if guiSupport then "" else "--disable-gui")
-    (if webuiSupport then "" else "--disable-webui")
-  ] ++ optional debugSupport "--enable-debug";
+    "--with-boost=${boost.dev}" ]
+    ++ optionals (!guiSupport) [ "--disable-gui" "--enable-systemd" ] # Also place qbittorrent-nox systemd service files
+    ++ optional (!webuiSupport) "--disable-webui"
+    ++ optional debugSupport "--enable-debug";
 
-  # The lrelease binary is named lrelease instead of lrelease-qt4
-  patches = [ ./fix-lrelease.patch];
-
-  # https://github.com/qbittorrent/qBittorrent/issues/1992 
-  enableParallelBuilding = false;
+  enableParallelBuilding = true;
 
   meta = {
-    description = "Free Software alternative to µtorrent";
-    homepage    = http://www.qbittorrent.org/;
+    description = "Featureful free software BitTorrent client";
+    homepage    = https://www.qbittorrent.org/;
     license     = licenses.gpl2;
     platforms   = platforms.linux;
-    maintainers = with maintainers; [ viric ];
+    maintainers = with maintainers; [ Anton-Latukha ];
   };
 }

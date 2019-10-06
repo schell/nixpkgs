@@ -1,13 +1,13 @@
 { stdenv, fetchurl
-, mesa, libXi, libXt, libXext, libX11, libXmu, freeglut
+, libGLU_combined, libXi, libXt, libXext, libX11, libXmu, freeglut
 }:
 
 stdenv.mkDerivation rec {
-  name = "space-orbit-${version}";
+  pname = "space-orbit";
   version = "1.01";
   patchversion = "9";
 
-  buildInputs = [ mesa libXi libXt libXext libX11 libXmu freeglut ];
+  buildInputs = [ libGLU_combined libXi libXt libXext libX11 libXmu freeglut ];
 
   src = fetchurl {
     url = "mirror://debian/pool/main/s/space-orbit/space-orbit_${version}.orig.tar.gz";

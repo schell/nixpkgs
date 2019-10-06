@@ -1,7 +1,6 @@
-{ stdenv, fetchFromGitHub, autoreconfHook, pkgconfig, gnome3, gtk-engine-murrine }:
+{ stdenv, fetchFromGitHub, autoreconfHook, pkgconfig, gtk-engine-murrine }:
 
 stdenv.mkDerivation rec {
-  name = "${pname}-${version}";
   pname = "theme-vertex";
   version = "20170128";
 
@@ -14,9 +13,9 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ autoreconfHook pkgconfig ];
 
-  buildInputs = [ gtk-engine-murrine ];
+  propagatedUserEnvPkgs = [ gtk-engine-murrine ];
 
-  configureFlags = [ "--disable-unity" "--with-gnome=${gnome3.version}" ];
+  configureFlags = [ "--disable-unity" ];
 
   postInstall = ''
     mkdir -p $out/share/plank/themes

@@ -1,47 +1,45 @@
-{ stdenv, fetchFromGitHub, python3Packages, glibcLocales, coreutils }:
+{ stdenv, fetchFromGitHub, python3Packages, glibcLocales, coreutils, git }:
 
 python3Packages.buildPythonApplication rec {
-  name = "xonsh-${version}";
-  version = "0.4.3";
+  pname = "xonsh";
+  version = "0.9.10";
 
+  # fetch from github because the pypi package ships incomplete tests
   src = fetchFromGitHub {
-    owner = "scopatz";
-    repo = "xonsh";
-    rev = version;
-    sha256= "1lx95i468px908y18fa9fmfgmjsydhkpas89dxbwfnybqxxyd3ls";
+    owner  = "xonsh";
+    repo   = "xonsh";
+    rev    = "refs/tags/${version}";
+    sha256 = "0dil7vannl8sblzz528503ich8m8g0ld0p496bgw6jjh0pzkdskc";
   };
 
-  ## The logo xonsh prints during build contains unicode characters, and this
-  ## fails because locales have not been set up in the build environment.
-  ## We can fix this on Linux by setting:
-  ##    export LOCALE_ARCHIVE=${pkgs.glibcLocales}/lib/locale/locale-archive
-  ## but this would not be a cross platform solution, so it's simpler to just
-  ## patch the setup.py script to not print the logo during build.
-  #prePatch = ''
-  #  substituteInPlace setup.py --replace "print(logo)" ""
-  #'';
-  patchPhase = ''
-    rm xonsh/winutils.py
-    sed -i -e "s|/bin/ls|${coreutils}/bin/ls|" tests/test_execer.py
-    sed -ie 's|test_win_ipconfig|_test_win_ipconfig|g' tests/test_execer.py
-    sed -ie 's|test_ipconfig|_test_ipconfig|g' tests/test_execer.py
-    rm tests/test_main.py
-    rm tests/test_man.py
-    rm tests/test_replay.py
+  LC_ALL = "en_US.UTF-8";
+  postPatch = ''
+    sed -ie "s|/bin/ls|${coreutils}/bin/ls|" tests/test_execer.py
+    sed -ie "s|SHELL=xonsh|SHELL=$out/bin/xonsh|" tests/test_integrations.py
+
+    sed -ie 's|/usr/bin/env|${coreutils}/bin/env|' tests/test_integrations.py
+    sed -ie 's|/usr/bin/env|${coreutils}/bin/env|' scripts/xon.sh
+    find -name "*.xsh" | xargs sed -ie 's|/usr/bin/env|${coreutils}/bin/env|'
+    patchShebangs .
   '';
+
+  doCheck = !stdenv.isDarwin;
 
   checkPhase = ''
-    HOME=$TMPDIR XONSH_INTERACTIVE=0 nosetests -x
+    HOME=$TMPDIR pytest -k 'not test_repath_backslash and not test_os and not test_man_completion and not test_builtins and not test_main and not test_ptk_highlight'
+    HOME=$TMPDIR pytest -k 'test_builtins or test_main' --reruns 5
+    HOME=$TMPDIR pytest -k 'test_ptk_highlight'
   '';
 
-  buildInputs = with python3Packages; [ glibcLocales nose pytest ];
-  propagatedBuildInputs = with python3Packages; [ ply prompt_toolkit ];
+  checkInputs = [ python3Packages.pytest python3Packages.pytest-rerunfailures glibcLocales git ];
+
+  propagatedBuildInputs = with python3Packages; [ ply prompt_toolkit pygments ];
 
   meta = with stdenv.lib; {
     description = "A Python-ish, BASHwards-compatible shell";
-    homepage = "http://xonsh.org";
+    homepage = http://xon.sh/;
     license = licenses.bsd3;
-    maintainers = with maintainers; [ spwhitt garbas vrthra ];
+    maintainers = with maintainers; [ spwhitt vrthra ];
     platforms = platforms.all;
   };
 

@@ -14,7 +14,7 @@ with lib;
       };
 
       user = mkOption {
-        type = types.string;
+        type = types.str;
         default = "nullmailer";
         description = ''
           User to use to run nullmailer-send.
@@ -22,7 +22,7 @@ with lib;
       };
 
       group = mkOption {
-        type = types.string;
+        type = types.str;
         default = "nullmailer";
         description = ''
           Group to use to run nullmailer-send.
@@ -33,6 +33,18 @@ with lib;
         type = types.bool;
         default = true;
         description = "Whether to set the system sendmail to nullmailer's.";
+      };
+
+      remotesFile = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = ''
+          Path to the <code>remotes</code> control file. This file contains a
+          list of remote servers to which to send each message.
+
+          See <code>man 8 nullmailer-send</code> for syntax and available
+          options.
+        '';
       };
 
       config = {
@@ -142,7 +154,16 @@ with lib;
           type = types.nullOr types.str;
           default = null;
           description = ''
-            If set, content will override the envelope sender on all messages.
+            A list of remote servers to which to send each message. Each line
+            contains a remote host name or address followed by an optional
+            protocol string, separated by white space.
+
+            See <code>man 8 nullmailer-send</code> for syntax and available
+            options.
+
+            WARNING: This is stored world-readable in the nix store. If you need
+            to specify any secret credentials here, consider using the
+            <code>remotesFile</code> option instead.
           '';
         };
 
@@ -164,26 +185,36 @@ with lib;
     cfg = config.services.nullmailer;
   in mkIf cfg.enable {
 
+    assertions = [
+      { assertion = cfg.config.remotes == null || cfg.remotesFile == null;
+        message = "Only one of `remotesFile` or `config.remotes` may be used at a time.";
+      }
+    ];
+
     environment = {
       systemPackages = [ pkgs.nullmailer ];
       etc = let
-        getval  = attr: builtins.getAttr attr cfg.config;
-        attrs   = builtins.attrNames cfg.config;
-        attrs'  = builtins.filter (attr: ! isNull (getval attr)) attrs;
-      in foldl' (as: attr: as // { "nullmailer/${attr}".text = getval attr; }) {} attrs';
+        validAttrs = filterAttrs (name: value: value != null) cfg.config;
+      in
+        (foldl' (as: name: as // { "nullmailer/${name}".text = validAttrs.${name}; }) {} (attrNames validAttrs))
+          // optionalAttrs (cfg.remotesFile != null) { "nullmailer/remotes".source = cfg.remotesFile; };
     };
 
     users = {
-      extraUsers = singleton {
+      users = singleton {
         name = cfg.user;
         description = "Nullmailer relay-only mta user";
         group = cfg.group;
       };
 
-      extraGroups = singleton {
+      groups = singleton {
         name = cfg.group;
       };
     };
+
+    systemd.tmpfiles.rules = [
+      "d /var/spool/nullmailer - ${cfg.user} - - -"
+    ];
 
     systemd.services.nullmailer = {
       description = "nullmailer";
@@ -192,14 +223,12 @@ with lib;
 
       preStart = ''
         mkdir -p /var/spool/nullmailer/{queue,tmp}
-        rm -f var/spool/nullmailer/trigger && mkfifo -m 660 /var/spool/nullmailer/trigger
-        chown ${cfg.user} /var/spool/nullmailer/*
+        rm -f /var/spool/nullmailer/trigger && mkfifo -m 660 /var/spool/nullmailer/trigger
       '';
 
       serviceConfig = {
         User = cfg.user;
         Group = cfg.group;
-        PermissionsStartOnly=true;
         ExecStart = "${pkgs.nullmailer}/bin/nullmailer-send";
         Restart = "always";
       };

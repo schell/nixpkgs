@@ -41,13 +41,13 @@ in {
       };
 
       accelSpeed = mkOption {
-        type = types.nullOr types.string;
+        type = types.nullOr types.str;
         default = null;
         description = "Cursor acceleration (how fast speed increases from minSpeed to maxSpeed).";
       };
 
       buttonMapping = mkOption {
-        type = types.nullOr types.string;
+        type = types.nullOr types.str;
         default = null;
         description =
           ''
@@ -61,7 +61,7 @@ in {
       };
 
       calibrationMatrix = mkOption {
-        type = types.nullOr types.string;
+        type = types.nullOr types.str;
         default = null;
         description =
           ''
@@ -75,12 +75,13 @@ in {
         default = null;
         description =
           ''
-            Enables a click method. Permitted values are none, buttonareas, clickfinger.
+            Enables a click method. Permitted values are <literal>none</literal>,
+            <literal>buttonareas</literal>, <literal>clickfinger</literal>.
             Not all devices support all methods, if an option is unsupported,
-            the default click method for this device is used. 
+            the default click method for this device is used.
           '';
       };
-      
+
       leftHanded = mkOption {
         type = types.bool;
         default = false;
@@ -96,7 +97,7 @@ in {
             simultaneously produces a middle mouse button click.
           '';
       };
-      
+
       naturalScrolling = mkOption {
         type = types.bool;
         default = false;
@@ -115,12 +116,13 @@ in {
       };
 
       scrollMethod = mkOption {
-        type = types.enum [ "twofinger" "edge" "none" ];
+        type = types.enum [ "twofinger" "edge" "button" "none" ];
         default = "twofinger";
         example = "edge";
         description =
           ''
-            Specify the scrolling method.
+            Specify the scrolling method: <literal>twofinger</literal>, <literal>edge</literal>,
+            or <literal>none</literal>
           '';
       };
 
@@ -141,7 +143,8 @@ in {
         example = "disabled";
         description =
           ''
-            Sets the send events mode to disabled, enabled, or "disable when an external mouse is connected".
+            Sets the send events mode to <literal>disabled</literal>, <literal>enabled</literal>,
+            or <literal>disabled-on-external-mouse</literal>
           '';
       };
 
@@ -167,7 +170,7 @@ in {
 
       disableWhileTyping = mkOption {
         type = types.bool;
-        default = true;
+        default = false;
         description =
           ''
             Disable input method while typing.
@@ -175,7 +178,7 @@ in {
       };
 
       additionalOptions = mkOption {
-        type = types.str;
+        type = types.lines;
         default = "";
         example =
         ''
@@ -195,7 +198,14 @@ in {
 
     environment.systemPackages = [ pkgs.xorg.xf86inputlibinput ];
 
-    services.udev.packages = [ pkgs.libinput ];
+    environment.etc = [
+      (let cfgPath = "X11/xorg.conf.d/40-libinput.conf"; in {
+        source = pkgs.xorg.xf86inputlibinput.out + "/share/" + cfgPath;
+        target = cfgPath;
+      })
+    ];
+
+    services.udev.packages = [ pkgs.libinput.out ];
 
     services.xserver.config =
       ''

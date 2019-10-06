@@ -1,170 +1,216 @@
-{ lib, stdenv, fetchurl, fetchFromGitHub, perl, curl, bzip2, sqlite, openssl ? null, xz
-, pkgconfig, boehmgc, perlPackages, libsodium, aws-sdk-cpp, brotli, readline
-, autoreconfHook, autoconf-archive, bison, flex, libxml2, libxslt, docbook5, docbook5_xsl
-, libseccomp, busybox
+{ lib, fetchurl, fetchFromGitHub, callPackage
 , storeDir ? "/nix/store"
 , stateDir ? "/nix/var"
 , confDir ? "/etc"
+, boehmgc
+, stdenv, llvmPackages_6
 }:
 
 let
 
-  sh = busybox.override {
-    useMusl = true;
-    enableStatic = true;
-    enableMinimal = true;
-    extraConfig = ''
-      CONFIG_ASH y
-      CONFIG_ASH_BUILTIN_ECHO y
-      CONFIG_ASH_BUILTIN_TEST y
-      CONFIG_ASH_OPTIMIZE_FOR_SIZE y
-    '';
-  };
+common =
+  { lib, stdenv, fetchpatch, perl, curl, bzip2, sqlite, openssl ? null, xz
+  , pkgconfig, boehmgc, perlPackages, libsodium, brotli, boost, editline
+  , autoreconfHook, autoconf-archive, bison, flex, libxml2, libxslt, docbook5, docbook_xsl_ns, jq
+  , busybox-sandbox-shell
+  , storeDir
+  , stateDir
+  , confDir
+  , withLibseccomp ? lib.any (lib.meta.platformMatch stdenv.hostPlatform) libseccomp.meta.platforms, libseccomp
+  , withAWS ? stdenv.isLinux || stdenv.isDarwin, aws-sdk-cpp
 
-  common = { name, suffix ? "", src, fromGit ? false }: stdenv.mkDerivation rec {
-    inherit name src;
-    version = lib.getVersion name;
+  , name, suffix ? "", src, includesPerl ? false, fromGit ? false
 
-    is112 = lib.versionAtLeast version "1.12pre";
+  }:
+  let
+     sh = busybox-sandbox-shell;
+     nix = stdenv.mkDerivation rec {
+      inherit name src;
+      version = lib.getVersion name;
 
-    VERSION_SUFFIX = lib.optionalString fromGit suffix;
+      is20 = lib.versionAtLeast version "2.0pre";
 
-    outputs = [ "out" "dev" "man" "doc" ];
+      VERSION_SUFFIX = lib.optionalString fromGit suffix;
 
-    nativeBuildInputs =
-      [ pkgconfig ]
-      ++ lib.optionals (!is112) [ perl ]
-      ++ lib.optionals fromGit [ autoreconfHook autoconf-archive bison flex libxml2 libxslt docbook5 docbook5_xsl ];
+      outputs = [ "out" "dev" "man" "doc" ];
 
-    buildInputs = [ curl openssl sqlite xz ]
-      ++ lib.optional (stdenv.isLinux || stdenv.isDarwin) libsodium
-      ++ lib.optionals fromGit [ brotli readline ] # Since 1.12
-      ++ lib.optional stdenv.isLinux libseccomp
-      ++ lib.optional ((stdenv.isLinux || stdenv.isDarwin) && is112)
-          (aws-sdk-cpp.override {
-            apis = ["s3"];
-            customMemoryManagement = false;
-          });
+      nativeBuildInputs =
+        [ pkgconfig ]
+        ++ lib.optionals (!is20) [ curl perl ]
+        ++ lib.optionals fromGit [ autoreconfHook autoconf-archive bison flex libxml2 libxslt docbook5 docbook_xsl_ns jq ];
 
-    propagatedBuildInputs = [ boehmgc ];
+      buildInputs = [ curl openssl sqlite xz bzip2 ]
+        ++ lib.optional (stdenv.isLinux || stdenv.isDarwin) libsodium
+        ++ lib.optionals is20 [ brotli boost editline ]
+        ++ lib.optional withLibseccomp libseccomp
+        ++ lib.optional (withAWS && is20)
+            ((aws-sdk-cpp.override {
+              apis = ["s3" "transfer"];
+              customMemoryManagement = false;
+            }).overrideDerivation (args: {
+              patches = args.patches or [] ++ [(fetchpatch {
+                url = https://github.com/edolstra/aws-sdk-cpp/commit/7d58e303159b2fb343af9a1ec4512238efa147c7.patch;
+                sha256 = "103phn6kyvs1yc7fibyin3lgxz699qakhw671kl207484im55id1";
+              })];
+            }));
 
-    # Note: bzip2 is not passed as a build input, because the unpack phase
-    # would end up using the wrong bzip2 when cross-compiling.
-    # XXX: The right thing would be to reinstate `--with-bzip2' in Nix.
-    postUnpack =
-      '' export CPATH="${bzip2.dev}/include"
-         export LIBRARY_PATH="${bzip2.out}/lib"
-         export CXXFLAGS="-Wno-error=reserved-user-defined-literal"
-      '';
+      propagatedBuildInputs = [ boehmgc ];
 
-    configureFlags =
-      [ "--with-store-dir=${storeDir}"
-        "--localstatedir=${stateDir}"
-        "--sysconfdir=${confDir}"
-        "--disable-init-state"
-        "--enable-gc"
-      ]
-      ++ lib.optionals (!is112) [
-        "--with-dbi=${perlPackages.DBI}/${perl.libPrefix}"
-        "--with-dbd-sqlite=${perlPackages.DBDSQLite}/${perl.libPrefix}"
-        "--with-www-curl=${perlPackages.WWWCurl}/${perl.libPrefix}"
-      ] ++ lib.optionals (is112 && stdenv.isLinux) [
-        "--with-sandbox-shell=${sh}/bin/busybox"
-      ];
+      # Seems to be required when using std::atomic with 64-bit types
+      NIX_LDFLAGS = lib.optionalString (stdenv.hostPlatform.system == "armv6l-linux") "-latomic";
 
-    makeFlags = "profiledir=$(out)/etc/profile.d";
-
-    installFlags = "sysconfdir=$(out)/etc";
-
-    doInstallCheck = true;
-
-    separateDebugInfo = stdenv.isLinux;
-
-    crossAttrs = {
-      postUnpack =
-        '' export CPATH="${bzip2.crossDrv}/include"
-           export NIX_CROSS_LDFLAGS="-L${bzip2.crossDrv}/lib -rpath-link ${bzip2.crossDrv}/lib $NIX_CROSS_LDFLAGS"
+      preConfigure =
+        # Copy libboost_context so we don't get all of Boost in our closure.
+        # https://github.com/NixOS/nixpkgs/issues/45462
+        if is20 then ''
+          mkdir -p $out/lib
+          cp -pd ${boost}/lib/{libboost_context*,libboost_thread*,libboost_system*} $out/lib
+          rm -f $out/lib/*.a
+          ${lib.optionalString stdenv.isLinux ''
+            chmod u+w $out/lib/*.so.*
+            patchelf --set-rpath $out/lib:${stdenv.cc.cc.lib}/lib $out/lib/libboost_thread.so.*
+          ''}
+        '' else ''
+          configureFlagsArray+=(BDW_GC_LIBS="-lgc -lgccpp")
         '';
 
       configureFlags =
-        ''
-          --with-store-dir=${storeDir} --localstatedir=${stateDir}
-          --with-dbi=${perlPackages.DBI}/${perl.libPrefix}
-          --with-dbd-sqlite=${perlPackages.DBDSQLite}/${perl.libPrefix}
-          --with-www-curl=${perlPackages.WWWCurl}/${perl.libPrefix}
-          --disable-init-state
-          --enable-gc
-        '' + stdenv.lib.optionalString (
-            stdenv.cross ? nix && stdenv.cross.nix ? system
-        ) ''--with-system=${stdenv.cross.nix.system}'';
+        [ "--with-store-dir=${storeDir}"
+          "--localstatedir=${stateDir}"
+          "--sysconfdir=${confDir}"
+          "--disable-init-state"
+          "--enable-gc"
+        ]
+        ++ lib.optionals (!is20) [
+          "--with-dbi=${perlPackages.DBI}/${perl.libPrefix}"
+          "--with-dbd-sqlite=${perlPackages.DBDSQLite}/${perl.libPrefix}"
+          "--with-www-curl=${perlPackages.WWWCurl}/${perl.libPrefix}"
+        ] ++ lib.optionals (is20 && stdenv.isLinux) [
+          "--with-sandbox-shell=${sh}/bin/busybox"
+        ]
+        ++ lib.optional (
+            stdenv.hostPlatform != stdenv.buildPlatform && stdenv.hostPlatform ? nix && stdenv.hostPlatform.nix ? system
+        ) ''--with-system=${stdenv.hostPlatform.nix.system}''
+           # RISC-V support in progress https://github.com/seccomp/libseccomp/pull/50
+        ++ lib.optional (!withLibseccomp) "--disable-seccomp-sandboxing";
 
-      doInstallCheck = false;
-    };
+      makeFlags = "profiledir=$(out)/etc/profile.d";
 
-    enableParallelBuilding = true;
+      installFlags = "sysconfdir=$(out)/etc";
 
-    meta = {
-      description = "Powerful package manager that makes package management reliable and reproducible";
-      longDescription = ''
-        Nix is a powerful package manager for Linux and other Unix systems that
-        makes package management reliable and reproducible. It provides atomic
-        upgrades and rollbacks, side-by-side installation of multiple versions of
-        a package, multi-user package management and easy setup of build
-        environments.
+      doInstallCheck = true; # not cross
+
+      # socket path becomes too long otherwise
+      preInstallCheck = lib.optional stdenv.isDarwin ''
+        export TMPDIR=$NIX_BUILD_TOP
       '';
-      homepage = http://nixos.org/;
-      license = stdenv.lib.licenses.lgpl2Plus;
-      maintainers = [ stdenv.lib.maintainers.eelco ];
-      platforms = stdenv.lib.platforms.all;
-      outputsToInstall = [ "out" "man" ];
+
+      separateDebugInfo = stdenv.isLinux;
+
+      enableParallelBuilding = true;
+
+      meta = {
+        description = "Powerful package manager that makes package management reliable and reproducible";
+        longDescription = ''
+          Nix is a powerful package manager for Linux and other Unix systems that
+          makes package management reliable and reproducible. It provides atomic
+          upgrades and rollbacks, side-by-side installation of multiple versions of
+          a package, multi-user package management and easy setup of build
+          environments.
+        '';
+        homepage = https://nixos.org/;
+        license = stdenv.lib.licenses.lgpl2Plus;
+        maintainers = [ stdenv.lib.maintainers.eelco ];
+        platforms = stdenv.lib.platforms.unix;
+        outputsToInstall = [ "out" "man" ];
+      };
+
+      passthru = {
+        inherit fromGit;
+
+        perl-bindings = if includesPerl then nix else stdenv.mkDerivation {
+          pname = "nix-perl";
+          inherit version;
+
+          inherit src;
+
+          postUnpack = "sourceRoot=$sourceRoot/perl";
+
+          # This is not cross-compile safe, don't have time to fix right now
+          # but noting for future travellers.
+          nativeBuildInputs =
+            [ perl pkgconfig curl nix libsodium ]
+            ++ lib.optionals fromGit [ autoreconfHook autoconf-archive ]
+            ++ lib.optional is20 boost;
+
+          configureFlags =
+            [ "--with-dbi=${perlPackages.DBI}/${perl.libPrefix}"
+              "--with-dbd-sqlite=${perlPackages.DBDSQLite}/${perl.libPrefix}"
+            ];
+
+          preConfigure = "export NIX_STATE_DIR=$TMPDIR";
+
+          preBuild = "unset NIX_INDENT_MAKE";
+        };
+      };
     };
-
-    passthru = { inherit fromGit; };
-  };
-
-  perl-bindings = { nix }: stdenv.mkDerivation {
-    name = "nix-perl-" + nix.version;
-
-    inherit (nix) src;
-
-    postUnpack = "sourceRoot=$sourceRoot/perl";
-
-    nativeBuildInputs =
-      [ perl pkgconfig curl nix libsodium ]
-      ++ lib.optionals nix.fromGit [ autoreconfHook autoconf-archive ];
-
-    configureFlags =
-      [ "--with-dbi=${perlPackages.DBI}/${perl.libPrefix}"
-        "--with-dbd-sqlite=${perlPackages.DBDSQLite}/${perl.libPrefix}"
-      ];
-
-    preConfigure = "export NIX_STATE_DIR=$TMPDIR";
-
-    preBuild = "unset NIX_INDENT_MAKE";
-  };
+  in nix;
 
 in rec {
 
   nix = nixStable;
 
-  nixStable = (common rec {
-    name = "nix-1.11.10";
+  nix1 = callPackage common rec {
+    name = "nix-1.11.16";
     src = fetchurl {
       url = "http://nixos.org/releases/nix/${name}/${name}.tar.xz";
-      sha256 = "b29a458c2b803bcc07d8b58cd016ca6ad0788a73ca74edaeaebc588961322467";
+      sha256 = "0ca5782fc37d62238d13a620a7b4bff6a200bab1bd63003709249a776162357c";
     };
-  }) // { perl-bindings = nixStable; };
 
-  nixUnstable = (lib.lowPrio (common rec {
-    name = "nix-1.12${suffix}";
-    suffix = "pre5413_b4b1f452";
+    # Nix1 has the perl bindings by default, so no need to build the manually.
+    includesPerl = true;
+
+    inherit storeDir stateDir confDir boehmgc;
+  };
+
+  nixStable = callPackage common (rec {
+    name = "nix-2.3";
+    src = fetchurl {
+      url = "http://nixos.org/releases/nix/${name}/${name}.tar.xz";
+      sha256 = "b1d1b4d87390941fc64b19776f1ed9e3871231d38f5a1f295dd13925acd3a98d";
+    };
+
+    inherit storeDir stateDir confDir boehmgc;
+  } // stdenv.lib.optionalAttrs stdenv.cc.isClang {
+    stdenv = llvmPackages_6.stdenv;
+  });
+
+  nixUnstable = lib.lowPrio (callPackage common rec {
+    name = "nix-2.3${suffix}";
+    suffix = "pre6895_84de821";
     src = fetchFromGitHub {
       owner = "NixOS";
       repo = "nix";
-      rev = "b4b1f4525f8dc8f320d666c208bff5cb36777580";
-      sha256 = "0qb18k2rp6bbg8g50754srl95dq0lr96i297856yhrx1hh1ja37z";
+      rev = "84de8210040580ce7189332b43038d52c56a9689";
+      sha256 = "062pdly0m2hk8ly8li5psvpbj1mi7m1a15k8wyzf79q7294l5li3";
     };
     fromGit = true;
-  })) // { perl-bindings = perl-bindings { nix = nixUnstable; }; };
+
+    inherit storeDir stateDir confDir boehmgc;
+  });
+
+  nixFlakes = lib.lowPrio (callPackage common rec {
+    name = "nix-2.4${suffix}";
+    suffix = "pre20190922_382aa05";
+    src = fetchFromGitHub {
+      owner = "NixOS";
+      repo = "nix";
+      rev = "382aa05ff71b61379f5c2792eaf517bdf4a5c5bf";
+      hash = "sha256-k4vV3Q1YVmLd+49AETnsSGetpDjD6sdd9yBrnpi8Q3g=";
+    };
+    fromGit = true;
+
+    inherit storeDir stateDir confDir boehmgc;
+  });
 
 }

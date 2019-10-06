@@ -5,7 +5,7 @@
 
 # Options from inherited versions
 , version, sha256
-, patchSrc ? "src", extraPatches ? [ ]
+, extraPatches ? [ ]
 , license ? stdenv.lib.licenses.sleepycat
 , drvArgs ? {}
 }:
@@ -14,11 +14,13 @@ stdenv.mkDerivation (rec {
   name = "db-${version}";
 
   src = fetchurl {
-    url = "http://download.oracle.com/berkeley-db/${name}.tar.gz";
+    url = "https://download.oracle.com/berkeley-db/${name}.tar.gz";
     sha256 = sha256;
   };
 
   patches = extraPatches;
+
+  outputs = [ "bin" "out" "dev" ];
 
   configureFlags =
     [
@@ -37,6 +39,8 @@ stdenv.mkDerivation (rec {
     rm -rf $out/docs
   '';
 
+  enableParallelBuilding = true;
+
   doCheck = true;
 
   checkPhase = ''
@@ -44,7 +48,7 @@ stdenv.mkDerivation (rec {
   '';
 
   meta = with stdenv.lib; {
-    homepage = "http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/index.html";
+    homepage = http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/index.html;
     description = "Berkeley DB";
     license = license;
     platforms = platforms.unix;

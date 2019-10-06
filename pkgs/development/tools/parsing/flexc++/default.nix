@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, bobcat, icmake, yodl }:
 
 stdenv.mkDerivation rec {
-  name = "flexc++-${version}";
+  pname = "flexc++";
   version = "2.05.00";
 
   src = fetchFromGitHub {
@@ -11,7 +11,9 @@ stdenv.mkDerivation rec {
     owner = "fbb-git";
   };
 
-  sourceRoot = "flexcpp-${version}-src/flexc++";
+  setSourceRoot = ''
+    sourceRoot=$(echo */flexc++)
+  '';
 
   buildInputs = [ bobcat ];
   nativeBuildInputs = [ icmake yodl ];
@@ -41,6 +43,5 @@ stdenv.mkDerivation rec {
     homepage = https://fbb-git.github.io/flexcpp/;
     license = licenses.gpl3;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

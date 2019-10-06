@@ -1,7 +1,7 @@
 { stdenv, fetchurl, bdftopcf, mkfontdir, mkfontscale }:
 
 stdenv.mkDerivation rec {
-  name = "dosemu-fonts-${version}";
+  pname = "dosemu-fonts";
   version = "1.4.0";
 
   src = fetchurl {
@@ -16,7 +16,7 @@ stdenv.mkDerivation rec {
     for i in */etc/*.bdf; do
       fontOut="$out/share/fonts/X11/misc/dosemu/$(basename "$i" .bdf).pcf.gz"
       echo -n "Installing font $fontOut..." >&2
-      ${bdftopcf}/bin/bdftopcf $i | gzip -c -9 > "$fontOut"
+      ${bdftopcf}/bin/bdftopcf $i | gzip -c -9 -n > "$fontOut"
       echo " done." >&2
     done
     cp */etc/dosemu.alias "$fontPath/fonts.alias"
@@ -25,8 +25,11 @@ stdenv.mkDerivation rec {
     ${mkfontscale}/bin/mkfontscale
   '';
 
+  outputHashAlgo = "sha256";
+  outputHashMode = "recursive";
+  outputHash = "1miqv0ral5vazx721wildjlzvji5r7pbgm39c0cpj5ywafaikxr8";
+
   meta = {
     description = "Various fonts from the DOSEmu project";
-    platforms = stdenv.lib.platforms.linux;
   };
 }

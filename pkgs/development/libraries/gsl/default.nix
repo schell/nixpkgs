@@ -1,23 +1,22 @@
-{ fetchurl, fetchpatch, stdenv }:
+{ fetchurl, stdenv }:
 
 stdenv.mkDerivation rec {
-  name = "gsl-2.3";
+  name = "gsl-2.6";
 
   src = fetchurl {
     url = "mirror://gnu/gsl/${name}.tar.gz";
-    sha256 = "1yxdzqjwmi2aid650fa9zyr8llw069x7lm489wx9nnfdi6vh09an";
+    sha256 = "1a460zj9xmbgvcymkdhqh313c4l29mn9cffbi5vf33x3qygk70mp";
   };
 
-  patches = [
-    # ToDo: there might be more impurities than FMA support check
-    ./disable-fma.patch # http://lists.gnu.org/archive/html/bug-gsl/2011-11/msg00019.html
-  ];
+  # do not let -march=skylake to enable FMA (https://lists.gnu.org/archive/html/bug-gsl/2011-11/msg00019.html)
+  NIX_CFLAGS_COMPILE = stdenv.lib.optional stdenv.isx86_64 "-mno-fma";
 
-  doCheck = stdenv.system != "i686-linux"; # https://lists.gnu.org/archive/html/bug-gsl/2015-11/msg00012.html
+  # https://lists.gnu.org/archive/html/bug-gsl/2015-11/msg00012.html
+  doCheck = stdenv.hostPlatform.system != "i686-linux" && stdenv.hostPlatform.system != "aarch64-linux";
 
   meta = {
     description = "The GNU Scientific Library, a large numerical library";
-    homepage = http://www.gnu.org/software/gsl/;
+    homepage = https://www.gnu.org/software/gsl/;
     license = stdenv.lib.licenses.gpl3Plus;
 
     longDescription = ''

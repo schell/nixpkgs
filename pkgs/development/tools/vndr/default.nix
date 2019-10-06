@@ -1,9 +1,9 @@
-{ stdenv, lib, buildGoPackage, fetchFromGitHub }:
+{ lib, buildGoPackage, fetchFromGitHub }:
 
 buildGoPackage rec {
-  name = "vndr-${version}";
-  version = "20170511-${lib.strings.substring 0 7 rev}";
-  rev = "0cb33a0eb64c8ca73b8e2939a3430b22fbb8d3e3";
+  pname = "vndr-unstable";
+  version = "2018-06-23";
+  rev = "81cb8916aad3c8d06193f008dba3e16f82851f52";
 
   goPackagePath = "github.com/LK4D4/vndr";
   excludedPackages = "test";
@@ -12,12 +12,12 @@ buildGoPackage rec {
     inherit rev;
     owner = "LK4D4";
     repo = "vndr";
-    sha256 = "02vdr59xn79hffayfcxg29nf62rdc33a60i104fgj746kcswgy5n";
+    sha256 = "0c0k0cic35d1141az72gbf8r0vm9zaq4xi8v1sqpxhlzf28m297l";
   };
 
   meta = {
     description = "Stupid golang vendoring tool, inspired by docker vendor script";
-    homepage = "https://github.com/LK4D4/vndr";
+    homepage = https://github.com/LK4D4/vndr;
     maintainers = with lib.maintainers; [ vdemeester ];
     license = lib.licenses.asl20;
   };

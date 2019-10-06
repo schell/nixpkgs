@@ -1,9 +1,9 @@
 { stdenv, kernel }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   inherit (kernel) version src;
 
-  name = "freefall-${version}";
+  pname = "freefall";
 
   postPatch = ''
     cd tools/laptop/freefall
@@ -29,6 +29,5 @@ stdenv.mkDerivation rec {
     '';
 
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

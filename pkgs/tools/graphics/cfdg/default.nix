@@ -1,10 +1,10 @@
 { stdenv, fetchurl, libpng, bison, flex, ffmpeg }:
 
 stdenv.mkDerivation rec {
-  name = "cfdg-${version}";
-  version = "3.0.2";
+  pname = "cfdg";
+  version = "3.0.9";
   src = fetchurl {
-    sha256 = "1pd1hjippbhad8l4s4lsglykh22i24qfrgmnxrsx71bvcqbr356p";
+    sha256 = "1jqpinz6ri4a2l04mf2z1ljalkdk1m07hj47lqkh8gbf2slfs0jl";
     url = "http://www.contextfreeart.org/download/ContextFreeSource${version}.tgz";
   };
 
@@ -18,15 +18,16 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     cp cfdg $out/bin/
 
-    mkdir -p $out/share/doc/${name}
-    cp *.txt $out/share/doc/${name}
+    mkdir -p $out/share/doc/${pname}-${version}
+    cp *.txt $out/share/doc/${pname}-${version}
   '';
 
   meta = with stdenv.lib; {
     description = "Context-free design grammar - a tool for graphics generation";
     maintainers = with maintainers; [ raskin ];
     platforms = platforms.linux;
-    homepage = http://contextfreeart.org/;
-    downloadPage = "http://contextfreeart.org/mediawiki/index.php/Download_page";
+    homepage = https://contextfreeart.org/;
+    license = licenses.gpl2;
+    downloadPage = "https://contextfreeart.org/mediawiki/index.php/Download_page";
   };
 }

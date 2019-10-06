@@ -1,13 +1,11 @@
 { lib
 , buildPythonPackage
-, isPy3k
 , fetchPypi
 }:
 
 buildPythonPackage rec {
   pname = "bz2file";
   version = "0.98";
-  name = "${pname}-${version}";
 
   src = fetchPypi {
     inherit pname version;
@@ -20,6 +18,6 @@ buildPythonPackage rec {
   meta = {
     description = "Bz2file is a Python library for reading and writing bzip2-compressed files";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ jpbernardy ];
+    maintainers = with lib.maintainers; [ jyp ];
   };
 }

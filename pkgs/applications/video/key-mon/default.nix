@@ -1,12 +1,12 @@
 { stdenv, fetchurl, gnome2, librsvg, pythonPackages }:
 
 pythonPackages.buildPythonApplication rec {
-  name = "key-mon-${version}";
+  pname = "key-mon";
   version = "1.17";
   namePrefix = "";
 
   src = fetchurl {
-    url = "http://key-mon.googlecode.com/files/${name}.tar.gz";
+    url = "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/key-mon/${pname}-${version}.tar.gz";
     sha256 = "1liz0dxcqmchbnl1xhlxkqm3gh76wz9jxdxn9pa7dy77fnrjkl5q";
   };
 
@@ -20,7 +20,7 @@ pythonPackages.buildPythonApplication rec {
   '';
 
   meta = with stdenv.lib; {
-    homepage = http://code.google.com/p/key-mon;
+    homepage = https://code.google.com/archive/p/key-mon;
     description = "Utility to show live keyboard and mouse status for teaching and screencasts";
     license = licenses.asl20;
     maintainers = [ maintainers.goibhniu ];

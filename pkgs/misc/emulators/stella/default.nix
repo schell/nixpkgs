@@ -3,15 +3,16 @@
 with stdenv.lib;
 stdenv.mkDerivation rec {
 
-  name = "stella-${version}";
+  pname = "stella";
   version = "4.6.1";
 
   src = fetchurl {
-    url = "mirror://sourceforge/project/stella/stella/${version}/${name}-src.tar.gz";
+    url = "mirror://sourceforge/project/stella/stella/${version}/${pname}-${version}-src.tar.gz";
     sha256 = "126jph21b70jlxapzmll8pq36i53lb304hbsiap25160vdqid4n1";
   };
 
-  buildInputs = [ pkgconfig SDL2 ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ SDL2 ];
 
   meta = {
     description = "An open-source Atari 2600 VCS emulator";

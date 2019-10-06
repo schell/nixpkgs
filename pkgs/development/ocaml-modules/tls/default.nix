@@ -1,36 +1,37 @@
-{ stdenv, buildOcaml, fetchFromGitHub, findlib, ocamlbuild, ocaml_oasis
-, ppx_tools, ppx_sexp_conv, result, x509, nocrypto, cstruct, ounit
+{ stdenv, fetchFromGitHub, ocaml, findlib, ocamlbuild, topkg
+, ppx_sexp_conv, result, x509, nocrypto, cstruct-sexp, ppx_cstruct, cstruct-unix, ounit
 , lwt     ? null}:
 
 with stdenv.lib;
 
 let withLwt = lwt != null; in
 
-buildOcaml rec {
-  version = "0.7.1";
-  name = "tls";
+if !versionAtLeast ocaml.version "4.04"
+then throw "tls is not available for OCaml ${ocaml.version}"
+else
 
-  minimunSupportedOcamlVersion = "4.02";
+stdenv.mkDerivation rec {
+  version = "0.10.4";
+  name = "ocaml${ocaml.version}-tls-${version}";
 
   src = fetchFromGitHub {
     owner  = "mirleft";
     repo   = "ocaml-tls";
-    rev    = "${version}";
-    sha256 = "19q2hzxiasz9pzczgb63kikg0mc9mw98dfvch5falf2rincycj24";
+    rev    = version;
+    sha256 = "02wv4lia583imn3sfci4nqv6ac5nzig5j3yfdnlqa0q8bp9rfc6g";
   };
 
-  buildInputs = [ ocamlbuild findlib ocaml_oasis ppx_sexp_conv ounit ];
-  propagatedBuildInputs = [ cstruct nocrypto result x509 ] ++
+  buildInputs = [ ocaml ocamlbuild findlib topkg ppx_sexp_conv ppx_cstruct ]
+  ++ optionals doCheck [ ounit cstruct-unix ];
+  propagatedBuildInputs = [ cstruct-sexp nocrypto result x509 ] ++
                           optional withLwt lwt;
 
-  configureFlags = [ "--disable-mirage" "--enable-tests" ] ++
-                   optional withLwt ["--enable-lwt"];
+  buildPhase = "${topkg.run} build --tests ${boolToString doCheck} --with-mirage false --with-lwt ${boolToString withLwt}";
 
-  configurePhase = "./configure --prefix $out $configureFlags";
+  doCheck = versionAtLeast ocaml.version "4.06";
+  checkPhase = "${topkg.run} test";
 
-  doCheck = true;
-  checkTarget = "test";
-  createFindlibDestdir = true;
+  inherit (topkg) installPhase;
 
   meta = with stdenv.lib; {
     homepage = https://github.com/mirleft/ocaml-tls;

@@ -1,31 +1,38 @@
-{stdenv, fetchurl
-, automake, autoconf, libtool, which, gtkdoc, gettext, pkgconfig, gobjectIntrospection, libxslt
-, glib, systemd, libusb1, vala_0_23
+{ stdenv, fetchurl, meson, ninja, pkgconfig, gettext, gobject-introspection
+, gtk-doc, docbook_xsl, docbook_xml_dtd_412, docbook_xml_dtd_44
+, glib, systemd, libusb1, vala, hwdata
 }:
 stdenv.mkDerivation rec {
-  name = "gusb-${version}";
-  version = "0.2.9";
-  enableParallelBuilding = true;
+  pname = "gusb";
+  version = "0.3.0";
+
+  outputs = [ "bin" "out" "dev" "devdoc" ];
 
   src = fetchurl {
-    url = "http://people.freedesktop.org/~hughsient/releases/libgusb-${version}.tar.xz";
-    sha256 = "056yxlppgycsfw1l8c9j6givk1n15jylhvx89wqhsxdi1b6vs83k";
+    url = "https://people.freedesktop.org/~hughsient/releases/libgusb-${version}.tar.xz";
+    sha256 = "1p4f6jdjw6zl986f93gzdjg2hdcn5dlz6rcckcz4rbmnk47rbryq";
   };
 
-  preConfigure = "./autogen.sh";
-
-  buildInputs = [
-    pkgconfig autoconf automake libtool which gtkdoc gettext gobjectIntrospection libxslt
-    systemd vala_0_23 glib
+  nativeBuildInputs = [
+    meson ninja pkgconfig gettext
+    gtk-doc docbook_xsl docbook_xml_dtd_412 docbook_xml_dtd_44
+    gobject-introspection vala
   ];
+  buildInputs = [ systemd glib ];
 
   propagatedBuildInputs = [ libusb1 ];
 
-  meta = {
+  mesonFlags = [
+    "-Dusb_ids=${hwdata}/share/hwdata/usb.ids"
+  ];
+
+  doCheck = false; # tests try to access USB
+
+  meta = with stdenv.lib; {
     description = "GLib libusb wrapper";
-    homepage = http://people.freedesktop.org/~hughsient/releases/;
-    license = stdenv.lib.licenses.lgpl21;
-    maintainers = [stdenv.lib.maintainers.marcweber];
-    platforms = stdenv.lib.platforms.linux;
+    homepage = https://github.com/hughsie/libgusb;
+    license = licenses.lgpl21;
+    maintainers = [ maintainers.marcweber ];
+    platforms = platforms.unix;
   };
 }

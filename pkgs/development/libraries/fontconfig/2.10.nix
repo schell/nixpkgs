@@ -1,4 +1,5 @@
-{ stdenv, fetchurl, pkgconfig, freetype, expat }:
+{ stdenv, fetchurl, pkgconfig, freetype, expat
+}:
 
 stdenv.mkDerivation rec {
   name = "fontconfig-2.10.2";
@@ -11,23 +12,18 @@ stdenv.mkDerivation rec {
   outputs = [ "bin" "dev" "lib" "out" ]; # $out contains all the config
 
   propagatedBuildInputs = [ freetype ];
-  buildInputs = [ pkgconfig expat ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ expat ];
 
   configureFlags = [
+    "--with-arch=${stdenv.hostPlatform.parsed.cpu.name}"
     "--sysconfdir=/etc"
     "--with-cache-dir=/var/cache/fontconfig"
     "--disable-docs"
     "--with-default-fonts="
+  ] ++ stdenv.lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    "--with-arch=${stdenv.hostPlatform.parsed.cpu.name}"
   ];
-
-  # We should find a better way to access the arch reliably.
-  crossArch = stdenv.cross.arch or null;
-
-  preConfigure = ''
-    if test -n "$crossConfig"; then
-      configureFlags="$configureFlags --with-arch=$crossArch";
-    fi
-  '';
 
   enableParallelBuilding = true;
 

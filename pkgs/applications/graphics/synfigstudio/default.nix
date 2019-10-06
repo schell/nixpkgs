@@ -1,12 +1,12 @@
-{ stdenv, fetchFromGitHub, boost, cairo, fontsConf, gettext, glibmm, gtk3, gtkmm3
-, libjack2, libsigcxx, libtool, libxmlxx, makeWrapper, mlt-qt5, pango, pkgconfig
-, imagemagick, intltool, autoreconfHook, which, defaultIconTheme
+{ stdenv, fetchFromGitHub, boost, cairo, gettext, glibmm, gtk3, gtkmm3
+, libjack2, libsigcxx, libxmlxx, makeWrapper, mlt-qt5, pango, pkgconfig
+, imagemagick, intltool, autoreconfHook, which, gnome3
 }:
 
 let
   version = "1.0.2";
 
-  ETL = stdenv.mkDerivation rec {
+  ETL = stdenv.mkDerivation {
     name = "ETL-0.04.19";
 
     src = fetchFromGitHub {
@@ -18,11 +18,12 @@ let
 
     postUnpack = "sourceRoot=\${sourceRoot}/ETL/";
 
-    buildInputs = [ autoreconfHook ];
+    nativeBuildInputs = [ autoreconfHook ];
   };
 
-  synfig = stdenv.mkDerivation rec {
-    name = "synfig-${version}";
+  synfig = stdenv.mkDerivation {
+    pname = "synfig";
+    inherit version;
 
     src = fetchFromGitHub {
        repo   = "synfig";
@@ -38,14 +39,17 @@ let
       "--with-boost-libdir=${boost.out}/lib"
     ];
 
+    nativeBuildInputs = [ pkgconfig autoreconfHook gettext ];
     buildInputs = [
-      ETL boost cairo gettext glibmm mlt-qt5 libsigcxx libxmlxx pango
-      pkgconfig autoreconfHook
+      ETL boost cairo glibmm mlt-qt5 libsigcxx libxmlxx pango
     ];
+
+    meta.broken = true;
   };
 in
-stdenv.mkDerivation rec {
-  name = "synfigstudio-${version}";
+stdenv.mkDerivation {
+  pname = "synfigstudio";
+  inherit version;
 
   src = fetchFromGitHub {
      repo   = "synfig";
@@ -99,10 +103,11 @@ stdenv.mkDerivation rec {
 
   preConfigure = "./bootstrap.sh";
 
+  nativeBuildInputs = [ pkgconfig autoreconfHook gettext ];
   buildInputs = [
-    ETL boost cairo gettext glibmm gtk3 gtkmm3 imagemagick intltool
-    libjack2 libsigcxx libxmlxx makeWrapper mlt-qt5 pkgconfig
-    synfig autoreconfHook which defaultIconTheme
+    ETL boost cairo glibmm gtk3 gtkmm3 imagemagick intltool
+    libjack2 libsigcxx libxmlxx makeWrapper mlt-qt5
+    synfig which gnome3.adwaita-icon-theme
   ];
 
   postInstall = ''

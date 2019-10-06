@@ -1,29 +1,34 @@
-{ stdenv, lib, libXcomposite, libgnome_keyring, makeWrapper, udev, curl, alsaLib
-, libXfixes, atk, gtk2, libXrender, pango, gnome2, cairo, freetype, fontconfig
-, libX11, libXi, libXext, libXcursor, glib, libXScrnSaver, libxkbfile, libXtst
-, nss, nspr, cups, fetchurl, expat, gdk_pixbuf, libXdamage, libXrandr, dbus
-, dpkg, makeDesktopItem
+{ stdenv, libXcomposite, libgnome-keyring, makeWrapper, udev, curl, alsaLib
+, libXfixes, atk, gtk3, libXrender, pango, gnome3, cairo, freetype, fontconfig
+, libX11, libXi, libxcb, libXext, libXcursor, glib, libXScrnSaver, libxkbfile, libXtst
+, nss, nspr, cups, fetchurl, expat, gdk-pixbuf, libXdamage, libXrandr, dbus
+, dpkg, makeDesktopItem, openssl, wrapGAppsHook, hicolor-icon-theme, at-spi2-atk, libuuid
+, e2fsprogs, krb5
 }:
 
 with stdenv.lib;
 
+let
+  curlWithGnuTls = curl.override { gnutlsSupport = true; sslSupport = false; };
+in
 stdenv.mkDerivation rec {
-  name = "gitkraken-${version}";
-  version = "2.6.0";
+  pname = "gitkraken";
+  version = "6.2.1";
 
   src = fetchurl {
-    url = "https://release.gitkraken.com/linux/v${version}.deb";
-    sha256 = "1msdwqp20pwaxv1a6maqb7wmaq00m8jpdga7fmbjcnpvkcdz49l7";
+    url = "https://release.axocdn.com/linux/GitKraken-v${version}.deb";
+    sha256 = "1l1w8gr4ss0g2k7bfslnc7df4ls1av59jjjc8mrx97wsndrm3vxg";
   };
 
   libPath = makeLibraryPath [
     stdenv.cc.cc.lib
-    curl
+    curlWithGnuTls
     udev
     libX11
     libXext
     libXcursor
     libXi
+    libxcb
     glib
     libXScrnSaver
     libxkbfile
@@ -33,7 +38,7 @@ stdenv.mkDerivation rec {
     cups
     alsaLib
     expat
-    gdk_pixbuf
+    gdk-pixbuf
     dbus
     libXdamage
     libXrandr
@@ -45,48 +50,55 @@ stdenv.mkDerivation rec {
     libXcomposite
     libXfixes
     libXrender
-    gtk2
-    gnome2.GConf
-    libgnome_keyring
+    gtk3
+    libgnome-keyring
+    openssl
+    at-spi2-atk
+    libuuid
+    e2fsprogs
+    krb5
   ];
-
-  nativeBuildInputs = [ makeWrapper ];
-
-  dontBuild = true;
 
   desktopItem = makeDesktopItem {
     name = "gitkraken";
     exec = "gitkraken";
-    icon = "app";
+    icon = "gitkraken";
     desktopName = "GitKraken";
     genericName = "Git Client";
     categories = "Application;Development;";
     comment = "Graphical Git client from Axosoft";
   };
 
-  buildInputs = [ dpkg ];
+  nativeBuildInputs = [ makeWrapper wrapGAppsHook ];
+  buildInputs = [ dpkg gtk3 gnome3.adwaita-icon-theme hicolor-icon-theme ];
 
-  unpackPhase = "dpkg-deb -x $src .";
+  unpackCmd = ''
+    mkdir out
+    dpkg -x $curSrc out
+  '';
 
   installPhase = ''
-    mkdir -p "$out/opt/gitkraken"
-    cp -r usr/share/gitkraken/* "$out/opt/gitkraken"
+    mkdir $out
+    pushd usr
+    pushd share
+    substituteInPlace applications/gitkraken.desktop \
+      --replace /usr/share/gitkraken $out/bin
+    popd
+    rm -rf bin/gitkraken share/lintian
+    cp -av share bin $out/
+    popd
 
-    mkdir -p "$out/share/applications"
-    cp $desktopItem/share/applications/* "$out/share/applications"
-
-    mkdir -p "$out/share/pixmaps"
-    cp usr/share/pixmaps/app.png "$out/share/pixmaps"
+    ln -s $out/share/gitkraken/gitkraken $out/bin/gitkraken
   '';
 
   postFixup = ''
-    patchelf --set-interpreter $(cat $NIX_CC/nix-support/dynamic-linker) \
-             --set-rpath "$libPath:$out/opt/gitkraken" "$out/opt/gitkraken/gitkraken"
-    wrapProgram $out/opt/gitkraken/gitkraken \
-      --prefix LD_PRELOAD : "${makeLibraryPath [ curl ]}/libcurl.so.4" \
-      --prefix LD_PRELOAD : "${makeLibraryPath [ libgnome_keyring ]}/libgnome-keyring.so.0"
-    mkdir "$out/bin"
-    ln -s "$out/opt/gitkraken/gitkraken" "$out/bin/gitkraken"
+    pushd $out/share/gitkraken
+    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" gitkraken
+
+    for file in $(find . -type f \( -name \*.node -o -name gitkraken -o -name \*.so\* \) ); do
+      patchelf --set-rpath ${libPath}:$out/share/gitkraken $file || true
+    done
+    popd
   '';
 
   meta = {
@@ -94,6 +106,6 @@ stdenv.mkDerivation rec {
     description = "The downright luxurious and most popular Git client for Windows, Mac & Linux";
     license = licenses.unfree;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ xnwdd ];
+    maintainers = with maintainers; [ xnwdd evanjs ];
   };
 }

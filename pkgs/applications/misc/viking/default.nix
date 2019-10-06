@@ -1,18 +1,21 @@
 { fetchurl, stdenv, makeWrapper, pkgconfig, intltool, gettext, gtk2, expat, curl
-, gpsd, bc, file, gnome_doc_utils, libexif, libxml2, libxslt, scrollkeeper
-, docbook_xml_dtd_412, gexiv2, sqlite, gpsbabel, expect }:
+, gpsd, bc, file, gnome-doc-utils, libexif, libxml2, libxslt, scrollkeeper
+, docbook_xml_dtd_412, gexiv2, sqlite, gpsbabel, expect, hicolor-icon-theme
+, geoclue2, liboauth, nettle }:
 
 stdenv.mkDerivation rec {
-  name = "viking-${version}";
-  version = "1.6.2";
+  pname = "viking";
+  version = "1.7";
 
   src = fetchurl {
     url = "mirror://sourceforge/viking/viking/viking-${version}.tar.bz2";
-    sha256 = "09kq0sxs2czps0d6xzgkkp41746v44ip63m72qvfs7rsrnqj7qnz";
+    sha256 = "092q2dv0rcz12nh2js1z1ralib1553dmzy9pdrvz9nv2vf61wybw";
   };
 
-  buildInputs = [ makeWrapper pkgconfig intltool gettext gtk2 expat curl gpsd bc file gnome_doc_utils
-    libexif libxml2 libxslt scrollkeeper docbook_xml_dtd_412 gexiv2 sqlite
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ makeWrapper intltool gettext gtk2 expat curl gpsd bc file gnome-doc-utils
+    libexif libxml2 libxslt scrollkeeper docbook_xml_dtd_412 gexiv2 sqlite hicolor-icon-theme
+    geoclue2 liboauth nettle
   ];
 
   configureFlags = [ "--disable-scrollkeeper --disable-mapnik" ];
@@ -40,7 +43,7 @@ stdenv.mkDerivation rec {
       on the map, make new tracks and waypoints, see real-time GPS
       position, etc.
     '';
-    homepage = http://viking.sourceforge.net/;
+    homepage = https://sourceforge.net/projects/viking/;
     license = licenses.gpl2Plus;
     maintainers = with maintainers; [ pSub ];
     platforms = with platforms; linux;

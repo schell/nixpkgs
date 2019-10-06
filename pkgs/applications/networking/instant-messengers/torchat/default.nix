@@ -1,7 +1,7 @@
 { stdenv, fetchurl, python, unzip, wxPython, wrapPython, tor }:
 stdenv.mkDerivation rec {
 
-  name = "torchat-${version}";
+  pname = "torchat";
   version = "0.9.9.553";
 
   src = fetchurl {
@@ -33,6 +33,5 @@ stdenv.mkDerivation rec {
     license = licenses.gpl3;
     maintainers = [ maintainers.phreedom ];
     platforms = platforms.unix;
-    broken = true;
   };
 }

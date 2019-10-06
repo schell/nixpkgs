@@ -1,7 +1,7 @@
 { stdenv, fetchurl, libgcrypt, libnl, pkgconfig, python2Packages, wireless-regdb }:
 
 stdenv.mkDerivation rec {
-  name = "crda-${version}";
+  pname = "crda";
   version = "3.18";
 
   src = fetchurl {
@@ -29,6 +29,8 @@ stdenv.mkDerivation rec {
     "REG_BIN=${wireless-regdb}/lib/crda/regulatory.bin"
   ];
 
+  NIX_CFLAGS_COMPILE = "-Wno-error=unused-const-variable";
+
   buildFlags = [ "all_noverify" ];
   enableParallelBuilding = true;
 
@@ -51,6 +53,5 @@ stdenv.mkDerivation rec {
     homepage = http://drvbp1.linux-foundation.org/~mcgrof/rel-html/crda/;
     license = licenses.free; # "copyleft-next 0.3.0", as yet without a web site
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

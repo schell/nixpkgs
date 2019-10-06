@@ -1,29 +1,28 @@
 { stdenv, fetchFromGitHub, pythonPackages, wrapGAppsHook
-, gst_all_1, glib_networking, gobjectIntrospection
+, gst_all_1, glib-networking, gobject-introspection
 }:
 
 pythonPackages.buildPythonApplication rec {
-  name = "mopidy-${version}";
-
-  version = "2.1.0";
+  pname = "mopidy";
+  version = "2.2.3";
 
   src = fetchFromGitHub {
     owner = "mopidy";
     repo = "mopidy";
     rev = "v${version}";
-    sha256 = "0krq5fbscqxayyc4vxai7iwxm2kdbgs5jicrdb013v04phw2za06";
+    sha256 = "0i9rpnlmgrnkgmr9hyx9sky9gzj2cjhay84a0yaijwcb9nmr8nnc";
   };
 
   nativeBuildInputs = [ wrapGAppsHook ];
 
   buildInputs = with gst_all_1; [
     gst-plugins-base gst-plugins-good gst-plugins-ugly gst-plugins-bad
-    glib_networking gobjectIntrospection
+    glib-networking gobject-introspection
   ];
 
   propagatedBuildInputs = with pythonPackages; [
-    gst-python pygobject3 pykka tornado requests dbus-python
-  ];
+    gst-python pygobject3 pykka tornado_4 requests setuptools
+  ] ++ stdenv.lib.optional (!stdenv.isDarwin) dbus-python;
 
   # There are no tests
   doCheck = false;
@@ -33,13 +32,13 @@ pythonPackages.buildPythonApplication rec {
   '';
 
   meta = with stdenv.lib; {
-    homepage = http://www.mopidy.com/;
+    homepage = https://www.mopidy.com/;
     description = ''
       An extensible music server that plays music from local disk, Spotify,
       SoundCloud, Google Play Music, and more
     '';
     license = licenses.asl20;
-    maintainers = with maintainers; [ rickynils fpletz ];
+    maintainers = [ maintainers.fpletz ];
     hydraPlatforms = [];
   };
 }

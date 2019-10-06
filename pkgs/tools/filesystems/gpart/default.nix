@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, autoreconfHook }:
 
 stdenv.mkDerivation rec {
-  name = "gpart-${version}";
+  pname = "gpart";
   version = "0.3";
 
   # GitHub repository 'collating patches for gpart from all distributions':
@@ -28,7 +28,6 @@ stdenv.mkDerivation rec {
       or device.
     '';
     license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ nckx ];
     platforms = platforms.linux;
   };
 }

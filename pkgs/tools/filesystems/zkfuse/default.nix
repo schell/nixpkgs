@@ -1,12 +1,13 @@
-{ stdenv, lib, zookeeper, zookeeper_mt, fuse, pkgconfig, autoreconfHook, log4cxx, boost, tree }:
+{ stdenv, lib, zookeeper, zookeeper_mt, fuse, autoreconfHook, log4cxx, boost }:
 
-stdenv.mkDerivation rec {
-  name = "zkfuse-${version}";
+stdenv.mkDerivation {
+  pname = "zkfuse";
   inherit (zookeeper) version src;
 
   sourceRoot = "${zookeeper.name}/src/contrib/zkfuse";
 
-  buildInputs = [ autoreconfHook zookeeper_mt log4cxx boost fuse ];
+  nativeBuildInputs = [ autoreconfHook ];
+  buildInputs = [ zookeeper_mt log4cxx boost fuse ];
 
   installPhase = ''
     mkdir -p $out/bin
@@ -16,5 +17,6 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     platforms = platforms.linux;
     maintainers = with maintainers; [ cstrahan ];
+    license = licenses.asl20;
   };
 }

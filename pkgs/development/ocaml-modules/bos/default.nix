@@ -1,25 +1,23 @@
-{ stdenv, fetchurl, ocaml, findlib, ocamlbuild, opam, topkg
+{ stdenv, fetchurl, ocaml, findlib, ocamlbuild, topkg
 , astring, fmt, fpath, logs, rresult
 }:
 
 stdenv.mkDerivation rec {
 	name = "ocaml${ocaml.version}-bos-${version}";
-	version = "0.1.4";
+	version = "0.2.0";
 	src = fetchurl {
-		url = "http://erratique.ch/software/bos/releases/bos-${version}.tbz";
-		sha256 = "1ly66lysk4w6mdy4k1n3ynlpfpq7lw4wshcpzgx58v6x613w5s7q";
+		url = "https://erratique.ch/software/bos/releases/bos-${version}.tbz";
+		sha256 = "1s10iqx8rgnxr5n93lf4blwirjf8nlm272yg5sipr7lsr35v49wc";
 	};
 
-	unpackCmd = "tar xjf $src";
-
-	buildInputs = [ ocaml findlib ocamlbuild opam topkg ];
+	buildInputs = [ ocaml findlib ocamlbuild topkg ];
 	propagatedBuildInputs = [ astring fmt fpath logs rresult ];
 
 	inherit (topkg) buildPhase installPhase;
 
 	meta = {
 		description = "Basic OS interaction for OCaml";
-		homepage = http://erratique.ch/software/bos;
+		homepage = https://erratique.ch/software/bos;
 		license = stdenv.lib.licenses.isc;
 		maintainers = [ stdenv.lib.maintainers.vbgl ];
 		inherit (ocaml.meta) platforms;

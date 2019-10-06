@@ -9,7 +9,7 @@ let
     if isx86_64 then "64bit"
     else
     if isi686 then "32bit"
-    else abort "${system} not considered in build derivation. Might still be supported.";
+    else throw "${system} not considered in build derivation. Might still be supported.";
 
 in
   stdenv.mkDerivation {
@@ -17,7 +17,8 @@ in
       url = "http://www.sundtek.de/media/netinst/${platform}/installer.tar.gz";
       sha256 = "15y6r5w306pcq4g1rn9f7vf70f3a7qhq237ngaf0wxh2nr0aamxp";
     };
-    name = "sundtek-${version}";
+    pname = "sundtek";
+    inherit version;
 
     phases = [ "unpackPhase" "installPhase" "fixupPhase" ];
 
@@ -45,6 +46,6 @@ in
       maintainers = [ maintainers.simonvandel ];
       platforms = platforms.unix;
       license = licenses.unfree;
-      homepage = "http://support.sundtek.com/index.php/topic,1573.0.html";
+      homepage = http://support.sundtek.com/index.php/topic,1573.0.html;
     };
   }

@@ -1,11 +1,11 @@
 { stdenv, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "orc-0.4.26";
+  name = "orc-0.4.29";
 
   src = fetchurl {
-    url = "http://gstreamer.freedesktop.org/src/orc/${name}.tar.xz";
-    sha256 = "0jd69ynvr3k70mlxxgbsk047l1rd63m1wkj3qdcq7644xy0gllkx";
+    url = "https://gstreamer.freedesktop.org/src/orc/${name}.tar.xz";
+    sha256 = "1cisbbn69p9c8vikn0nin14q0zscby5m8cyvzxyw2pjb2kwh32ag";
   };
 
   outputs = [ "out" "dev" ];
@@ -15,17 +15,16 @@ stdenv.mkDerivation rec {
     sed "/^toolsdir=/ctoolsdir=$dev/bin" -i "$dev"/lib/pkgconfig/orc*.pc
   '';
 
-  # building memcpy_speed.log
-  # ../test-driver: line 107:  4495 Segmentation fault      "$@" > $log_file 2>&1
-  # FAIL: memcpy_speed
-  doCheck = false; # see https://bugzilla.gnome.org/show_bug.cgi?id=728129#c7
+  # i686   https://gitlab.freedesktop.org/gstreamer/orc/issues/18
+  # armv7l https://gitlab.freedesktop.org/gstreamer/orc/issues/9
+  doCheck = (!stdenv.hostPlatform.isi686 && !stdenv.hostPlatform.isAarch32);
 
   meta = with stdenv.lib; {
     description = "The Oil Runtime Compiler";
-    homepage = "http://code.entropywave.com/orc/";
+    homepage = https://gstreamer.freedesktop.org/projects/orc.html;
     # The source code implementing the Marsenne Twister algorithm is licensed
     # under the 3-clause BSD license. The rest is 2-clause BSD license.
-    license = licenses.bsd3;
+    license = with licenses; [ bsd3 bsd2 ];
     platforms = platforms.unix;
     maintainers = [ maintainers.fuuzetsu ];
   };

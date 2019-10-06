@@ -2,22 +2,21 @@
 , pkgconfig }:
 
 stdenv.mkDerivation rec {
-  name = "libast-${version}";
-  version = "0.7";
-  
+  pname = "libast";
+  version = "0.7.1";
+
   src = fetchurl {
-    url = "http://www.eterm.org/download/${name}.tar.gz";
+    url = "http://www.eterm.org/download/${pname}-${version}.tar.gz";
     sha256 = "1w7bs46r4lykfd83kc3bg9i1rxzzlb4ydk23ikf8mx8avz05q1aj";
   };
 
-  buildInputs = [ pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
 
   meta = with stdenv.lib; {
     description = "Library of Assorted Spiffy Things";
-    homepage = "http://www.eterm.org";
+    homepage = https://www.eterm.org;
     license = licenses.bsd2;
     maintainers = [ maintainers.AndersonTorres ];
     platforms = platforms.unix;
   };
 }
-

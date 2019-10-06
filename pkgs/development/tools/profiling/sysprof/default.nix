@@ -1,21 +1,60 @@
-{ fetchurl, stdenv, binutils
-, pkgconfig, gtk2, glib, pango, libglade }:
+{ stdenv
+, desktop-file-utils
+, fetchurl
+, gettext
+, glib
+, gtk3
+, itstool
+, libdazzle
+, libxml2
+, meson, ninja
+, pango
+, pkgconfig
+, polkit
+, shared-mime-info
+, systemd
+, wrapGAppsHook
+, gnome3
+}:
 
 stdenv.mkDerivation rec {
-  name = "sysprof-1.2.0";
+  pname = "sysprof";
+  version = "3.34.0";
+
+  outputs = [ "out" "lib" "dev" ];
 
   src = fetchurl {
-    url = "http://www.sysprof.com/sysprof-1.2.0.tar.gz";
-    sha256 = "1wb4d844rsy8qjg3z5m6rnfm72da4xwzrrkkb1q5r10sq1pkrw5s";
+    url = "mirror://gnome/sources/${pname}/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "0b7rpwvs5wckiy418vs0d4i62wafpcx1zlspw39ag50d1sjcbv58";
   };
 
-  buildInputs = [ binutils pkgconfig gtk2 glib pango libglade ];
+  nativeBuildInputs = [
+    desktop-file-utils
+    gettext
+    itstool
+    libxml2
+    meson
+    ninja
+    pkgconfig
+    shared-mime-info
+    wrapGAppsHook
+    gnome3.adwaita-icon-theme
+  ];
+  buildInputs = [ glib gtk3 pango polkit systemd.dev systemd.lib libdazzle ];
 
-  meta = {
-    homepage = http://sysprof.com/;
+  mesonFlags = [
+    "-Dsystemdunitdir=lib/systemd/system"
+  ];
+
+  passthru = {
+    updateScript = gnome3.updateScript {
+      packageName = pname;
+    };
+  };
+
+  meta = with stdenv.lib; {
     description = "System-wide profiler for Linux";
-    license = stdenv.lib.licenses.gpl2Plus;
-
+    homepage = https://wiki.gnome.org/Apps/Sysprof;
     longDescription = ''
       Sysprof is a sampling CPU profiler for Linux that uses the perf_event_open
       system call to profile the entire system, not just a single
@@ -23,6 +62,8 @@ stdenv.mkDerivation rec {
       do not need to be recompiled.  In fact they don't even have to
       be restarted.
     '';
-    platforms = stdenv.lib.platforms.linux;
+    license = licenses.gpl2Plus;
+    maintainers = gnome3.maintainers;
+    platforms = platforms.linux;
   };
 }

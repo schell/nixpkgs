@@ -2,12 +2,12 @@
   pkgconfig, c-ares }:
 
 stdenv.mkDerivation rec {
-  name = "quagga-${version}";
-  version = "1.2.0";
+  pname = "quagga";
+  version = "1.2.4";
 
   src = fetchurl {
-    url = "mirror://savannah/quagga/${name}.tar.gz";
-    sha256 = "1qyw675hrs3f67zprdbyw91wldmyihv97ibn1f99ypcp6x6n8hqh";
+    url = "mirror://savannah/quagga/${pname}-${version}.tar.gz";
+    sha256 = "1lsksqxij5f1llqn86pkygrf5672kvrqn1kvxghi169hqf1c0r73";
   };
 
   buildInputs =
@@ -65,7 +65,7 @@ stdenv.mkDerivation rec {
       It is more than a routed replacement, it can be used as a Route Server and
       a Route Reflector.
     '';
-    homepage = http://www.nongnu.org/quagga/;
+    homepage = https://www.nongnu.org/quagga/;
     license = licenses.gpl2;
     platforms = platforms.unix;
     maintainers = with maintainers; [ tavyc ];

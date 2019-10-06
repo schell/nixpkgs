@@ -1,22 +1,22 @@
 { stdenv, fetchFromGitHub }:
 
 stdenv.mkDerivation rec {
-  name = "shaarli-material-${version}";
-  version = "0.8.3";
+  pname = "shaarli-material";
+  version = "0.10.4";
 
   src = fetchFromGitHub {
     owner = "kalvn";
     repo = "Shaarli-Material";
     rev = "v${version}";
-    sha256 = "0ivq35183r5vyzvf47sgxwdxllmvhd5w9w75xgyp3kbw2na4yrmr";
+    sha256 = "161kf7linyl2l2d7y60v96xz3fwa572fqm1vbm58mjgkzkfndhrv";
   };
 
   patchPhase = ''
     for f in material/*.html
     do
       substituteInPlace $f \
-        --replace '.min.css"' '.min.css#"' \
-        --replace '.min.js"'  '.min.js#"' \
+        --replace '.min.css?v={$version_hash}"' '.min.css#"' \
+        --replace '.min.js?v={$version_hash}"'  '.min.js#"' \
         --replace '.png"'     '.png#"'
     done
   '';

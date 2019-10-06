@@ -1,9 +1,9 @@
 { stdenv, fetchsvn, nettools, libgcrypt, openssl, openresolv, perl, gawk, makeWrapper }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "vpnc-0.5.3-post-r550";
   src = fetchsvn {
-    url = "http://svn.unix-ag.uni-kl.de/vpnc";
+    url = "https://svn.unix-ag.uni-kl.de/vpnc";
     rev = "550";
     sha256 = "0x4ckfv9lpykwmh28v1kyzz91y1j2v48fi8q5nsawrba4q0wlrls";
   };
@@ -48,7 +48,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    homepage = "http://www.unix-ag.uni-kl.de/~massar/vpnc/";
+    homepage = https://www.unix-ag.uni-kl.de/~massar/vpnc/;
     description = "Virtual private network (VPN) client for Cisco's VPN concentrators";
     license = stdenv.lib.licenses.gpl2Plus;
 

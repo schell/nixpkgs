@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub, zlib, cmake }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "minisat-unstable-2013-09-25";
 
   src = fetchFromGitHub {
@@ -18,6 +18,6 @@ stdenv.mkDerivation rec {
     maintainers = with maintainers; [ mic92 ];
     platforms = platforms.unix;
     license = licenses.mit;
-    homepage = "http://minisat.se/";
+    homepage = http://minisat.se/;
   };
 }

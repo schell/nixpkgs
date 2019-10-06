@@ -1,10 +1,10 @@
-{ mkDerivation 
+{ mkDerivation
 , fetchFromGitHub
 }:
 
-mkDerivation rec {
-  name = "compyte-${version}";
-  version = "git-20150817"; 
+mkDerivation {
+  pname = "compyte";
+  version = "git-20150817";
 
   src = fetchFromGitHub {
     owner = "inducer";
@@ -13,7 +13,7 @@ mkDerivation rec {
     sha256 = "1980h017qi52b7fqwm75m481xs2napgdd3fbrzkfc29k085cbign";
   };
 
-  installPhase = '' 
+  installPhase = ''
     mkdir -p $out
     cp -r * $out
   '';

@@ -43,17 +43,17 @@ stageFuns: let
 
   /* "dfold" a ternary function `op' between successive elements of `list' as if
      it was a doubly-linked list with `lnul' and `rnul` base cases at either
-     end. In precise terms, `fold op lnul rnul [x_0 x_1 x_2 ... x_n-1]` is the
+     end. In precise terms, `dfold op lnul rnul [x_0 x_1 x_2 ... x_n-1]` is the
      same as
 
        let
-         f_-1  = lnul;
+         f_-1  = lnul f_0;
          f_0   = op f_-1   x_0  f_1;
          f_1   = op f_0    x_1  f_2;
          f_2   = op f_1    x_2  f_3;
          ...
          f_n   = op f_n-1  x_n  f_n+1;
-         f_n+1 = rnul;
+         f_n+1 = rnul f_n;
        in
          f_0
   */
@@ -62,18 +62,20 @@ stageFuns: let
       len = builtins.length list;
       go = pred: n:
         if n == len
-        then rnul
+        then rnul pred
         else let
           # Note the cycle -- call-by-need ensures finite fold.
           cur  = op pred (builtins.elemAt list n) succ;
           succ = go cur (n + 1);
         in cur;
-    in go lnul 0;
+      lapp = lnul cur;
+      cur = go lapp 0;
+    in cur;
 
   # Take the list and disallow custom overrides in all but the final stage,
   # and allow it in the final flag. Only defaults this boolean field if it
   # isn't already set.
-  withAllowCustomOverrides = lib.lists.imap
+  withAllowCustomOverrides = lib.lists.imap1
     (index: stageFun: prevStage:
       # So true by default for only the first element because one
       # 1-indexing. Since we reverse the list, this means this is true
@@ -93,12 +95,35 @@ stageFuns: let
         __hatPackages = nextStage;
       };
     };
-  in
-    if args.__raw or false
-    then args'
-    else allPackages ((builtins.removeAttrs args' ["selfBuild"]) // {
-      buildPackages = if args.selfBuild or true then null else prevStage;
-      __targetPackages = if args.selfBuild or true then null else nextStage;
-    });
+    thisStage =
+      if args.__raw or false
+      then args'
+      else allPackages ((builtins.removeAttrs args' ["selfBuild"]) // {
+        adjacentPackages = if args.selfBuild or true then null else rec {
+          pkgsBuildBuild = prevStage.buildPackages;
+          pkgsBuildHost = prevStage;
+          pkgsBuildTarget =
+            if args.stdenv.targetPlatform == args.stdenv.hostPlatform
+            then pkgsBuildHost
+            else assert args.stdenv.hostPlatform == args.stdenv.buildPlatform; thisStage;
+          pkgsHostHost =
+            if args.stdenv.hostPlatform == args.stdenv.targetPlatform
+            then thisStage
+            else assert args.stdenv.buildPlatform == args.stdenv.hostPlatform; pkgsBuildHost;
+          pkgsTargetTarget = nextStage;
+        };
+      });
+  in thisStage;
 
-in dfold folder {} {} withAllowCustomOverrides
+  # This is a hack for resolving cross-compiled compilers' run-time
+  # deps. (That is, compilers that are themselves cross-compiled, as
+  # opposed to used to cross-compile packages.)
+  postStage = buildPackages: {
+    __raw = true;
+    stdenv.cc =
+      if buildPackages.stdenv.cc.isClang or false
+      then buildPackages.clang
+      else buildPackages.gcc;
+  };
+
+in dfold folder postStage (_: {}) withAllowCustomOverrides

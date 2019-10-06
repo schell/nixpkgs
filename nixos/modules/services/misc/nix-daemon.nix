@@ -8,7 +8,10 @@ let
 
   nix = cfg.package.out;
 
-  isNix112 = versionAtLeast (getVersion nix) "1.12pre";
+  nixVersion = getVersion nix;
+
+  isNix20 = versionAtLeast nixVersion "2.0pre";
+  isNix23 = versionAtLeast nixVersion "2.3pre";
 
   makeNixBuildUser = nr:
     { name = "nixbld${toString nr}";
@@ -26,35 +29,55 @@ let
 
   nixConf =
     let
-      # If we're using sandbox for builds, then provide /bin/sh in
-      # the sandbox as a bind-mount to bash. This means we also need to
-      # include the entire closure of bash.
-      sh = pkgs.stdenv.shell;
+      # In Nix < 2.0, If we're using sandbox for builds, then provide
+      # /bin/sh in the sandbox as a bind-mount to bash. This means we
+      # also need to include the entire closure of bash. Nix >= 2.0
+      # provides a /bin/sh by default.
+      sh = pkgs.runtimeShell;
       binshDeps = pkgs.writeReferencesToFile sh;
     in
-      pkgs.runCommand "nix.conf" {extraOptions = cfg.extraOptions; } ''
-        extraPaths=$(for i in $(cat ${binshDeps}); do if test -d $i; then echo $i; fi; done)
+      pkgs.runCommand "nix.conf" { preferLocalBuild = true; extraOptions = cfg.extraOptions; } (''
+        ${optionalString (!isNix20) ''
+          extraPaths=$(for i in $(cat ${binshDeps}); do if test -d $i; then echo $i; fi; done)
+        ''}
         cat > $out <<END
         # WARNING: this file is generated from the nix.* options in
         # your NixOS configuration, typically
         # /etc/nixos/configuration.nix.  Do not edit it!
         build-users-group = nixbld
-        build-max-jobs = ${toString (cfg.maxJobs)}
-        build-cores = ${toString (cfg.buildCores)}
-        build-use-sandbox = ${if (builtins.isBool cfg.useSandbox) then boolToString cfg.useSandbox else cfg.useSandbox}
-        build-sandbox-paths = ${toString cfg.sandboxPaths} /bin/sh=${sh} $(echo $extraPaths)
-        binary-caches = ${toString cfg.binaryCaches}
-        trusted-binary-caches = ${toString cfg.trustedBinaryCaches}
-        binary-cache-public-keys = ${toString cfg.binaryCachePublicKeys}
+        ${if isNix20 then "max-jobs" else "build-max-jobs"} = ${toString (cfg.maxJobs)}
+        ${if isNix20 then "cores" else "build-cores"} = ${toString (cfg.buildCores)}
+        ${if isNix20 then "sandbox" else "build-use-sandbox"} = ${if (builtins.isBool cfg.useSandbox) then boolToString cfg.useSandbox else cfg.useSandbox}
+        ${if isNix20 then "extra-sandbox-paths" else "build-sandbox-paths"} = ${toString cfg.sandboxPaths} ${optionalString (!isNix20) "/bin/sh=${sh} $(echo $extraPaths)"}
+        ${if isNix20 then "substituters" else "binary-caches"} = ${toString cfg.binaryCaches}
+        ${if isNix20 then "trusted-substituters" else "trusted-binary-caches"} = ${toString cfg.trustedBinaryCaches}
+        ${if isNix20 then "trusted-public-keys" else "binary-cache-public-keys"} = ${toString cfg.binaryCachePublicKeys}
         auto-optimise-store = ${boolToString cfg.autoOptimiseStore}
-        ${optionalString cfg.requireSignedBinaryCaches ''
-          signed-binary-caches = *
+        ${if isNix20 then ''
+          require-sigs = ${if cfg.requireSignedBinaryCaches then "true" else "false"}
+        '' else ''
+          signed-binary-caches = ${if cfg.requireSignedBinaryCaches then "*" else ""}
         ''}
         trusted-users = ${toString cfg.trustedUsers}
         allowed-users = ${toString cfg.allowedUsers}
+        ${optionalString (isNix20 && !cfg.distributedBuilds) ''
+          builders =
+        ''}
+        system-features = ${toString cfg.systemFeatures}
+        ${optionalString isNix23 ''
+          sandbox-fallback = false
+        ''}
         $extraOptions
         END
-      '';
+      '' + optionalString cfg.checkConfig (
+            if pkgs.stdenv.hostPlatform != pkgs.stdenv.buildPlatform then ''
+              echo "Ignore nix.checkConfig when cross-compiling"
+            '' else ''
+              echo "Checking that Nix can read nix.conf..."
+              ln -s $out ./nix.conf
+              NIX_CONF_DIR=$PWD ${cfg.package}/bin/nix show-config ${optionalString isNix23 "--no-net"} >/dev/null
+            '')
+      );
 
 in
 
@@ -76,7 +99,7 @@ in
       };
 
       maxJobs = mkOption {
-        type = types.int;
+        type = types.either types.int (types.enum ["auto"]);
         default = 1;
         example = 64;
         description = ''
@@ -101,11 +124,11 @@ in
 
       buildCores = mkOption {
         type = types.int;
-        default = 1;
+        default = 0;
         example = 64;
         description = ''
           This option defines the maximum number of concurrent tasks during
-          one build. It affects, e.g., -j option for make. The default is 1.
+          one build. It affects, e.g., -j option for make.
           The special value 0 means that the builder should use all
           available CPU cores in the system. Some builds may become
           non-deterministic with this option; use with care! Packages will
@@ -115,14 +138,16 @@ in
 
       useSandbox = mkOption {
         type = types.either types.bool (types.enum ["relaxed"]);
-        default = false;
+        default = true;
         description = "
           If set, Nix will perform builds in a sandboxed environment that it
-          will set up automatically for each build.  This prevents
-          impurities in builds by disallowing access to dependencies
-          outside of the Nix store. This isn't enabled by default for
-          performance. It doesn't affect derivation hashes, so changing
-          this option will not trigger a rebuild of packages.
+          will set up automatically for each build. This prevents impurities
+          in builds by disallowing access to dependencies outside of the Nix
+          store by using network and mount namespaces in a chroot environment.
+          This is enabled by default even though it has a possible performance
+          impact due to the initial setup time of a sandbox for each build. It
+          doesn't affect derivation hashes, so changing this option will not
+          trigger a rebuild of packages.
         ";
       };
 
@@ -189,6 +214,7 @@ in
               sshKey = "/root/.ssh/id_buildfarm";
               system = "x86_64-linux";
               maxJobs = 2;
+              speedFactor = 2;
               supportedFeatures = [ "kvm" ];
               mandatoryFeatures = [ "perf" ];
             }
@@ -252,10 +278,12 @@ in
 
       binaryCaches = mkOption {
         type = types.listOf types.str;
-        default = [ https://cache.nixos.org/ ];
         description = ''
           List of binary cache URLs used to obtain pre-built binaries
           of Nix packages.
+
+          By default https://cache.nixos.org/ is added,
+          to override it use <literal>lib.mkForce []</literal>.
         '';
       };
 
@@ -329,7 +357,8 @@ in
       nixPath = mkOption {
         type = types.listOf types.str;
         default =
-          [ "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos/nixpkgs"
+          [
+            "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
             "nixos-config=/etc/nixos/configuration.nix"
             "/nix/var/nix/profiles/per-user/root/channels"
           ];
@@ -340,6 +369,21 @@ in
         '';
       };
 
+      systemFeatures = mkOption {
+        type = types.listOf types.str;
+        example = [ "kvm" "big-parallel" "gccarch-skylake" ];
+        description = ''
+          The supported features of a machine
+        '';
+      };
+
+      checkConfig = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          If enabled (the default), checks that Nix can parse the generated nix.conf.
+        '';
+      };
     };
 
   };
@@ -350,6 +394,7 @@ in
   config = {
 
     nix.binaryCachePublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+    nix.binaryCaches = [ "https://cache.nixos.org/" ];
 
     environment.etc."nix/nix.conf".source = nixConf;
 
@@ -376,8 +421,9 @@ in
     systemd.sockets.nix-daemon.wantedBy = [ "sockets.target" ];
 
     systemd.services.nix-daemon =
-      { path = [ nix pkgs.openssl.bin pkgs.utillinux config.programs.ssh.package ]
-          ++ optionals cfg.distributedBuilds [ pkgs.gzip ];
+      { path = [ nix pkgs.utillinux config.programs.ssh.package ]
+          ++ optionals cfg.distributedBuilds [ pkgs.gzip ]
+          ++ optionals (!isNix20) [ pkgs.openssl.bin ];
 
         environment = cfg.envVars
           // { CURL_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"; }
@@ -395,10 +441,9 @@ in
       };
 
     nix.envVars =
-      { NIX_CONF_DIR = "/etc/nix";
-      }
+      optionalAttrs (!isNix20) {
+        NIX_CONF_DIR = "/etc/nix";
 
-      // optionalAttrs (!isNix112) {
         # Enable the copy-from-other-stores substituter, which allows
         # builds to be sped up by copying build results from remote
         # Nix stores.  To do this, mount the remote file system on a
@@ -406,51 +451,65 @@ in
         NIX_OTHER_STORES = "/run/nix/remote-stores/*/nix";
       }
 
-      // optionalAttrs cfg.distributedBuilds {
-        NIX_BUILD_HOOK =
-          if isNix112 then
-            "${nix}/libexec/nix/build-remote"
-          else
-            "${nix}/libexec/nix/build-remote.pl";
+      // optionalAttrs (cfg.distributedBuilds && !isNix20) {
+        NIX_BUILD_HOOK = "${nix}/libexec/nix/build-remote.pl";
       };
 
     # Set up the environment variables for running Nix.
     environment.sessionVariables = cfg.envVars //
-      { NIX_PATH = concatStringsSep ":" cfg.nixPath;
+      { NIX_PATH = cfg.nixPath;
       };
 
-    environment.extraInit =
+    environment.extraInit = optionalString (!isNix20)
       ''
         # Set up secure multi-user builds: non-root users build through the
         # Nix daemon.
         if [ "$USER" != root -o ! -w /nix/var/nix/db ]; then
             export NIX_REMOTE=daemon
         fi
+      '' + ''
+        if [ -e "$HOME/.nix-defexpr/channels" ]; then
+          export NIX_PATH="$HOME/.nix-defexpr/channels''${NIX_PATH:+:$NIX_PATH}"
+        fi
       '';
 
-    nix.nrBuildUsers = mkDefault (lib.max 10 cfg.maxJobs);
+    nix.nrBuildUsers = mkDefault (lib.max 32 (if cfg.maxJobs == "auto" then 0 else cfg.maxJobs));
 
-    users.extraUsers = nixbldUsers;
+    users.users = nixbldUsers;
 
     services.xserver.displayManager.hiddenUsers = map ({ name, ... }: name) nixbldUsers;
 
+    # FIXME: use systemd-tmpfiles to create Nix directories.
     system.activationScripts.nix = stringAfter [ "etc" "users" ]
       ''
         # Nix initialisation.
-        mkdir -m 0755 -p \
+        install -m 0755 -d \
           /nix/var/nix/gcroots \
           /nix/var/nix/temproots \
-          /nix/var/nix/manifests \
           /nix/var/nix/userpool \
           /nix/var/nix/profiles \
           /nix/var/nix/db \
-          /nix/var/log/nix/drvs \
-          /nix/var/nix/channel-cache
-        mkdir -m 1777 -p \
+          /nix/var/log/nix/drvs
+        install -m 1777 -d \
           /nix/var/nix/gcroots/per-user \
           /nix/var/nix/profiles/per-user \
           /nix/var/nix/gcroots/tmp
       '';
+
+    nix.systemFeatures = mkDefault (
+      [ "nixos-test" "benchmark" "big-parallel" "kvm" ] ++
+      optionals (pkgs.stdenv.isx86_64 && pkgs.hostPlatform.platform ? gcc.arch) (
+        # a x86_64 builder can run code for `platform.gcc.arch` and minor architectures:
+        [ "gccarch-${pkgs.hostPlatform.platform.gcc.arch}" ] ++ {
+          sandybridge    = [ "gccarch-westmere" ];
+          ivybridge      = [ "gccarch-westmere" "gccarch-sandybridge" ];
+          haswell        = [ "gccarch-westmere" "gccarch-sandybridge" "gccarch-ivybridge" ];
+          broadwell      = [ "gccarch-westmere" "gccarch-sandybridge" "gccarch-ivybridge" "gccarch-haswell" ];
+          skylake        = [ "gccarch-westmere" "gccarch-sandybridge" "gccarch-ivybridge" "gccarch-haswell" "gccarch-broadwell" ];
+          skylake-avx512 = [ "gccarch-westmere" "gccarch-sandybridge" "gccarch-ivybridge" "gccarch-haswell" "gccarch-broadwell" "gccarch-skylake" ];
+        }.${pkgs.hostPlatform.platform.gcc.arch} or []
+      )
+    );
 
   };
 

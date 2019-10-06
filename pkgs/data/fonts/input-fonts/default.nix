@@ -1,13 +1,13 @@
 { stdenv, requireFile, unzip }:
 
-stdenv.mkDerivation rec {
-  name = "input-fonts-${version}";
-  version = "2016-10-06"; # date of the download and checksum
+stdenv.mkDerivation {
+  pname = "input-fonts";
+  version = "2017-08-10"; # date of the download and checksum
 
   src = requireFile {
     name = "Input-Font.zip";
-    url = "http://input.fontbureau.com/download/";
-    sha256 = "06hrsrb5a6hzrgkkhk0gdj92rhgr433vgn4j5g3pd8f1ijlfqn4y";
+    url = "https://input.fontbureau.com/download/";
+    sha256 = "07fkyvbb12agkb2kpnq2j45nycgbjvb4n1s5hjyqsipdh2z9zihq";
   };
 
   nativeBuildInputs = [ unzip ];
@@ -23,9 +23,13 @@ stdenv.mkDerivation rec {
     cp -a *.txt "$out"/share/doc/
   '';
 
+  outputHashAlgo = "sha256";
+  outputHashMode = "recursive";
+  outputHash = "0k7xqkgqldd110ch9s144ilh762q777qcjvg3plmrb9s6xiaqvvd";
+
   meta = with stdenv.lib; {
     description = "Fonts for Code, from Font Bureau";
-    longDescrition = ''
+    longDescription = ''
       Input is a font family designed for computer programming, data,
       and text composition. It was designed by David Jonathan Ross
       between 2012 and 2014 and published by The Font Bureau. It

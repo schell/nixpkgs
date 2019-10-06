@@ -1,5 +1,5 @@
 { stdenv
-, fetchurl
+, fetchFromGitHub
 , cmake
 , pkgconfig
 , clang-unwrapped
@@ -12,41 +12,44 @@
 , libXext
 , python3
 , ocl-icd
-, mesa_noglu
+, libGL
 , makeWrapper
 , beignet
-}: 
+}:
 
 stdenv.mkDerivation rec {
-  name = "beignet-${version}";
-  version = "1.2.1";
+  pname = "beignet";
+  version = "unstable-2018.08.20";
 
-  src = fetchurl {
-    url = "https://01.org/sites/default/files/${name}-source.tar.gz"; 
-    sha256 = "07y8ga545654jdbijmplga7a7j3jn04q5gfdjsl8cax16hsv0kmp";
-  };  
+  src = fetchFromGitHub {
+    owner  = "intel";
+    repo   = "beignet";
+    rev    = "fc5f430cb7b7a8f694d86acbb038bd5b38ec389c";
+    sha256 = "1z64v69w7f52jrskh1jfyh1x46mzfhjrqxj9hhgzh3xxv9yla32h";
+  };
 
-  patches = [ ./clang_llvm.patch ]; 
+  patches = [ ./clang_llvm.patch ];
 
   enableParallelBuilding = true;
 
   postPatch = ''
+    substituteInPlace CMakeLists.txt --replace /etc/OpenCL/vendors "\''${CMAKE_INSTALL_PREFIX}/etc/OpenCL/vendors"
     patchShebangs src/git_sha1.sh
-  ''; 
+  '';
 
   cmakeFlags = [ "-DCLANG_LIBRARY_DIR=${clang-unwrapped}/lib" ];
 
-  buildInputs = [ 
-    llvm 
+  buildInputs = [
+    llvm
     clang-unwrapped
-    libX11 
+    libX11
     libXext
     libpthreadstubs
-    libdrm 
+    libdrm
     libXdmcp
     libXdamage
     ocl-icd
-    mesa_noglu
+    libGL
   ];
 
   nativeBuildInputs = [
@@ -55,8 +58,8 @@ stdenv.mkDerivation rec {
     python3
   ];
 
-  passthru.utests = stdenv.mkDerivation rec {
-    name = "beignet-utests-${version}";
+  passthru.utests = stdenv.mkDerivation {
+    pname = "beignet-utests";
     inherit version src;
 
     preConfigure = ''
@@ -98,14 +101,16 @@ stdenv.mkDerivation rec {
   };
 
   meta = with stdenv.lib; {
-    homepage = "https://cgit.freedesktop.org/beignet/";
+    homepage = https://cgit.freedesktop.org/beignet/;
     description = "OpenCL Library for Intel Ivy Bridge and newer GPUs";
     longDescription = ''
-      The package provides an open source implementation of the OpenCL specification for Intel GPUs. 
-      It supports the Intel OpenCL runtime library and compiler. 
+      The package provides an open source implementation of the OpenCL specification for Intel GPUs.
+      It supports the Intel OpenCL runtime library and compiler.
     '';
     license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ artuuge ];
+    maintainers = with maintainers; [ artuuge zimbatm ];
     platforms = platforms.linux;
-  }; 
+    # Requires libdrm_intel
+    badPlatforms = [ "aarch64-linux" ];
+  };
 }

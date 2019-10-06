@@ -1,8 +1,8 @@
 { stdenv, fetchFromGitHub, autoreconfHook, gtk_engines }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   version = "2016-08-16";
-  name = "paper-gtk-theme-${version}";
+  pname = "paper-gtk-theme";
 
   src = fetchFromGitHub {
     owner = "snwh";
@@ -23,7 +23,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A modern desktop theme suite featuring a mostly flat with a minimal use of shadows for depth";
-    homepage = "http://snwh.org/paper";
+    homepage = https://snwh.org/paper;
     license = licenses.gpl3;
     platforms = platforms.linux;
     maintainers = [ maintainers.simonvandel maintainers.romildo ];

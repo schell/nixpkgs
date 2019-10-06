@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, autoconf, automake, libtool, pkgconfig, python2
+{ stdenv, fetchFromGitHub, fetchpatch, autoconf, automake, libtool, pkgconfig, python2
 , boost, db, openssl, geoip, libiconv, miniupnpc
 , srcOnly, fetchgit
 }:
@@ -13,14 +13,17 @@ let
     };
   };
 
-in stdenv.mkDerivation rec {
-  name = "twister-${version}";
-  version = "0.9.30";
+  boostPython = boost.override { enablePython = true; };
 
-  src = fetchurl {
-    url = "https://github.com/miguelfreitas/twister-core/"
-        + "archive/v${version}.tar.gz";
-    sha256 = "1i39iqq6z25rh869vi5k76g84rmyh30p05xid7z9sqjrqdfpyyzk";
+in stdenv.mkDerivation rec {
+  pname = "twister";
+  version = "2019-08-19";
+
+  src = fetchFromGitHub {
+    owner = "miguelfreitas";
+    repo = "twister-core";
+    rev = "31faf3f63e461ea0a9b23081567a4a552cf06873";
+    sha256 = "0xh1lgnl9nd86jr0mp7m8bkd7r5j4d6chd0y73h2xv4aq5sld0sp";
   };
 
   configureFlags = [
@@ -29,12 +32,13 @@ in stdenv.mkDerivation rec {
     "--disable-deprecated-functions"
     "--enable-tests"
     "--enable-python-binding"
-    "--with-boost-libdir=${boost.out}/lib"
+    "--with-boost-libdir=${boostPython.out}/lib"
   ];
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    autoconf automake libtool pkgconfig python2
-    boost db openssl geoip miniupnpc libiconv
+    autoconf automake libtool python2
+    boostPython db openssl geoip miniupnpc libiconv
   ];
 
   postPatch = ''
@@ -55,7 +59,7 @@ in stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = {
-    homepage = "http://www.twister.net.co/";
+    homepage = http://www.twister.net.co/;
     description = "Peer-to-peer microblogging";
     license = stdenv.lib.licenses.mit;
     platforms = stdenv.lib.platforms.linux;

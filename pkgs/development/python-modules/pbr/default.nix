@@ -2,19 +2,18 @@
 
 buildPythonPackage rec {
   pname = "pbr";
-  version = "3.0.1";
-  name = "${pname}-${version}";
+  version = "5.1.3";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "d7e8917458094002b9a2e0030ba60ba4c834c456071f2d0c1ccb5265992ada91";
+    sha256 = "8c361cc353d988e4f5b998555c88098b9d5964c2e11acf7b0d21925a66bb5824";
   };
 
   # circular dependencies with fixtures
   doCheck = false;
 
   meta = {
-    homepage = "http://docs.openstack.org/developer/pbr/";
+    homepage = http://docs.openstack.org/developer/pbr/;
     license = stdenv.lib.licenses.asl20;
     description = "Python Build Reasonableness";
   };

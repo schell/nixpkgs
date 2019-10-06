@@ -14,7 +14,17 @@ with lib;
       default = null;
       example = "http://www.example.org/";
       description = ''
-        Adds proxy_pass directive.
+        Adds proxy_pass directive and sets recommended proxy headers if
+        recommendedProxySettings is enabled.
+      '';
+    };
+
+    proxyWebsockets = mkOption {
+      type = types.bool;
+      default = false;
+      example = true;
+      description = ''
+        Whether to supporty proxying websocket connections with HTTP/1.1.
       '';
     };
 
@@ -54,11 +64,30 @@ with lib;
       '';
     };
 
+    return = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "301 http://example.com$request_uri;";
+      description = ''
+        Adds a return directive, for e.g. redirections.
+      '';
+    };
+
     extraConfig = mkOption {
       type = types.lines;
       default = "";
       description = ''
         These lines go to the end of the location verbatim.
+      '';
+    };
+
+    priority = mkOption {
+      type = types.int;
+      default = 1000;
+      description = ''
+        Order of this location block in relation to the others in the vhost.
+        The semantics are the same as with `lib.mkOrder`. Smaller values have
+        a greater priority.
       '';
     };
   };

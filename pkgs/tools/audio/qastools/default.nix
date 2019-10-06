@@ -1,12 +1,12 @@
-{ stdenv, fetchurl, cmake, alsaLib, udev, qtbase,
-  qtsvg, qttools, makeQtWrapper }:
+{ mkDerivation, lib, fetchurl, cmake, alsaLib, udev, qtbase, qtsvg, qttools }:
 
 let
   version = "0.21.0";
 in
 
-stdenv.mkDerivation {
-  name = "qastools-${version}";
+mkDerivation {
+  pname = "qastools";
+  inherit version;
 
   src = fetchurl {
     url = "mirror://sourceforge/project/qastools/${version}/qastools_${version}.tar.bz2";
@@ -14,15 +14,15 @@ stdenv.mkDerivation {
   };
 
   buildInputs = [
-    cmake alsaLib udev qtbase qtsvg qttools makeQtWrapper
+    alsaLib udev qtbase qtsvg qttools
   ];
+  nativeBuildInputs = [ cmake ];
 
   cmakeFlags = [
-    "-DCMAKE_INSALL_PREFIX=$out"
     "-DALSA_INCLUDE=${alsaLib.dev}/include/alsa/version.h"
   ];
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Collection of desktop applications for ALSA configuration";
     license = licenses.gpl3;
     platforms = platforms.linux;

@@ -13,8 +13,9 @@ let
 
 in
 
-stdenv.mkDerivation rec {
-  name = "maude-${version}";
+stdenv.mkDerivation {
+  pname = "maude";
+  inherit version;
 
   src = fetchurl {
     url = "http://maude.cs.illinois.edu/w/images/d/d8/Maude-${version}.tar.gz";
@@ -46,8 +47,13 @@ stdenv.mkDerivation rec {
     install -D -m 444 full-maude.maude $out/share/maude/full-maude.maude
   '';
 
+  # bison -dv surface.yy -o surface.c
+  # mv surface.c surface.cc
+  # mv: cannot stat 'surface.c': No such file or directory
+  enableParallelBuilding = false;
+
   meta = {
-    homepage = "http://maude.cs.illinois.edu/";
+    homepage = http://maude.cs.illinois.edu/;
     description = "High-level specification language";
     license = stdenv.lib.licenses.gpl2;
 
@@ -61,7 +67,7 @@ stdenv.mkDerivation rec {
       rewriting logic computation.
     '';
 
-    platforms = stdenv.lib.platforms.linux;
+    platforms = stdenv.lib.platforms.unix;
     maintainers = [ stdenv.lib.maintainers.peti ];
   };
 }

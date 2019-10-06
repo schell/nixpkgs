@@ -1,7 +1,7 @@
 { stdenv, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "elfkickers-${version}";
+  pname = "elfkickers";
   version = "3.1";
 
   src = fetchurl {
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
-    homepage = "http://www.muppetlabs.com/~breadbox/software/elfkickers.html";
+    homepage = http://www.muppetlabs.com/~breadbox/software/elfkickers.html;
     description = "A collection of programs that access and manipulate ELF files";
     platforms = platforms.linux;
     license = licenses.gpl2;

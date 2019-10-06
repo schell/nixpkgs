@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub }:
 
 stdenv.mkDerivation rec {
-  name = "kbdlight-${version}";
+  pname = "kbdlight";
   version = "1.3";
 
   src = fetchFromGitHub {
@@ -13,7 +13,8 @@ stdenv.mkDerivation rec {
 
   preConfigure = ''
     substituteInPlace Makefile \
-      --replace /usr/local $out
+      --replace /usr/local $out \
+      --replace 4755 0755
   '';
 
   meta = with stdenv.lib; {

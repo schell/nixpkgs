@@ -1,7 +1,6 @@
 {lib, buildPythonPackage, fetchPypi}:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "phpserialize";
   version = "1.3";
 
@@ -15,7 +14,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "A port of the serialize and unserialize functions of PHP to Python";
-    homepage = http://github.com/mitsuhiko/phpserialize;
+    homepage = https://github.com/mitsuhiko/phpserialize;
     license = lib.licenses.bsd3;
     maintainers = with lib.maintainers; [ jluttine ];
   };

@@ -1,26 +1,26 @@
 { stdenv, fetchurl, autoreconfHook, pkgconfig, file, protobufc }:
 
 stdenv.mkDerivation rec {
-  name = "libivykis-${version}";
+  pname = "libivykis";
 
-  version = "0.41";
+  version = "0.42.4";
 
   src = fetchurl {
     url = "mirror://sourceforge/libivykis/${version}/ivykis-${version}.tar.gz";
-    sha256 = "1igk3svf36i5xgb6ipc507xpj6zjm4xi9j1j2cdqaachllwlb4rc";
+    sha256 = "0abi0rc3wnncvr68hy6rmzp96x6napd7fs1mff20dr8lb0jyvy3f";
   };
 
   nativeBuildInputs = [ autoreconfHook pkgconfig ];
   buildInputs = [ file protobufc ];
 
   meta = with stdenv.lib; {
-    homepage = "http://libivykis.sourceforge.net/";
+    homepage = http://libivykis.sourceforge.net/;
     description = ''
       A thin wrapper over various OS'es implementation of I/O readiness
       notification facilities
     '';
     license = licenses.zlib;
-    maintainers = [ maintainers.rickynils ];
+    maintainers = [];
     platforms = platforms.linux;
   };
 }

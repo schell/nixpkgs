@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub, autoreconfHook, openssl, curl }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "libksi-2015-07-03";
 
   src = fetchFromGitHub {
@@ -19,10 +19,9 @@ stdenv.mkDerivation rec {
   ];
 
   meta = with stdenv.lib; {
-    homepage = "https://github.com/GuardTime/libksi";
+    homepage = https://github.com/GuardTime/libksi;
     description = "Keyless Signature Infrastructure API library";
     license = licenses.asl20;
     platforms = platforms.all;
-    maintainers = with maintainers; [ wkennington ];
   };
 }

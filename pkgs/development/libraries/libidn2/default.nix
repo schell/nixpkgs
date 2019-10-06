@@ -1,22 +1,23 @@
-{ fetchurl, stdenv, libiconv, libunistring, help2man }:
+{ fetchurl, stdenv, libiconv, libunistring, help2man, buildPackages }:
 
 with stdenv.lib;
 
 stdenv.mkDerivation rec {
-  name = "libidn2-${version}";
-  version = "2.0.2";
+  pname = "libidn2";
+  version = "2.2.0";
 
   src = fetchurl {
-    url = "mirror://gnu/gnu/libidn/${name}.tar.gz";
-    sha256 = "1azfhz8zj1c27a5k2cspnkzkyfhcsqx2yc2sygh720dbn8l2imlc";
+    url = "mirror://gnu/gnu/libidn/${pname}-${version}.tar.gz";
+    sha256 = "1zl1cc2xgxw31pdhvhr5ij36x4vvpy16jq667rspin06nlr4fwzw";
   };
 
   outputs = [ "bin" "dev" "out" "info" "devdoc" ];
 
   patches = optional stdenv.isDarwin ./fix-error-darwin.patch;
 
-  buildInputs = [ libunistring ]
-    ++ optionals stdenv.isDarwin [ libiconv help2man ];
+  nativeBuildInputs = optional stdenv.isDarwin help2man;
+  buildInputs = [ libunistring ] ++ optional stdenv.isDarwin libiconv;
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
 
   meta = {
     homepage = "https://www.gnu.org/software/libidn/#libidn2";

@@ -3,21 +3,20 @@
 
 buildPythonPackage rec {
   pname = "rfc3986";
-  version = "1.0.0";
-  name = "${pname}-${version}";
+  version = "1.3.2";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "2faacfabcc13ed89b061b5f21cbbf330f82400654b317b5907d311c3478ec4c4";
+    sha256 = "0344d0bd428126ce554e7ca2b61787b6a28d2bbd19fc70ed2dd85efe31176405";
   };
 
-  buildInputs = [ pytest ];
+  checkInputs = [ pytest ];
   checkPhase = ''
-    py.test
+    pytest
   '';
 
   meta = with stdenv.lib; {
-    homepage = "https://rfc3986.readthedocs.org";
+    homepage = https://rfc3986.readthedocs.org;
     license = licenses.asl20;
     description = "Validating URI References per RFC 3986";
   };

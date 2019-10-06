@@ -3,46 +3,42 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "openimageio-${version}";
-  version = "1.7.12";
+  pname = "openimageio";
+  version = "1.8.16";
 
   src = fetchFromGitHub {
     owner = "OpenImageIO";
     repo = "oiio";
     rev = "Release-${version}";
-    sha256 = "1ganx4f7zis5lkxxrwc83dbgngaxww2846bsc4vrg5dhjnns6n4y";
+    sha256 = "0isx137c6anvs1xfxi0z35v1cw855xvnq2ca0pakqqpdh0yivrps";
   };
 
   outputs = [ "bin" "out" "dev" "doc" ];
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [ cmake unzip ];
   buildInputs = [
-    boost ilmbase libjpeg libpng 
+    boost ilmbase libjpeg libpng
     libtiff opencolorio openexr
-    unzip
   ];
 
   cmakeFlags = [
     "-DUSE_PYTHON=OFF"
   ];
 
-  preBuild = ''
-    makeFlags="ILMBASE_HOME=${ilmbase.dev} OPENEXR_HOME=${openexr.dev} USE_PYTHON=0
-      INSTALLDIR=$out dist_dir="
-  '';
-
-  postInstall = ''
-    mkdir -p $bin
-    mv $out/bin $bin/
-  '';
-
-  enableParallelBuilding = true;
+  makeFlags = [
+    "ILMBASE_HOME=${ilmbase.dev}"
+    "OPENEXR_HOME=${openexr.dev}"
+    "USE_PYTHON=0"
+    "INSTALLDIR=${placeholder "out"}"
+    "dist_dir="
+  ];
 
   meta = with stdenv.lib; {
     homepage = http://www.openimageio.org;
     description = "A library and tools for reading and writing images";
     license = licenses.bsd3;
     maintainers = [ maintainers.goibhniu ];
-    platforms = platforms.linux;
+    platforms = platforms.unix;
+    badPlatforms = [ "x86_64-darwin" ];
   };
 }

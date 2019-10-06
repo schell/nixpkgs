@@ -1,27 +1,27 @@
-{ stdenv, fetchFromGitHub, makeWrapper, pythonPackages, perl, zip
-, rtmpdump, substituteAll }:
+{ stdenv, fetchFromGitHub, makeWrapper, python3Packages, perl, zip
+, gitMinimal }:
 
 let
-  inherit (pythonPackages) python nose pycrypto requests mock;
+
+  inherit (python3Packages)
+    python nose pycrypto pyyaml requests mock python-dateutil setuptools;
+
 in stdenv.mkDerivation rec {
-  name = "svtplay-dl-${version}";
-  version = "1.9.4";
+  pname = "svtplay-dl";
+  version = "2.4";
 
   src = fetchFromGitHub {
     owner = "spaam";
     repo = "svtplay-dl";
     rev = version;
-    sha256 = "15vjaia1qbs49gplpfi8sj5scl9mb4qg8n2z4zyzjs5461lx5qqv";
+    sha256 = "146ss7pzh61yw84crk6hzfxkfdnf6bq07m11b6lgsw4hsn71g59w";
   };
 
-  pythonPaths = [ pycrypto requests ];
-  buildInputs = [ python perl nose mock rtmpdump makeWrapper ] ++ pythonPaths;
-  nativeBuildInputs = [ zip ];
+  pythonPaths = [ pycrypto pyyaml requests ];
+  buildInputs = [ python perl nose mock makeWrapper python-dateutil setuptools ] ++ pythonPaths;
+  nativeBuildInputs = [ gitMinimal zip ];
 
   postPatch = ''
-    substituteInPlace lib/svtplay_dl/fetcher/rtmp.py \
-      --replace '"rtmpdump"' '"${rtmpdump}/bin/rtmpdump"'
-
     substituteInPlace scripts/run-tests.sh \
       --replace 'PYTHONPATH=lib' 'PYTHONPATH=lib:$PYTHONPATH'
   '';
@@ -34,7 +34,9 @@ in stdenv.mkDerivation rec {
   '';
 
   doCheck = true;
-  checkPhase = "sh scripts/run-tests.sh -2";
+  checkPhase = ''
+    sh scripts/run-tests.sh -2
+  '';
 
   meta = with stdenv.lib; {
     homepage = https://github.com/spaam/svtplay-dl;

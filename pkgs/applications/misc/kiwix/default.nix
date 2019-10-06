@@ -1,7 +1,7 @@
 { stdenv, fetchurl, makeWrapper, pkgconfig
 , zip, python, zlib, which, icu, libmicrohttpd, lzma, aria2, wget, bc
-, libuuid, glibc, libX11, libXext, libXt, libXrender, glib, dbus, dbus_glib
-, gtk2, gdk_pixbuf, pango, cairo, freetype, fontconfig, alsaLib, atk, cmake
+, libuuid, libX11, libXext, libXt, libXrender, glib, dbus, dbus-glib
+, gtk2, gdk-pixbuf, pango, cairo, freetype, fontconfig, alsaLib, atk, cmake
 , xapian, ctpp2, zimlib
 }:
 
@@ -25,20 +25,16 @@ let
     sha256 = "1h9vcbvf8wgds6i2z20y7krpys0mqsqhv1ijyfljanp6vyll9fvi";
   };
 
-  xulrunner = if stdenv.system == "x86_64-linux"
+  xulrunner = if stdenv.hostPlatform.system == "x86_64-linux"
               then { tar = xulrunner64_tar; sdk = xulrunnersdk64_tar; }
               else { tar = xulrunner32_tar; sdk = xulrunnersdk32_tar; };
 
-  ctpp2_ = ctpp2.override { inherit stdenv; };
-  xapian_ = xapian.override { inherit stdenv; };
-  zimlib_ = zimlib.override { inherit stdenv; };
-
   pugixml = stdenv.mkDerivation rec {
     version = "1.2";
-    name = "pugixml-${version}";
+    pname = "pugixml";
 
     src = fetchurl {
-      url = "http://download.kiwix.org/dev/${name}.tar.gz";
+      url = "http://download.kiwix.org/dev/${pname}-${version}.tar.gz";
       sha256 = "0sqk0vdwjq44jxbbkj1cy8qykrmafs1sickzldb2w2nshsnjshhg";
     };
 
@@ -46,8 +42,8 @@ let
 
     unpackPhase = ''
       # not a nice src archive: all the files are in the root :(
-      mkdir ${name}
-      cd ${name}
+      mkdir ${pname}-${version}
+      cd ${pname}-${version}
       tar -xf ${src}
 
       # and the build scripts are in there :'(
@@ -58,7 +54,7 @@ let
 in
 
 stdenv.mkDerivation rec {
-  name = "kiwix-${version}";
+  pname = "kiwix";
   version = "0.9";
 
   src = fetchurl {
@@ -66,9 +62,10 @@ stdenv.mkDerivation rec {
     sha256 = "0577phhy2na59cpcqjgldvksp0jwczyg0l6c9ghnr19i375l7yqc";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    zip pkgconfig python zlib xapian_ which icu libmicrohttpd
-    lzma zimlib_ ctpp2_ aria2 wget bc libuuid makeWrapper pugixml
+    zip python zlib xapian which icu libmicrohttpd
+    lzma zimlib ctpp2 aria2 wget bc libuuid makeWrapper pugixml
   ];
 
   postUnpack = ''
@@ -85,7 +82,6 @@ stdenv.mkDerivation rec {
   '';
 
   configureFlags = [
-    "--disable-static"
     "--disable-staticbins"
   ];
 
@@ -96,15 +92,18 @@ stdenv.mkDerivation rec {
 
     rm $out/bin/kiwix
     makeWrapper $out/lib/kiwix/kiwix-launcher $out/bin/kiwix \
-      --suffix LD_LIBRARY_PATH : ${makeLibraryPath [stdenv.cc.cc libX11 libXext libXt libXrender glib dbus dbus_glib gtk2 gdk_pixbuf pango cairo freetype fontconfig alsaLib atk]} \
+      --suffix LD_LIBRARY_PATH : ${makeLibraryPath [stdenv.cc.cc libX11 libXext libXt libXrender glib dbus dbus-glib gtk2 gdk-pixbuf pango cairo freetype fontconfig alsaLib atk]} \
       --suffix PATH : ${aria2}/bin
   '';
 
   meta = {
     description = "An offline reader for Web content";
-    homepage = http://kiwix.org;
+    homepage = https://kiwix.org;
     license = licenses.gpl3;
     platforms = platforms.linux;
     maintainers = with maintainers; [ robbinch ];
+    knownVulnerabilities = [
+      "CVE-2015-1032"
+    ];
   };
 }

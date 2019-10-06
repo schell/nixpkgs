@@ -2,9 +2,10 @@
 
 stdenv.mkDerivation rec {
   version = "1.4";
-  name = "runzip-${version}";
+  pname = "runzip";
 
-  buildInputs = [ libzip autoreconfHook ];
+  nativeBuildInputs = [ autoreconfHook ];
+  buildInputs = [ libzip ];
 
   src = fetchFromGitHub {
     owner = "vlm";

@@ -1,65 +1,96 @@
-{ pkgs, stdenv, callPackage, wxGTK30, darwin }:
+{ callPackage, wxGTK30, openssl_1_0_2 }:
 
 rec {
-  lib = import ../development/beam-modules/lib.nix { inherit pkgs; };
+  lib = callPackage ../development/beam-modules/lib.nix {};
 
+  # Each
   interpreters = rec {
 
-    # R18 is the Default version.
-    erlang = erlangR18;
-    erlang_odbc = erlangR18_odbc;
-    erlang_javac = erlangR18_javac;
-    erlang_odbc_javac = erlangR18_odbc_javac;
+    # R22 is the default version.
+    erlang = erlangR22; # The main switch to change default Erlang version.
+    erlang_odbc = erlangR22_odbc;
+    erlang_javac = erlangR22_javac;
+    erlang_odbc_javac = erlangR22_odbc_javac;
+    erlang_nox = erlangR22_nox;
 
     # These are standard Erlang versions, using the generic builder.
-    erlangR16 = lib.callErlang ../development/interpreters/erlang/R16.nix {};
-    erlangR16_odbc = erlangR16.override { odbcSupport = true; };
-    erlangR17 = lib.callErlang ../development/interpreters/erlang/R17.nix {};
-    erlangR17_odbc = erlangR17.override { odbcSupport = true; };
-    erlangR17_javac = erlangR17.override { javacSupport = true; };
-    erlangR17_odbc_javac = erlangR17.override {
-      javacSupport = true; odbcSupport = true;
-    };
     erlangR18 = lib.callErlang ../development/interpreters/erlang/R18.nix {
       wxGTK = wxGTK30;
+      openssl = openssl_1_0_2;
     };
     erlangR18_odbc = erlangR18.override { odbcSupport = true; };
     erlangR18_javac = erlangR18.override { javacSupport = true; };
     erlangR18_odbc_javac = erlangR18.override {
       javacSupport = true; odbcSupport = true;
     };
+    erlangR18_nox = erlangR18.override { wxSupport = false; };
     erlangR19 = lib.callErlang ../development/interpreters/erlang/R19.nix {
       wxGTK = wxGTK30;
+      openssl = openssl_1_0_2;
     };
     erlangR19_odbc = erlangR19.override { odbcSupport = true; };
     erlangR19_javac = erlangR19.override { javacSupport = true; };
     erlangR19_odbc_javac = erlangR19.override {
       javacSupport = true; odbcSupport = true;
     };
+    erlangR19_nox = erlangR19.override { wxSupport = false; };
+    erlangR20 = lib.callErlang ../development/interpreters/erlang/R20.nix {
+      wxGTK = wxGTK30;
+    };
+    erlangR20_odbc = erlangR20.override { odbcSupport = true; };
+    erlangR20_javac = erlangR20.override { javacSupport = true; };
+    erlangR20_odbc_javac = erlangR20.override {
+      javacSupport = true; odbcSupport = true;
+    };
+    erlangR20_nox = erlangR20.override { wxSupport = false; };
+    erlangR21 = lib.callErlang ../development/interpreters/erlang/R21.nix {
+      wxGTK = wxGTK30;
+    };
+    erlangR21_odbc = erlangR21.override { odbcSupport = true; };
+    erlangR21_javac = erlangR21.override { javacSupport = true; };
+    erlangR21_odbc_javac = erlangR21.override {
+      javacSupport = true; odbcSupport = true;
+    };
+    erlangR21_nox = erlangR21.override { wxSupport = false; };
+    erlangR22 = lib.callErlang ../development/interpreters/erlang/R22.nix {
+      wxGTK = wxGTK30;
+    };
+    erlangR22_odbc = erlangR22.override { odbcSupport = true; };
+    erlangR22_javac = erlangR22.override { javacSupport = true; };
+    erlangR22_odbc_javac = erlangR22.override {
+      javacSupport = true; odbcSupport = true;
+    };
+    erlangR22_nox = erlangR22.override { wxSupport = false; };
 
-    # Bash fork, using custom builder.
-    erlang_basho_R16B02 = lib.callErlang ../development/interpreters/erlang/R16B02-8-basho.nix {
+    # Basho fork, using custom builder.
+    erlang_basho_R16B02 = lib.callErlang ../development/interpreters/erlang/R16B02-basho.nix {
     };
     erlang_basho_R16B02_odbc = erlang_basho_R16B02.override {
       odbcSupport = true;
     };
 
-    # Other Beam languages.
-    elixir = callPackage ../development/interpreters/elixir { debugInfo = true; };
-    lfe = callPackage ../development/interpreters/lfe { };
+    # Other Beam languages. These are built with `beam.interpreters.erlang`. To
+    # access for example elixir built with different version of Erlang, use
+    # `beam.packages.erlangR19.elixir`.
+    inherit (packages.erlang) elixir elixir_1_9 elixir_1_8 elixir_1_7 elixir_1_6 elixir_1_5;
+
+    inherit (packages.erlang) lfe lfe_1_2;
   };
 
-  packages = rec {
-    rebar = callPackage ../development/tools/build-managers/rebar { };
-    rebar3-open = callPackage ../development/tools/build-managers/rebar3 { hermeticRebar3 = false; };
-    rebar3 = callPackage ../development/tools/build-managers/rebar3 { hermeticRebar3 = true; };
-    hexRegistrySnapshot = callPackage ../development/beam-modules/hex-registry-snapshot.nix { };
-    fetchHex = callPackage ../development/beam-modules/fetch-hex.nix { };
+  # Helper function to generate package set with a specific Erlang version.
+  packagesWith = erlang: callPackage ../development/beam-modules { inherit erlang; };
 
-    beamPackages = callPackage ../development/beam-modules { };
-    hex2nix = beamPackages.callPackage ../development/tools/erlang/hex2nix { };
-    cuter = callPackage ../development/tools/erlang/cuter { };
+  # Each field in this tuple represents all Beam packages in nixpkgs built with
+  # appropriate Erlang/OTP version.
+  packages = {
 
-    relxExe = callPackage ../development/tools/erlang/relx-exe {};
+    # Packages built with default Erlang version.
+    erlang = packagesWith interpreters.erlang;
+    erlangR18 = packagesWith interpreters.erlangR18;
+    erlangR19 = packagesWith interpreters.erlangR19;
+    erlangR20 = packagesWith interpreters.erlangR20;
+    erlangR21 = packagesWith interpreters.erlangR21;
+    erlangR22 = packagesWith interpreters.erlangR22;
+
   };
 }

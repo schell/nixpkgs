@@ -1,26 +1,27 @@
-{ lib
-, stdenv
+{ stdenv
 , buildPythonPackage
 , fetchPypi
+, isPy3k
 , mozfile
 }:
 
 buildPythonPackage rec {
   pname = "mozinfo";
-  version = "0.9";
-  name = "${pname}-${version}";
+  version = "0.10";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1jwhnhbj7xipwh33wf7m12pw5g662dpr1chkp6p2fmy0mwpn2y4z";
+    sha256 = "dcd53a1b1793340418e1ae42bf300e3e56d8f12047972378c6f9318b220b1023";
   };
 
-  propagatedBuildInputs = [ mozfile ]; 
+  disabled = isPy3k;
 
-  meta = {
+  propagatedBuildInputs = [ mozfile ];
+
+  meta = with stdenv.lib; {
     description = "System information utilities for Mozilla testing";
-    homepage = "https://wiki.mozilla.org/Auto-tools/Projects/Mozbase";
-    license = lib.licenses.mpl20;
-    maintainers = with lib.maintainers; [ raskin ];
+    homepage = https://wiki.mozilla.org/Auto-tools/Projects/Mozbase;
+    license = licenses.mpl20;
+    maintainers = with maintainers; [ raskin ];
   };
 }

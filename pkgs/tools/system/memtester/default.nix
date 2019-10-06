@@ -1,8 +1,13 @@
 { stdenv, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "memtester-${version}";
+  pname = "memtester";
   version = "4.3.0";
+
+  preConfigure = ''
+    echo "$CC" > conf-cc
+    echo "$CC" > conf-ld
+  '';
 
   src = fetchurl {
     url = "http://pyropus.ca/software/memtester/old-versions/memtester-${version}.tar.gz";

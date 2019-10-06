@@ -1,8 +1,11 @@
-{ stdenv, fetchFromGitHub, jam, pkgconfig, gtk2, SDL, SDL_mixer, SDL_sound, smpeg, libvorbis }:
+{ stdenv, fetchFromGitHub, substituteAll, jam, cctools, pkgconfig
+, SDL, SDL_mixer, SDL_sound, gtk2, libvorbis, smpeg }:
 
 let
 
-  jamenv = if stdenv.isDarwin then ''
+  jamenv = ''
+    unset AR
+  '' + (if stdenv.isDarwin then ''
     export NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -I${SDL.dev}/include/SDL"
     export GARGLKINI="$out/Applications/Gargoyle.app/Contents/Resources/garglk.ini"
   '' else ''
@@ -12,31 +15,35 @@ let
     export _APPDIR=libexec/gargoyle
     export _LIBDIR=libexec/gargoyle
     export GARGLKINI="$out/etc/garglk.ini"
-  '';
+  '');
 
 in
 
 stdenv.mkDerivation {
-  name = "gargoyle-2017-03-12";
+  name = "gargoyle-2018-10-06";
 
   src = fetchFromGitHub {
     owner = "garglk";
     repo = "garglk";
-    rev = "7d8fe875927c332ea30d75656bc982354b42f602";
-    sha256 = "00nac7j84gfql1cr11cs9ad4j1gsxrnkqfx6mis4ijf7d6px3sih";
+    rev = "d03391563fa75942fbf8f8deeeacf3a8be9fc3b0";
+    sha256 = "0icwgc25gp7krq6zf66hljydc6vps6bb4knywnrfgnfcmcalqqx9";
   };
 
-  nativeBuildInputs = [ jam pkgconfig ];
+  nativeBuildInputs = [ jam pkgconfig ] ++ stdenv.lib.optional stdenv.isDarwin cctools;
 
-  buildInputs = [ gtk2 SDL SDL_mixer ] ++ (
-    if stdenv.isDarwin then [ smpeg libvorbis ] else [ SDL_sound ]
-  );
-
-  patches = [ ./darwin.patch ];
+  buildInputs = [ SDL SDL_mixer SDL_sound gtk2 ]
+    ++ stdenv.lib.optionals stdenv.isDarwin [ smpeg libvorbis ];
 
   buildPhase = jamenv + "jam -j$NIX_BUILD_CORES";
 
-  installPhase = if stdenv.isDarwin then (builtins.readFile ./darwin.sh) else jamenv + ''
+  installPhase =
+  if stdenv.isDarwin then
+  (substituteAll {
+    inherit (stdenv) shell;
+    isExecutable = true;
+    src = ./darwin.sh;
+  })
+  else jamenv + ''
     jam -j$NIX_BUILD_CORES install
     mkdir -p "$out/bin"
     ln -s ../libexec/gargoyle/gargoyle "$out/bin"

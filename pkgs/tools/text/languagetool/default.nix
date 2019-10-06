@@ -1,34 +1,35 @@
-{ stdenv, lib, fetchurl, unzip, jdk }:
+{ stdenv, fetchzip, jre, makeWrapper }:
 
 stdenv.mkDerivation rec {
   pname = "LanguageTool";
-  version = "3.7";
-  name = pname + "-" + version;
-  src = fetchurl {
-    url = "https://www.languagetool.org/download/${name}.zip";
-    sha256 = "04i49z022k3nyyr8hnlxima9k5id8qvh2nr3dv8zgcqm5sin6xx9";
+  version = "4.6";
+
+  src = fetchzip {
+    url = "https://www.languagetool.org/download/${pname}-${version}.zip";
+    sha256 = "1z3i6kz1dz7dw2ykyk1yamrv8h5h330sfyl037hhyy9hw6p30rhg";
   };
-  buildInputs = [ unzip jdk ];
-  installPhase =
-  ''
-    mkdir -p $out/{bin,share}
-    mv * $out/share/.
+  nativeBuildInputs = [ makeWrapper ];
+  buildInputs = [ jre ];
+
+  installPhase = ''
+    mkdir -p $out/share
+    mv * $out/share/
+
     for lt in languagetool{,-commandline,-server};do
-    cat > $out/bin/$lt <<EXE
-    #!${stdenv.shell}
-    ${jdk}/bin/java -cp $out/share/ -jar $out/share/$lt.jar $@
-    EXE
-    chmod +x $out/bin/$lt
+      makeWrapper ${jre}/bin/java $out/bin/$lt \
+        --add-flags "-cp $out/share/ -jar $out/share/$lt.jar"
     done
+
+    makeWrapper ${jre}/bin/java $out/bin/languagetool-http-server \
+      --add-flags "-cp $out/share/languagetool-server.jar org.languagetool.server.HTTPServer"
   '';
 
   meta = with stdenv.lib; {
-    homepage = "https://languagetool.org";
+    homepage = https://languagetool.org;
     license = licenses.lgpl21Plus;
     maintainers = with maintainers; [
       edwtjo
-      jgeerds
     ];
-    descrption = "A proofreading program for English, French German, Polish, and more";
+    description = "A proofreading program for English, French German, Polish, and more";
   };
 }

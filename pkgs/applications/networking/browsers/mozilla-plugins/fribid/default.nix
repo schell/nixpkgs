@@ -1,16 +1,17 @@
 { stdenv, fetchurl, pkgconfig, openssl, glib, libX11, gtk2, gettext, intltool }:
 
 stdenv.mkDerivation rec {
-  name = "fribid-${version}";
+  pname = "fribid";
   version = "1.0.4";
   builder = ./builder.sh;
 
   src = fetchurl {
-    url = "https://fribid.se/releases/source/${name}.tar.bz2";
+    url = "https://fribid.se/releases/source/${pname}-${version}.tar.bz2";
     sha256 = "a679f3a0534d5f05fac10b16b49630a898c0b721cfa24d2c827fa45485476649";
   };
 
-  buildInputs = [ pkgconfig openssl libX11 gtk2 glib gettext intltool ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ openssl libX11 gtk2 glib gettext intltool ];
   patches = [
     ./translation-xgettext-to-intltool.patch
     ./plugin-linkfix.patch

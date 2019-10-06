@@ -15,17 +15,21 @@ stdenv.mkDerivation rec {
     sha256 = "1chzcy3kyi7wpr4iq4aj1v24fq1wwph1v5z96dimlqcrnvm66h2l";
   };
 
-  buildInputs = [unzip];
+  nativeBuildInputs = [unzip];
 
   sourceRoot = ".";
 
-  unpackPhase = "true";
+  dontUnpack = true;
 
   installPhase = ''
     mkdir -p $out/share/fonts/opentype
     cp ${regular} $out/share/fonts/opentype/Poly-Regular.otf
     cp ${italic} $out/share/fonts/opentype/Poly-Italic.otf
   '';
+
+  outputHashAlgo = "sha256";
+  outputHashMode = "recursive";
+  outputHash = "11d7ldryfxi0wzfrg1bhw23a668a44vdb8gggxryvahmp5ahmq2h";
 
   meta = {
     description = "Medium contrast serif font";
@@ -42,6 +46,5 @@ stdenv.mkDerivation rec {
     homepage = http://www.fontsquirrel.com/fonts/poly;
     license = stdenv.lib.licenses.ofl;
     maintainers = with stdenv.lib.maintainers; [ relrod ];
-    platforms = with stdenv.lib.platforms; linux;
   };
 }

@@ -2,12 +2,12 @@
 
 stdenv.mkDerivation rec {
 
-  name = "netsurf-buildsystem-${version}";
-  version = "1.5";
+  pname = "netsurf-buildsystem";
+  version = "1.8";
 
   src = fetchurl {
     url = "http://download.netsurf-browser.org/libs/releases/buildsystem-${version}.tar.gz";
-    sha256 = "0wdgvasrjik1dgvvpqbppbpyfzkqd1v45x3g9rq7p67n773azinv";
+    sha256 = "0ffdjwskxlnh8sk40qqfgksbb1nrdzfxsshrscra0p4nqpkj98z6";
   };
 
   makeFlags = [
@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
   ];
 
   meta = with stdenv.lib; {
-    homepage = "http://www.netsurf-browser.org/";
+    homepage = http://www.netsurf-browser.org/;
     description = "Build system for netsurf browser";
     license = licenses.gpl2;
     maintainers = [ maintainers.vrthra ];

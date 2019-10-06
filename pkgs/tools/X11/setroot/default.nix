@@ -1,18 +1,18 @@
-{ stdenv, lib, fetchFromGitHub, libX11, imlib2
+{ stdenv, fetchFromGitHub, libX11, imlib2
 , enableXinerama ? true, libXinerama ? null
 }:
 
 assert enableXinerama -> libXinerama != null;
 
 stdenv.mkDerivation rec {
-  version = "1.4.4";
-  name = "setroot-${version}";
+  version = "2.0.2";
+  pname = "setroot";
 
   src = fetchFromGitHub {
     owner = "ttzhou";
     repo = "setroot";
     rev = "v${version}";
-    sha256 = "0vphma0as8pnqrakdw6gaiiz7xawb4y72sc9dna755kkclgbyl8m";
+    sha256 = "0w95828v0splk7bj5kfacp4pq6wxpyamvyjmahyvn5hc3ycq21mq";
   };
 
   buildInputs = [ libX11 imlib2 ]
@@ -26,6 +26,7 @@ stdenv.mkDerivation rec {
     description = "Simple X background setter inspired by imlibsetroot and feh";
     homepage = https://github.com/ttzhou/setroot;
     license = licenses.gpl3Plus;
+    maintainers = [ maintainers.vyp ];
     platforms = platforms.unix;
   };
 }

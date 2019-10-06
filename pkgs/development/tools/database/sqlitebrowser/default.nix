@@ -1,38 +1,32 @@
-{ stdenv, fetchFromGitHub, qtbase, qttools, makeQtWrapper, sqlite, cmake }:
+{ mkDerivation, lib, fetchFromGitHub, cmake, antlr
+, qtbase, qttools, qscintilla, sqlite }:
 
-stdenv.mkDerivation rec {
-  version = "3.9.1";
-  name = "sqlitebrowser-${version}";
+mkDerivation rec {
+  pname = "sqlitebrowser";
+  version = "3.11.2";
 
   src = fetchFromGitHub {
-    repo   = "sqlitebrowser";
-    owner  = "sqlitebrowser";
+    owner  = pname;
+    repo   = pname;
     rev    = "v${version}";
-    sha256 = "1s7f2d7wx2i68x60z7wdws3il6m83k5n5w5wyjvr0mz0mih0s150";
+    sha256 = "0ydd5fg76d5d23byac1f7f8mzx3brmd0cnnkd58qpmlzi7p9hcvx";
   };
 
-  buildInputs = [ qtbase qttools sqlite ];
-  nativeBuildInputs = [ makeQtWrapper cmake ];
-  
+  buildInputs = [ antlr qtbase qscintilla sqlite ];
+
+  nativeBuildInputs = [ cmake qttools ];
+
+  NIX_LDFLAGS = [
+    "-lQt5PrintSupport"
+  ];
+
   enableParallelBuilding = true;
-  
-  cmakeFlags = [ "-DUSE_QT5=TRUE" ];
-  
-  # A regression was introduced in CMakeLists.txt on v3.9.x
-  # See https://github.com/sqlitebrowser/sqlitebrowser/issues/832 and issues/755
-  postPatch = ''
-    substituteInPlace CMakeLists.txt --replace 'project("DB Browser for SQLite")' 'project(sqlitebrowser)'
-  '';
 
-  postInstall = ''
-    wrapQtProgram $out/bin/sqlitebrowser
-  '';
-
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "DB Browser for SQLite";
-    homepage = "http://sqlitebrowser.org/";
+    homepage = http://sqlitebrowser.org/;
     license = licenses.gpl3;
-    maintainers = [ maintainers.matthiasbeyer ];
-    platforms = platforms.linux; # can only test on linux
+    maintainers = with maintainers; [ ma27 ];
+    platforms = platforms.unix;
   };
 }

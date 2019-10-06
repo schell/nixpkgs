@@ -2,7 +2,7 @@
 
 stdenv.mkDerivation rec {
   version = "1.1.5";
-  name = "longview-${version}";
+  pname = "longview";
 
   src = fetchFromGitHub {
     owner = "linode";
@@ -27,7 +27,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ perl makeWrapper glibc ]
     ++ (with perlPackages; [
-      LWPUserAgent
+      LWP
       LWPProtocolHttps
       MozillaCA
       CryptSSLeay
@@ -63,6 +63,6 @@ stdenv.mkDerivation rec {
     license = licenses.gpl2Plus;
     maintainers = [ maintainers.rvl ];
     inherit version;
-    platforms = platforms.linux;
+    platforms = [ "x86_64-linux" "i686-linux" ];
   };
 }

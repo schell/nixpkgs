@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub, faust2jaqt, faust2lv2 }:
 stdenv.mkDerivation rec {
-  name = "CharacterCompressor-${version}";
+  pname = "CharacterCompressor";
   version = "0.3.3";
 
   src = fetchFromGitHub {
@@ -15,7 +15,6 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     faust2jaqt -vec -time -t 99999 CharacterCompressor.dsp
     faust2jaqt -vec -time -t 99999 CharacterCompressorMono.dsp
-    sed -i "s|\[ *scale *: *log *\]||g ; s|\btgroup\b|hgroup|g" "lib/CharacterCompressor.lib"
     faust2lv2 -vec -time -gui -t 99999 CharacterCompressor.dsp
     faust2lv2 -vec -time -gui -t 99999 CharacterCompressorMono.dsp
   '';

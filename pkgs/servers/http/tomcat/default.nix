@@ -2,12 +2,12 @@
 
 let
 
-  common = { versionMajor, versionMinor, sha256 } @ args: stdenv.mkDerivation (rec {
-    name = "apache-tomcat-${version}";
+  common = { versionMajor, versionMinor, sha256 }: stdenv.mkDerivation (rec {
+    pname = "apache-tomcat";
     version = "${versionMajor}.${versionMinor}";
 
     src = fetchurl {
-      url = "mirror://apache/tomcat/tomcat-${versionMajor}/v${version}/bin/${name}.tar.gz";
+      url = "mirror://apache/tomcat/tomcat-${versionMajor}/v${version}/bin/${pname}-${version}.tar.gz";
       inherit sha256;
     };
 
@@ -32,25 +32,25 @@ let
 in {
   tomcat7 = common {
     versionMajor = "7";
-    versionMinor = "0.75";
-    sha256 = "0w5adsy4792qkf3ws46f539lrdbpz7lghy79s6b04c9yqaxjz6ni";
+    versionMinor = "0.92";
+    sha256 = "0j015mf15drl92kvgyi1ppzjziw0k1rwvfnih8r20h92ylk8mznk";
   };
 
   tomcat8 = common {
     versionMajor = "8";
-    versionMinor = "0.41";
-    sha256 = "1mvnf6m29y3p40vvi9mgghrddlmgwcrcvfwrf9vbama78fsh8wm5";
+    versionMinor = "0.53";
+    sha256 = "1ymp5n6xjqzpqjjlwql195v8r5fsmry7nfax46bafkjw8b24g80r";
   };
 
   tomcat85 = common {
     versionMajor = "8";
-    versionMinor = "5.14";
-    sha256 = "0dls16lw7yak3s6cwwcccfg0qb5g8s36waxlg8wgjk8vc57h316w";
+    versionMinor = "5.42";
+    sha256 = "1d90abwwvl0ghr0g0drk48j37wr2zgw74vws9z2rshyzrwgbvgp3";
   };
 
-  tomcatUnstable = common {
+  tomcat9 = common {
     versionMajor = "9";
-    versionMinor = "0.0.M17";
-    sha256 = "1ilvka2062m7412bj2fsdwvfxbrjyj9qxcia40hhv22prvkxw3cg";
+    versionMinor = "0.21";
+    sha256 = "0nsylbqvky4pf3wpsx3a29b85lvwk91ay37mljk9636qffjj1vjh";
   };
 }

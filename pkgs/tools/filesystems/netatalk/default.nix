@@ -1,21 +1,30 @@
-{ fetchurl, stdenv, pkgconfig, db, libgcrypt, avahi, libiconv, pam, openssl, acl, ed, glibc }:
+{ fetchurl, stdenv, autoreconfHook, pkgconfig, perl, python
+, db, libgcrypt, avahi, libiconv, pam, openssl, acl
+, ed, glibc, libevent
+}:
 
 stdenv.mkDerivation rec{
-  name = "netatalk-3.1.7";
+  name = "netatalk-3.1.12";
 
   src = fetchurl {
     url = "mirror://sourceforge/netatalk/netatalk/${name}.tar.bz2";
-    sha256 = "0wf09fyqzza024qr1s26z5x7rsvh9zb4pv598gw7gm77wjcr6174";
+    sha256 = "1ld5mnz88ixic21m6f0xcgf8v6qm08j6xabh1dzfj6x47lxghq0m";
   };
 
-  buildInputs = [ pkgconfig db libgcrypt avahi libiconv pam openssl acl ];
+  patches = [
+    ./no-suid.patch
+    ./omitLocalstatedirCreation.patch
+  ];
 
-  patches = ./omitLocalstatedirCreation.patch;
+  nativeBuildInputs = [ autoreconfHook pkgconfig perl python python.pkgs.wrapPython ];
+
+  buildInputs = [ db libgcrypt avahi libiconv pam openssl acl libevent ];
 
   configureFlags = [
-    "--with-bdb=${db}"
-    "--with-openssl=${openssl.dev}"
+    "--with-bdb=${db.dev}"
+    "--with-ssl-dir=${openssl.dev}"
     "--with-lockfile=/run/lock/netatalk"
+    "--with-libevent=${libevent.dev}"
     "--localstatedir=/var/lib"
   ];
 
@@ -33,6 +42,11 @@ stdenv.mkDerivation rec{
     .
     w
     EOF
+  '';
+
+  postInstall = ''
+    buildPythonPath ${python.pkgs.dbus-python}
+    patchPythonScript $out/bin/afpstats
   '';
 
   enableParallelBuilding = true;

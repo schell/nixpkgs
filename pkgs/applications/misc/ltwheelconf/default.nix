@@ -1,9 +1,8 @@
 { stdenv, libusb1, pkgconfig, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "ltwheelconf";
   version = "0.2.7";
-  name = "${pname}-${version}";
 
   src = fetchFromGitHub {
     owner = "thk";
@@ -12,7 +11,8 @@ stdenv.mkDerivation rec {
     sha256 = "1fsz7k73yln987gcx1jvb5irxfbp1x2c457a60a8yap27nkp5y2w";
   };
 
-  buildInputs = [ libusb1 pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ libusb1 ];
 
   installPhase = ''
     mkdir -p $out/bin

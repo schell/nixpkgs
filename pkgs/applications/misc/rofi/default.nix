@@ -1,14 +1,16 @@
-{ stdenv, fetchurl, autoreconfHook, pkgconfig, libxkbcommon, pango, which, git
-, cairo, glib, libxcb, xcbutil, xcbutilwm, xcbutilxrm, libstartup_notification
+{ stdenv, lib, fetchurl, makeWrapper
+, autoreconfHook, pkgconfig, libxkbcommon, pango, which, git
+, cairo, libxcb, xcbutil, xcbutilwm, xcbutilxrm, libstartup_notification
+, bison, flex, librsvg, check
 }:
 
 stdenv.mkDerivation rec {
-  version = "1.3.1";
-  name = "rofi-${version}";
+  pname = "rofi-unwrapped";
+  version = "1.5.4";
 
   src = fetchurl {
-    url = "https://github.com/DaveDavenport/rofi/releases/download/${version}/${name}.tar.gz";
-    sha256 = "09i3vd8k6zqphrm382fglsmxc4q6dg00xddzl96kakszgvdd4qfs";
+    url = "https://github.com/davatorium/rofi/releases/download/${version}/rofi-${version}.tar.gz";
+    sha256 = "1g1170zmh5v7slnm1sm2d08jgz6icikf8rm17apm1bjzzyw1lhk7";
   };
 
   preConfigure = ''
@@ -17,16 +19,23 @@ stdenv.mkDerivation rec {
     sed -i 's/~root/~nobody/g' test/helper-expand.c
   '';
 
-  buildInputs = [ autoreconfHook pkgconfig libxkbcommon pango cairo git
+  nativeBuildInputs = [ autoreconfHook pkgconfig makeWrapper ];
+  buildInputs = [ libxkbcommon pango cairo git bison flex librsvg check
     libstartup_notification libxcb xcbutil xcbutilwm xcbutilxrm which
   ];
-  doCheck = true;
 
-  meta = with stdenv.lib; {
+  postInstall = ''
+    wrapProgram $out/bin/rofi-theme-selector \
+      --prefix XDG_DATA_DIRS : $out/share
+  '';
+
+  doCheck = false;
+
+  meta = with lib; {
     description = "Window switcher, run dialog and dmenu replacement";
-    homepage = https://davedavenport.github.io/rofi;
+    homepage = "https://github.com/davatorium/rofi";
     license = licenses.mit;
-    maintainers = with maintainers; [ mbakke garbas ];
-    platforms = with platforms; unix;
+    maintainers = with maintainers; [ mbakke ma27 ];
+    platforms = with platforms; linux;
   };
 }

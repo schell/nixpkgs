@@ -1,12 +1,12 @@
 { stdenv, fetchurl, autoreconfHook }:
 
 stdenv.mkDerivation rec {
-  name = "ip2location-c-${version}";
+  pname = "ip2location-c";
   version = "7.0.2"; # meta.homepage might change after a major update
 
   src = fetchurl {
     sha256 = "1gs43qgcyfn83abrkhvvw1s67d1sbkbj3hab9m17ysn6swafiycx";
-    url = "http://www.ip2location.com/downloads/ip2location-c-${version}.tar.gz";
+    url = "https://www.ip2location.com/downloads/ip2location-c-${version}.tar.gz";
   };
 
   nativeBuildInputs = [ autoreconfHook ];
@@ -28,6 +28,5 @@ stdenv.mkDerivation rec {
     homepage = http://www.ip2location.com/developers/c-7;
     license = with licenses; [ gpl3Plus lgpl3Plus ];
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

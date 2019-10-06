@@ -1,13 +1,12 @@
-{ stdenv , fetchurl , buildPythonPackage , sphinx }:
+{ stdenv, fetchPypi, buildPythonPackage, sphinx }:
 
 buildPythonPackage rec {
   pname = "hieroglyph";
-  version = "0.7.1";
-  name = "${pname}-${version}";
+  version = "1.0.0";
 
-  src = fetchurl {
-    url = "mirror://pypi/h/hieroglyph/${name}.tar.gz";
-    sha256 = "0rswfk7x6zlj1z8388f153k3zn2h52k5h9b6p57pn7kqagsjilcb";
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "8e137f0b1cd60c47b870011089790d3c8ddb74fcf409a75ddf2c7f2516ff337c";
   };
 
   propagatedBuildInputs = [ sphinx ];
@@ -21,7 +20,6 @@ buildPythonPackage rec {
     homepage = https://github.com/nyergler/hieroglyph/;
     license = licenses.bsd3;
     maintainers = with maintainers; [ juliendehos ];
-    platforms = platforms.unix;
   };
 }
 

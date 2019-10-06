@@ -1,7 +1,7 @@
 { stdenv, fetchurl, mkfontdir, mkfontscale }:
 
-stdenv.mkDerivation rec {
-  name = "ucs-fonts-${version}";
+stdenv.mkDerivation {
+  pname = "ucs-fonts";
   version = "20090406";
 
   srcs = [
@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
 
   sourceRoot = ".";
 
-  buildInputs = [ mkfontdir mkfontscale ];
+  nativeBuildInputs = [ mkfontdir mkfontscale ];
 
   phases = [ "unpackPhase" "installPhase" ];
 
@@ -32,6 +32,10 @@ stdenv.mkDerivation rec {
     mkfontdir
     mkfontscale
   '';
+
+  outputHashAlgo = "sha256";
+  outputHashMode = "recursive";
+  outputHash = "12fh3kbsib0baqwk6148fnzqrj9gs4vnl7yd5n9km72sic1z1xwk";
 
   meta = with stdenv.lib; {
     description = "Unicode bitmap fonts";

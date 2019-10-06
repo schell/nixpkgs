@@ -1,12 +1,12 @@
-{ stdenv, fetchurl, jre, makeWrapper, bash }:
+{ stdenv, fetchurl, jre, makeWrapper, bash, coreutils, runtimeShell }:
 
 stdenv.mkDerivation rec {
-  name = "zookeeper-${version}";
-  version = "3.4.9";
+  pname = "zookeeper";
+  version = "3.4.13";
 
   src = fetchurl {
-    url = "mirror://apache/zookeeper/${name}/${name}.tar.gz";
-    sha256 = "0dgmja1lm7qn92x2xfmz5qj2k6sj2f6yzyj3a55r7iv1590l1wz7";
+    url = "mirror://apache/zookeeper/${pname}-${version}/${pname}-${version}.tar.gz";
+    sha256 = "0karf13zks3ba2rdmma2lyabvmasc04cjmgxp227f0nj8677kvbw";
   };
 
   buildInputs = [ makeWrapper jre ];
@@ -15,26 +15,30 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out
-    cp -R conf docs lib ${name}.jar $out
+    cp -R conf docs lib ${pname}-${version}.jar $out
     mkdir -p $out/bin
-    cp -R bin/{zkCli,zkCleanup,zkEnv}.sh $out/bin
-    for i in $out/bin/{zkCli,zkCleanup}.sh; do
+    cp -R bin/{zkCli,zkCleanup,zkEnv,zkServer}.sh $out/bin
+    patchShebangs $out/bin
+    for i in $out/bin/{zkCli,zkCleanup,zkServer}.sh; do
       wrapProgram $i \
         --set JAVA_HOME "${jre}" \
         --prefix PATH : "${bash}/bin"
     done
+    substituteInPlace $out/bin/zkServer.sh \
+        --replace /bin/echo ${coreutils}/bin/echo \
+        --replace "/usr/bin/env bash" ${bash}/bin/bash
     chmod -x $out/bin/zkEnv.sh
 
     mkdir -p $out/share/zooinspector
-    cp -r contrib/ZooInspector/{${name}-ZooInspector.jar,icons,lib,config} $out/share/zooinspector
+    cp -r contrib/ZooInspector/{${pname}-${version}-ZooInspector.jar,icons,lib,config} $out/share/zooinspector
 
-    classpath="$out/${name}.jar:$out/share/zooinspector/${name}-ZooInspector.jar"
+    classpath="$out/${pname}-${version}.jar:$out/share/zooinspector/${pname}-${version}-ZooInspector.jar"
     for jar in $out/lib/*.jar $out/share/zooinspector/lib/*.jar; do
       classpath="$classpath:$jar"
     done
 
     cat << EOF > $out/bin/zooInspector.sh
-    #!${stdenv.shell}
+    #!${runtimeShell}
     cd $out/share/zooinspector
     exec ${jre}/bin/java -cp $classpath org.apache.zookeeper.inspector.ZooInspector
     EOF
@@ -42,7 +46,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = with stdenv.lib; {
-    homepage = "http://zookeeper.apache.org";
+    homepage = http://zookeeper.apache.org;
     description = "Apache Zookeeper";
     license = licenses.asl20;
     maintainers = with maintainers; [ nathan-gs cstrahan pradeepchhetri ];

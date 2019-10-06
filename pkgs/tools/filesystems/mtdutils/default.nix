@@ -1,7 +1,7 @@
 { stdenv, fetchurl, libuuid, lzo, zlib, acl }:
 
-stdenv.mkDerivation rec {
-  name = "mtd-utils-${version}";
+stdenv.mkDerivation {
+  pname = "mtd-utils";
   version = "1.5.2";
 
   src = fetchurl {
@@ -14,10 +14,6 @@ stdenv.mkDerivation rec {
   '';
 
   buildInputs = [ libuuid lzo zlib acl ];
-
-  crossAttrs = {
-    makeFlags = "CC=${stdenv.cross.config}-gcc";
-  };
 
   meta = {
     description = "Tools for MTD filesystems";

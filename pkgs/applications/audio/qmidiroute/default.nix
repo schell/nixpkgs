@@ -1,15 +1,16 @@
 { stdenv, fetchurl, pkgconfig, qt4, alsaLib }:
 
 stdenv.mkDerivation rec {
-  version = "0.3.0";
-  name = "qmidiroute-${version}";
+  version = "0.4.0";
+  pname = "qmidiroute";
 
   src = fetchurl {
-    url = "mirror://sourceforge/project/alsamodular/QMidiRoute/${version}/${name}.tar.gz";
-    sha256 = "11bfjz14z37v6hk2xyg4vrw423b5h3qgcbviv07g00ws1fgjygm2";
+    url = "mirror://sourceforge/project/alsamodular/QMidiRoute/${version}/${pname}-${version}.tar.gz";
+    sha256 = "0vmjwarsxr5540rafhmdcc62yarf0w2l05bjjl9s28zzr5m39z3n";
   };
 
-  buildInputs = [ pkgconfig qt4 alsaLib ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ qt4 alsaLib ];
 
   meta = with stdenv.lib; {
     description = "MIDI event processor and router";

@@ -1,9 +1,12 @@
 {
-  "rake" = {
-    version = "11.1.1";
+  rake = {
+    groups = ["default"];
+    platforms = [];
     source = {
+      remotes = ["https://rubygems.org"];
+      sha256 = "1sy5a7nh6xjdc9yhcw31jji7ssrf9v5806hn95gbrzr998a2ydjn";
       type = "gem";
-      sha256 = "0h8wcic2xh3lv7yvs05pqnfqb80jyl488f7136lgxmajb0s1rqhg";
     };
+    version = "12.3.2";
   };
 }

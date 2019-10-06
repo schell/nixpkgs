@@ -1,13 +1,16 @@
-{ stdenv, fetchurl, kerberos, keyutils, pam, talloc }:
+{ stdenv, fetchurl, autoreconfHook, docutils, pkgconfig
+, kerberos, keyutils, pam, talloc }:
 
 stdenv.mkDerivation rec {
-  name = "cifs-utils-${version}";
-  version = "6.6";
+  pname = "cifs-utils";
+  version = "6.9";
 
   src = fetchurl {
-    url = "mirror://samba/pub/linux-cifs/cifs-utils/${name}.tar.bz2";
-    sha256 = "09biws1jm23l3mjb9kh99v57z8bgzybrmimwddb40s6y0yl54wfh";
+    url = "mirror://samba/pub/linux-cifs/cifs-utils/${pname}-${version}.tar.bz2";
+    sha256 = "175cp509wn1zv8p8mv37hkf6sxiskrsxdnq22mhlsg61jazz3n0q";
   };
+
+  nativeBuildInputs = [ autoreconfHook docutils pkgconfig ];
 
   buildInputs = [ kerberos keyutils pam talloc ];
 
@@ -18,6 +21,5 @@ stdenv.mkDerivation rec {
     description = "Tools for managing Linux CIFS client filesystems";
     platforms = platforms.linux;
     license = licenses.lgpl3;
-    maintainers = with maintainers; [ nckx ];
   };
 }

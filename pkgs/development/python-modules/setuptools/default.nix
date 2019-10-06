@@ -1,39 +1,48 @@
 { stdenv
+, buildPythonPackage
 , fetchPypi
 , python
 , wrapPython
 , unzip
+, callPackage
+, bootstrapped-pip
 }:
 
-# Should use buildPythonPackage here somehow
-stdenv.mkDerivation rec {
+buildPythonPackage rec {
   pname = "setuptools";
-  version = "36.0.1";
-  name = "${python.libPrefix}-${pname}-${version}";
+  version = "41.2.0";
+  format = "other";
 
   src = fetchPypi {
     inherit pname version;
     extension = "zip";
-    sha256 = "e17c4687fddd6d70a6604ac0ad25e33324cec71b5137267dd5c45e103c4b288a";
+    sha256 = "66b86bbae7cc7ac2e867f52dc08a6bd064d938bac59dfec71b9b565dd36d6012";
   };
 
-  buildInputs = [ python wrapPython unzip ];
-  doCheck = false;  # requires pytest
+  # There is nothing to build
+  dontBuild = true;
+
+  nativeBuildInputs = [ bootstrapped-pip ];
+
   installPhase = ''
       dst=$out/${python.sitePackages}
       mkdir -p $dst
       export PYTHONPATH="$dst:$PYTHONPATH"
-      ${python.interpreter} setup.py install --prefix=$out
+      ${python.pythonForBuild.interpreter} setup.py install --prefix=$out
       wrapPythonPrograms
   '';
 
-  pythonPath = [];
+  # Adds setuptools to nativeBuildInputs causing infinite recursion.
+  catchConflicts = false;
+
+  # Requires pytest, causing infinite recursion.
+  doCheck = false;
 
   meta = with stdenv.lib; {
     description = "Utilities to facilitate the installation of Python packages";
-    homepage = http://pypi.python.org/pypi/setuptools;
-    license = with licenses; [ psfl zpt20 ];
-    platforms = platforms.all;
+    homepage = https://pypi.python.org/pypi/setuptools;
+    license = with licenses; [ psfl zpl20 ];
+    platforms = python.meta.platforms;
     priority = 10;
   };
 }

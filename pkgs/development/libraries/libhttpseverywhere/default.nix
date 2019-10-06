@@ -1,41 +1,49 @@
-{stdenv, fetchurl, gnome3, glib, json_glib, libxml2, libarchive, libsoup, gobjectIntrospection, meson, ninja, pkgconfig,  valadoc}:
+{ stdenv, fetchurl, pkgconfig, meson, ninja, makeFontsConf, vala, fetchpatch
+, gnome3, glib, json-glib, libarchive, libsoup, gobject-introspection }:
 
-stdenv.mkDerivation rec {
-  major = "0.4";
-  minor = "2";
-  version = "${major}.${minor}";
-
-  name = "libhttpseverywhere-${version}";
+let
+  pname = "libhttpseverywhere";
+  version = "0.8.3";
+in stdenv.mkDerivation rec {
+  name = "${pname}-${version}";
 
   src = fetchurl {
-    url = "mirror://gnome/sources/libhttpseverywhere/${major}/libhttpseverywhere-${version}.tar.xz";
-    sha256 = "0n850a4adsla6di8dylnadg07wblkdl28abrjvk6fzy8a1kjlx02";
+    url = "mirror://gnome/sources/${pname}/${stdenv.lib.versions.majorMinor version}/${name}.tar.xz";
+    sha256 = "1jmn6i4vsm89q1axlq4ajqkzqmlmjaml9xhw3h9jnal46db6y00w";
   };
 
-  nativeBuildInputs = [ gnome3.vala valadoc  gobjectIntrospection meson ninja pkgconfig ];
-  buildInputs = [ glib gnome3.libgee libxml2 json_glib libsoup libarchive ];
+  nativeBuildInputs = [ vala gobject-introspection meson ninja pkgconfig ];
+  buildInputs = [ glib gnome3.libgee json-glib libsoup libarchive ];
 
-  configurePhase = ''
-    mkdir build
-    cd build
-    meson --prefix "$out" ..
-  '';
+  # Fixes build with vala >=0.42
+  patches = [
+    (fetchpatch {
+      url = "https://gitlab.gnome.org/GNOME/libhttpseverywhere/commit/6da08ef1ade9ea267cecf14dd5cb2c3e6e5e50cb.patch";
+      sha256 = "1nwjlh8iqgjayccwdh0fbpq2g1h8bg1k1g9i324f2bhhvyhmpq8f";
+    })
+  ];
 
-  buildPhase = ''
-    ninja
-   '';
-
-  installPhase = "ninja install";
+  mesonFlags = [ "-Denable_valadoc=true" ];
 
   doCheck = true;
 
-  checkPhase = "./httpseverywhere_test";
+  checkPhase = "(cd test && ./httpseverywhere_test)";
 
-  meta = {
-    description = "library to use HTTPSEverywhere in desktop applications";
-    homepage    = https://git.gnome.org/browse/libhttpseverywhere;
-    license     = stdenv.lib.licenses.lgpl3;
-    platforms   = stdenv.lib.platforms.linux;
-    maintainers = with stdenv.lib.maintainers; [ sternenseemann ];
+  FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ ]; };
+
+  outputs = [ "out" "devdoc" ];
+
+  passthru = {
+    updateScript = gnome3.updateScript {
+      packageName = pname;
+    };
+  };
+
+  meta = with stdenv.lib; {
+    description = "Library to use HTTPSEverywhere in desktop applications";
+    homepage = https://gitlab.gnome.org/GNOME/libhttpseverywhere;
+    license = licenses.lgpl3;
+    platforms = platforms.linux;
+    maintainers = with maintainers; [ sternenseemann ] ++ gnome3.maintainers;
   };
 }

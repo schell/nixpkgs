@@ -1,14 +1,15 @@
 { stdenv, fetchFromGitHub, glib, gettext }:
 
 stdenv.mkDerivation rec {
-  name = "gnome-shell-dash-to-dock-${version}";
-  version = "v57";
+  pname = "gnome-shell-dash-to-dock";
+  version = "20190921";
 
   src = fetchFromGitHub {
     owner = "micheleg";
     repo = "dash-to-dock";
-    rev = "97f6a0bb95b9f87d7a34a074c9b3624b65111794";
-    sha256 = "0b9i89hpn9k63zcrbl4bhs7qfb70wh09870fwv2ik7hajm64kynn";
+    # rev = "extensions.gnome.org-v" + version;
+    rev = "d918d29a6afced8823dc954a4317988b79aad6b8";
+    sha256 = "1wlmbcn8zs8xiyxhgdcbnf2igjsjg0bkcsvjpy8fk13fxshxsqx6";
   };
 
   nativeBuildInputs = [

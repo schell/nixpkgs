@@ -1,23 +1,20 @@
-{ stdenv, buildPythonPackage, fetchPypi, isPyPy, unittest2 }:
+{ stdenv, buildPythonPackage, fetchPypi, unittest2 }:
 
 buildPythonPackage rec {
   pname = "pyflakes";
-  version = "1.5.0";
-  name = "${pname}-${version}";
+  version = "2.1.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1x1pcca4a24k4pw8x1c77sgi58cg1wl2k38mp8a25k608pzls3da";
+    sha256 = "d976835886f8c5b31d47970ed689944a0262b5f3afa00a5a7b4dc81e5449f8a2";
   };
 
-  buildInputs = [ unittest2 ];
-
-  doCheck = !isPyPy;
+  checkInputs = [ unittest2 ];
 
   meta = with stdenv.lib; {
     homepage = https://launchpad.net/pyflakes;
     description = "A simple program which checks Python source files for errors";
     license = licenses.mit;
-    maintainers = with maintainers; [ garbas ];
+    maintainers = with maintainers; [ ];
   };
 }

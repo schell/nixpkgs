@@ -3,7 +3,6 @@
 stdenv.mkDerivation rec {
   pname = "cutee";
   version = "0.4.2";
-  name = "${pname}-${version}";
 
   src = fetchurl {
     url    = "http://www.codesink.org/download/${pname}-${version}.tar.gz";
@@ -19,7 +18,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "C++ Unit Testing Easy Environment";
-    homepage    = http://codesink.org/cutee_unit_testing.html;
+    homepage    = http://www.codesink.org/cutee_unit_testing.html;
     license     = licenses.gpl2Plus;
     maintainers = with maintainers; [ leenaars];
     platforms = platforms.linux;

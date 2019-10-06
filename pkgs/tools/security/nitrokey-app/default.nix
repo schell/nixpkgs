@@ -1,26 +1,37 @@
-{ stdenv, cmake, fetchgit, hidapi, libusb1, pkgconfig, qt5 }:
+{ stdenv, bash-completion, cmake, fetchFromGitHub, hidapi, libusb1, pkgconfig
+, qtbase, qttranslations, qtsvg, wrapQtAppsHook }:
 
 stdenv.mkDerivation rec {
-  name = "nitrokey-app";
-  version = "1.1";
+  pname = "nitrokey-app";
+  version = "1.3.2";
 
-  src = fetchgit {
-    url = "https://github.com/Nitrokey/nitrokey-app.git";
-    rev = "refs/tags/v${version}";
-    sha256 = "11pz1p5qgghkr5f8s2wg34zqhxk2vq465i73w1h479j88x35rdp0";
+  src = fetchFromGitHub {
+    owner = "Nitrokey";
+    repo = "nitrokey-app";
+    rev = "v${version}";
+    sha256 = "193kzlz3qn9il56h78faiqkgv749hdils1nn1iw6g3wphgx5fjs2";
+    fetchSubmodules = true;
   };
 
+  postPatch = ''
+    substituteInPlace libnitrokey/CMakeLists.txt \
+      --replace '/data/41-nitrokey.rules' '/libnitrokey/data/41-nitrokey.rules'
+  '';
+
   buildInputs = [
+    bash-completion
     hidapi
     libusb1
-    qt5.qtbase
-    qt5.qttranslations
+    qtbase
+    qttranslations
+    qtsvg
   ];
   nativeBuildInputs = [
     cmake
     pkgconfig
+    wrapQtAppsHook
   ];
-  cmakeFlags = "-DHAVE_LIBAPPINDICATOR=NO";
+  cmakeFlags = "-DCMAKE_BUILD_TYPE=Release";
 
   meta = with stdenv.lib; {
     description      = "Provides extra functionality for the Nitrokey Pro and Storage";

@@ -1,33 +1,28 @@
-{ stdenv, lib, buildGoPackage, fetchFromGitHub }:
+{ stdenv, fetchFromGitHub, buildGoPackage }:
 
-let
-  vaultBashCompletions = fetchFromGitHub {
-    owner = "iljaweis";
-    repo = "vault-bash-completion";
-    rev = "e2f59b64be1fa5430fa05c91b6274284de4ea77c";
-    sha256 = "10m75rp3hy71wlmnd88grmpjhqy0pwb9m8wm19l0f463xla54frd";
-  };
-in buildGoPackage rec {
-  name = "vault-${version}";
-  version = "0.6.5";
-
-  goPackagePath = "github.com/hashicorp/vault";
+buildGoPackage rec {
+  pname = "vault";
+  version = "1.2.3";
 
   src = fetchFromGitHub {
     owner = "hashicorp";
     repo = "vault";
     rev = "v${version}";
-    sha256 = "0ci46zn9d9h26flgjf4inmvk4mb1hlixvx5g7vg02raw0cqvknnb";
+    sha256 = "11zi12j09vi6j112a1n8f7sxwp15pbh0801bzh27ihcy01hlzdf8";
   };
 
-  buildFlagsArray = ''
-    -ldflags=
-      -X github.com/hashicorp/vault/version.GitCommit=${version}
-  '';
+  goPackagePath = "github.com/hashicorp/vault";
+
+  subPackages = [ "." ];
+
+  buildFlagsArray = [
+    "-tags='vault'"
+    "-ldflags=\"-X github.com/hashicorp/vault/sdk/version.GitCommit='v${version}'\""
+  ];
 
   postInstall = ''
-    mkdir -p $bin/share/bash-completion/completions/
-    cp ${vaultBashCompletions}/vault-bash-completion.sh $bin/share/bash-completion/completions/vault
+    mkdir -p $bin/share/bash-completion/completions
+    echo "complete -C $bin/bin/vault vault" > $bin/share/bash-completion/completions/vault
   '';
 
   meta = with stdenv.lib; {
@@ -35,6 +30,6 @@ in buildGoPackage rec {
     description = "A tool for managing secrets";
     platforms = platforms.linux ++ platforms.darwin;
     license = licenses.mpl20;
-    maintainers = with maintainers; [ rushmorem offline pradeepchhetri ];
+    maintainers = with maintainers; [ rushmorem lnl7 offline pradeepchhetri ];
   };
 }

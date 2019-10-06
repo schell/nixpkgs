@@ -1,18 +1,21 @@
 { stdenv, fetchurl, pkgconfig
-, SDL, mesa, openal, lua
+, SDL, libGLU_combined, openal, lua
 , libdevil, freetype, physfs
 , libmodplug, mpg123, libvorbis, libogg
 }:
 
 stdenv.mkDerivation rec {
-  name = "love-0.8.0";
+  pname = "love";
+  version = "0.8.0";
+
   src = fetchurl {
-    url = "https://bitbucket.org/rude/love/downloads/${name}-linux-src.tar.gz";
+    url = "https://bitbucket.org/rude/love/downloads/${pname}-${version}-linux-src.tar.gz";
     sha256 = "1k4fcsa8zzi04ja179bmj24hvqcbm3icfvrvrzyz2gw9qwfclrwi";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    pkgconfig SDL mesa openal lua
+    SDL libGLU_combined openal lua
     libdevil freetype physfs libmodplug mpg123 libvorbis libogg
   ];
 
@@ -35,10 +38,11 @@ stdenv.mkDerivation rec {
     } || true
   '';
 
-  NIX_CFLAGS_COMPILE = ''
-    -I${SDL.dev}/include/SDL
-    -I${freetype.dev}include/freetype2
-  '';
+  NIX_CFLAGS_COMPILE = [
+    "-I${SDL.dev}/include/SDL"
+    "-I${freetype.dev}include/freetype2"
+    "-DGL_GLEXT_PROTOTYPES" # https://community.khronos.org/t/glgenbuffers-was-not-declared-in-this-scope/59283/2
+  ];
 
   meta = {
     homepage = "http://love2d.org";

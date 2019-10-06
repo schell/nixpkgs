@@ -1,16 +1,17 @@
-{lib, fetchurl, python, buildPythonPackage, isPyPy, gfortran, nose, numpy}:
+{lib, fetchPypi, python, buildPythonPackage, gfortran, nose, pytest, numpy}:
 
 buildPythonPackage rec {
   pname = "scipy";
-  version = "0.19.0";
-  name = "${pname}-${version}";
+  version = "1.3.1";
 
-  src = fetchurl {
-    url = "mirror://pypi/s/scipy/scipy-${version}.zip";
-    sha256 = "4190d34bf9a09626cd42100bbb12e3d96b2daf1a8a3244e991263eb693732122";
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "2643cfb46d97b7797d1dbdb6f3c23fe3402904e3c90e6facfe6a9b98d808c1b5";
   };
 
-  buildInputs = [ gfortran nose numpy.blas ];
+  checkInputs = [ nose pytest ];
+  nativeBuildInputs = [ gfortran ];
+  buildInputs = [ numpy.blas ];
   propagatedBuildInputs = [ numpy ];
 
   # Remove tests because of broken wrapper
@@ -18,18 +19,20 @@ buildPythonPackage rec {
     rm scipy/linalg/tests/test_lapack.py
   '';
 
+  # INTERNALERROR, solved with https://github.com/scipy/scipy/pull/8871
+  # however, it does not apply cleanly.
+  doCheck = false;
+
   preConfigure = ''
     sed -i '0,/from numpy.distutils.core/s//import setuptools;from numpy.distutils.core/' setup.py
+    export NPY_NUM_BUILD_JOBS=$NIX_BUILD_CORES
   '';
 
   preBuild = ''
-    echo "Creating site.cfg file..."
-    cat << EOF > site.cfg
-    [openblas]
-    include_dirs = ${numpy.blas}/include
-    library_dirs = ${numpy.blas}/lib
-    EOF
+    ln -s ${numpy.cfg} site.cfg
   '';
+
+  enableParallelBuilding = true;
 
   checkPhase = ''
     runHook preCheck
@@ -47,7 +50,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "SciPy (pronounced 'Sigh Pie') is open-source software for mathematics, science, and engineering. ";
-    homepage = http://www.scipy.org/;
+    homepage = https://www.scipy.org/;
     maintainers = with lib.maintainers; [ fridh ];
   };
 }

@@ -1,7 +1,7 @@
-{ stdenv, fetchurl, makeDesktopItem, unzip, jre }:
+{ stdenv, fetchurl, makeDesktopItem, unzip, jre, runtimeShell }:
 
 stdenv.mkDerivation rec {
-  name = "swingsane-${version}";
+  pname = "swingsane";
   version = "0.2";
 
   src = fetchurl {
@@ -16,7 +16,7 @@ stdenv.mkDerivation rec {
   installPhase = let
 
     execWrapper = ''
-      #!/bin/sh
+      #!${runtimeShell}
       exec ${jre}/bin/java -jar $out/share/java/swingsane/swingsane-${version}.jar "$@"
     '';
 
@@ -57,6 +57,5 @@ stdenv.mkDerivation rec {
     homepage = http://swingsane.com/;
     license = licenses.asl20;
     platforms = platforms.all;
-    maintainers = with maintainers; [ nckx ];
   };
 }

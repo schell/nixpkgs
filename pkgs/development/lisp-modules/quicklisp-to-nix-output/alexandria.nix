@@ -1,33 +1,26 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''alexandria'';
-  version = ''20170227-git'';
+  version = ''20190710-git'';
 
   description = ''Alexandria is a collection of portable public domain utilities.'';
 
   deps = [ ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/alexandria/2017-02-27/alexandria-20170227-git.tgz'';
-    sha256 = ''0gnn4ysyvqf8wfi94kh6x23iwx3czaicam1lz9pnwsv40ws5fwwh'';
+    url = ''http://beta.quicklisp.org/archive/alexandria/2019-07-10/alexandria-20190710-git.tgz'';
+    sha256 = ''0127d5yyq46dpffvr4hla6d3ryiml48mxd2r6cgbg3mgz3b2nr70'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/alexandria[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "alexandria";
+
+  asdFilesToKeep = ["alexandria.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM alexandria DESCRIPTION Alexandria is a collection of portable public domain utilities. SHA256 0gnn4ysyvqf8wfi94kh6x23iwx3czaicam1lz9pnwsv40ws5fwwh
-    URL http://beta.quicklisp.org/archive/alexandria/2017-02-27/alexandria-20170227-git.tgz MD5 b0cbf86723fa3a1fe5c544e8079a3be3 NAME alexandria TESTNAME NIL
-    FILENAME alexandria DEPS NIL DEPENDENCIES NIL VERSION 20170227-git SIBLINGS (alexandria-tests)) */
+/* (SYSTEM alexandria DESCRIPTION
+    Alexandria is a collection of portable public domain utilities. SHA256
+    0127d5yyq46dpffvr4hla6d3ryiml48mxd2r6cgbg3mgz3b2nr70 URL
+    http://beta.quicklisp.org/archive/alexandria/2019-07-10/alexandria-20190710-git.tgz
+    MD5 2b5abc0a266aeafe9029bf26db90b292 NAME alexandria FILENAME alexandria
+    DEPS NIL DEPENDENCIES NIL VERSION 20190710-git SIBLINGS (alexandria-tests)
+    PARASITES NIL) */

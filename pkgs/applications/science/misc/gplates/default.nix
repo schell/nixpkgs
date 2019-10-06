@@ -1,12 +1,12 @@
-{ stdenv, fetchurl, qt4, qwt6_qt4, mesa, glew, gdal_1_11, cgal
+{ stdenv, fetchurl, qt4, qwt6_qt4, libGLU_combined, glew, gdal_1_11, cgal
 , proj, boost, cmake, python2, doxygen, graphviz, gmp }:
 
 stdenv.mkDerivation rec {
-  name = "gplates-${version}";
+  pname = "gplates";
   version = "2.0.0";
 
   src = fetchurl {
-    url = "mirror://sourceforge/gplates/${name}-unixsrc.tar.bz2";
+    url = "mirror://sourceforge/gplates/${pname}-${version}-unixsrc.tar.bz2";
     sha256 = "02scnjj5nlc2d2c8lbx0xvj8gg1bgkjliv3wxsx564c55a9x69qw";
   };
 
@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    qt4 qwt6_qt4 mesa glew gdal_1_11 cgal proj boost cmake python2
+    qt4 qwt6_qt4 libGLU_combined glew gdal_1_11 cgal proj boost cmake python2
     doxygen graphviz gmp
   ];
 
@@ -24,5 +24,6 @@ stdenv.mkDerivation rec {
     homepage = https://www.gplates.org;
     license = licenses.gpl2;
     platforms = platforms.all;
+    broken = true;
   };
 }

@@ -1,13 +1,19 @@
-{ stdenv, kmod, modules, buildEnv }:
+{ stdenvNoCC, kmod, modules, buildEnv, name ? "kernel-modules" }:
 
 buildEnv {
-  name = "kernel-modules";
+  inherit name;
 
   paths = modules;
 
   postBuild =
     ''
-      source ${stdenv}/setup
+      source ${stdenvNoCC}/setup
+
+      if ! test -d "$out/lib/modules"; then
+        echo "No modules found."
+        # To support a kernel without modules
+        exit 0
+      fi
 
       kernelVersion=$(cd $out/lib/modules && ls -d *)
       if test "$(echo $kernelVersion | wc -w)" != 1; then

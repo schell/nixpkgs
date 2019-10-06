@@ -1,20 +1,20 @@
 { stdenv, fetchFromGitHub, zlib, curl, expat, fuse, openssl
-, autoreconfHook, python
+, autoreconfHook, python3
 }:
 
 stdenv.mkDerivation rec {
-  version = "3.7.15";
-  name = "afflib-${version}";
+  version = "3.7.18";
+  pname = "afflib";
 
   src = fetchFromGitHub {
     owner = "sshock";
     repo = "AFFLIBv3";
     rev = "v${version}";
-    sha256 = "0ckg49m15lz5cxg0k12z2ys6v4smjr6l8bbazrvsqlm649gwd2bw";
+    sha256 = "0963gw316p4nyxa9zxmgif29p8i99k898av2g78g28dxafqj3w8c";
   };
 
-  buildInputs = [ zlib curl expat fuse openssl autoreconfHook python ];
-
+  nativeBuildInputs = [ autoreconfHook ];
+  buildInputs = [ zlib curl expat fuse openssl python3 ];
 
   meta = {
     homepage = http://afflib.sourceforge.net/;

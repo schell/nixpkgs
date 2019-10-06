@@ -1,10 +1,10 @@
 { stdenv, alsaLib, atk, cairo, cups, dbus, dpkg, expat, fontconfig, freetype
-, fetchurl, GConf, gdk_pixbuf, glib, gtk2, libpulseaudio, makeWrapper, nspr
+, fetchurl, GConf, gdk-pixbuf, glib, gtk2, gtk3, libpulseaudio, makeWrapper, nspr
 , nss, pango, udev, xorg
 }:
 
 let
-  version = "4.3.0";
+  version = "4.6.1";
 
   deps = [
     alsaLib
@@ -16,9 +16,10 @@ let
     fontconfig
     freetype
     GConf
-    gdk_pixbuf
+    gdk-pixbuf
     glib
     gtk2
+    gtk3
     libpulseaudio
     nspr
     nss
@@ -42,11 +43,12 @@ let
 in
 
 stdenv.mkDerivation {
-  name = "google-play-music-desktop-player-${version}";
+  pname = "google-play-music-desktop-player";
+  inherit version;
 
   src = fetchurl {
     url = "https://github.com/MarshallOfSound/Google-Play-Music-Desktop-Player-UNOFFICIAL-/releases/download/v${version}/google-play-music-desktop-player_${version}_amd64.deb";
-    sha256 = "0mbrfnsnajmpwyqyrjmcv84ywzimjmm2b8faxqiwfcikdgpm9amb";
+    sha256 = "0dyn2fxhcri9d9nmcprszs6yg79gsr09bjfzzb1p10yjmi77cj2g";
   };
 
   dontBuild = true;
@@ -74,6 +76,6 @@ stdenv.mkDerivation {
     description = "A beautiful cross platform Desktop Player for Google Play Music";
     license = stdenv.lib.licenses.mit;
     platforms = [ "x86_64-linux" ];
-    maintainers = stdenv.lib.maintainers.SuprDewd;
+    maintainers = [ stdenv.lib.maintainers.SuprDewd ];
   };
 }

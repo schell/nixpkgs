@@ -1,14 +1,13 @@
 { stdenv, fetchgit }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "datefudge";
-  version = "1.2.1";
-  name = "${pname}-${version}";
+  version = "1.23";
 
   src = fetchgit {
-    sha256 = "0l83kn6c3jr3wzs880zfa64rw81cqjjk55gjxz71rjf2balp64ps";
-    url = "git://anonscm.debian.org/users/robert/datefudge.git";
-    rev = "cd141c63bebe9b579109b2232b5e83db18f222c2";
+    url = "https://salsa.debian.org/debian/datefudge.git";
+    rev = "090d3aace17640478f7f5119518b2f4196f62617";
+    sha256 = "0r9g8v9xnv60hq3j20wqy34kyig3sc2pisjxl4irn7jjx85f1spv";
   };
 
   patchPhase = ''
@@ -32,7 +31,7 @@ stdenv.mkDerivation rec {
       different by pre-loading a small library which modifies the time,
       gettimeofday and clock_gettime system calls.
     '';
-    homepage = http://packages.qa.debian.org/d/datefudge.html;
+    homepage = https://packages.qa.debian.org/d/datefudge.html;
     license = licenses.gpl2;
     platforms = platforms.linux;
     maintainers = with maintainers; [ leenaars ];

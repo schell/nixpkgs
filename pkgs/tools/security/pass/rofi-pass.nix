@@ -3,14 +3,14 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "rofi-pass-${version}";
-  version = "1.5.0";
+  pname = "rofi-pass";
+  version = "2.0.2";
 
   src = fetchFromGitHub {
     owner = "carnager";
     repo = "rofi-pass";
     rev = version;
-    sha256 = "08chbn966140p3gmgalkhhm01ym64fvb6d2w5mbwpyl0986m89ba";
+    sha256 = "131jpcwyyzgzjn9lx4k1zn95pd68pjw4i41jfzcp9z9fnazyln5n";
   };
 
   buildInputs = [ makeWrapper ];
@@ -32,7 +32,7 @@ stdenv.mkDerivation rec {
     gnugrep
     gnused
     libnotify
-    pass
+    (pass.withExtensions (ext: [ ext.pass-otp ]))
     pwgen
     rofi
     utillinux
@@ -50,7 +50,7 @@ stdenv.mkDerivation rec {
   meta = {
     description = "A script to make rofi work with password-store";
     homepage = https://github.com/carnager/rofi-pass;
-    maintainers = with stdenv.lib.maintainers; [ the-kenny garbas ];
+    maintainers = with stdenv.lib.maintainers; [ the-kenny ];
     license = stdenv.lib.licenses.gpl3;
     platforms = with stdenv.lib.platforms; linux;
   };

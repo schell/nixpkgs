@@ -1,28 +1,24 @@
-{ stdenv, fetchFromGitHub }:
+{ lib, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
-  name = "orbitron-${version}";
+let
   version = "20110526";
+in fetchFromGitHub {
+  name = "orbitron-${version}";
 
-  src = fetchFromGitHub {
-    owner  = "theleagueof";
-    repo   = "orbitron";
-    rev    = "13e6a52";
-    sha256 = "1c6jb7ayr07j1pbnzf3jxng9x9bbqp3zydf8mqdw9ifln1b4ycyf";
-  };
+  owner = "theleagueof";
+  repo = "orbitron";
+  rev = "13e6a52";
 
-  phases = [ "unpackPhase" "installPhase" ];
-
-  installPhase = ''
-    otfdir=$out/share/fonts/opentype/orbitron
-    ttfdir=$out/share/fonts/ttf/orbitron
-    mkdir -p $otfdir $ttfdir
-    cp -v Orbitron*.otf $otfdir
-    cp -v Orbitron*.ttf $ttfdir
+  postFetch = ''
+    tar xf $downloadedFile --strip=1
+    install -m444 -Dt $out/share/fonts/opentype/orbitron *.otf
+    install -m444 -Dt $out/share/fonts/ttf/orbitron      *.ttf
   '';
 
-  meta = with stdenv.lib; {
-    homepage = "https://www.theleagueofmoveabletype.com/orbitron";
+  sha256 = "1y9yzvpqs2v3ssnqk2iiglrh8amgsscnk8vmfgnqgqi9f4dhdvnv";
+
+  meta = with lib; {
+    homepage = https://www.theleagueofmoveabletype.com/orbitron;
     downloadPage = "https://www.theleagueofmoveabletype.com/orbitron/download";
     description = ''
      Geometric sans-serif for display purposes by Matt McInerney'';

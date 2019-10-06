@@ -4,8 +4,8 @@ let
   # last commit on the directory containing the fonts in the upstream repository
   commit = "883939708704a19a295e0652036369d22469e8dc";
 in
-stdenv.mkDerivation rec {
-  name = "roboto-mono-${version}";
+stdenv.mkDerivation {
+  pname = "roboto-mono";
   version = "2016-01-11";
 
   srcs = [
@@ -62,6 +62,10 @@ stdenv.mkDerivation rec {
     mkdir -p $out/share/fonts/truetype
     cp -a *.ttf $out/share/fonts/truetype/
   '';
+
+  outputHashAlgo = "sha256";
+  outputHashMode = "recursive";
+  outputHash = "1rd3qql779dn9nl940hf988lvv4gfy5llgrlfqq0db0c22b2yfng";
 
   meta = {
     homepage = https://www.google.com/fonts/specimen/Roboto+Mono;

@@ -1,7 +1,7 @@
 { stdenv, fetchurl, automake, autoconf, pkgconfig, gtk3 }:
 
 stdenv.mkDerivation rec {
-  name = "gsimplecal-${version}";
+  pname = "gsimplecal";
   version = "2.1";
 
   src = fetchurl {
@@ -11,7 +11,8 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  buildInputs = [ pkgconfig automake autoconf gtk3 ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ automake autoconf gtk3 ];
 
   preConfigure = "./autogen.sh";
 

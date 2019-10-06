@@ -1,4 +1,4 @@
-{stdenv, fetchFromGitHub, perl, yasm
+{ stdenv, fetchFromGitHub, perl, yasm
 , vp8DecoderSupport ? true # VP8 decoder
 , vp8EncoderSupport ? true # VP8 encoder
 , vp9DecoderSupport ? true # VP9 decoder
@@ -32,7 +32,6 @@
 , temporalDenoisingSupport ? true # use temporal denoising instead of spatial denoising
 , coefficientRangeCheckingSupport ? false # decoder checks if intermediate transform coefficients are in valid range
 , vp9HighbitdepthSupport ? true # 10/12 bit color support in VP9
-, experimentalSupport ? false # experimental features
 # Experimental features
 , experimentalSpatialSvcSupport ? false # Spatial scalable video coding
 , experimentalFpMbStatsSupport ? false
@@ -40,7 +39,7 @@
 }:
 
 let
-  inherit (stdenv) isi686 isx86_64 isArm is64bit isMips isDarwin isCygwin;
+  inherit (stdenv) is64bit isMips isDarwin isCygwin;
   inherit (stdenv.lib) enableFeature optional optionals;
 in
 
@@ -56,14 +55,14 @@ assert vp9HighbitdepthSupport -> (vp9DecoderSupport || vp9EncoderSupport);
 assert isCygwin -> unitTestsSupport && webmIOSupport && libyuvSupport;
 
 stdenv.mkDerivation rec {
-  name = "libvpx-${version}";
-  version = "1.6.1";
+  pname = "libvpx";
+  version = "1.7.0";
 
   src = fetchFromGitHub {
     owner = "webmproject";
     repo = "libvpx";
     rev = "v${version}";
-    sha256 = "10fs7xilf2bsj5bqw206lb5r5dgl84p5m6nibiirk28lmjx1i3l0";
+    sha256 = "0vvh89hvp8qg9an9vcmwb7d9k3nixhxaz6zi65qdjnd0i56kkcz6";
   };
 
   patchPhase = ''patchShebangs .'';
@@ -71,6 +70,7 @@ stdenv.mkDerivation rec {
   outputs = [ "bin" "dev" "out" ];
   setOutputFlags = false;
 
+  configurePlatforms = [];
   configureFlags = [
     (enableFeature (vp8EncoderSupport || vp8DecoderSupport) "vp8")
     (enableFeature vp8EncoderSupport "vp8-encoder")
@@ -114,7 +114,7 @@ stdenv.mkDerivation rec {
     (if isDarwin || isCygwin then
        "--enable-static --disable-shared"
      else
-       "--disable-static --enable-shared")
+       "--enable-shared")
     (enableFeature smallSupport "small")
     (enableFeature postprocVisualizerSupport "postproc-visualizer")
     (enableFeature unitTestsSupport "unit-tests")
@@ -130,8 +130,29 @@ stdenv.mkDerivation rec {
     (enableFeature (experimentalSpatialSvcSupport ||
                     experimentalFpMbStatsSupport ||
                     experimentalEmulateHardwareSupport) "experimental")
-    # Experimental features
-  ] ++ optional experimentalSpatialSvcSupport "--enable-spatial-svc"
+  ] ++ optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    #"--extra-cflags="
+    #"--extra-cxxflags="
+    #"--prefix="
+    #"--libc="
+    #"--libdir="
+    "--enable-external-build"
+    # libvpx darwin targets include darwin version (ie. ARCH-darwinXX-gcc, XX being the darwin version)
+    # See all_platforms: https://github.com/webmproject/libvpx/blob/master/configure
+    # Darwin versions: 10.4=8, 10.5=9, 10.6=10, 10.7=11, 10.8=12, 10.9=13, 10.10=14
+    "--force-target=${stdenv.hostPlatform.config}${
+            if stdenv.hostPlatform.isDarwin then
+              if      stdenv.hostPlatform.osxMinVersion == "10.10" then "14"
+              else if stdenv.hostPlatform.osxMinVersion == "10.9"  then "13"
+              else if stdenv.hostPlatform.osxMinVersion == "10.8"  then "12"
+              else if stdenv.hostPlatform.osxMinVersion == "10.7"  then "11"
+              else if stdenv.hostPlatform.osxMinVersion == "10.6"  then "10"
+              else if stdenv.hostPlatform.osxMinVersion == "10.5"  then "9"
+              else "8"
+            else ""}-gcc"
+    (if stdenv.hostPlatform.isCygwin then "--enable-static-msvcrt" else "")
+  ] # Experimental features
+    ++ optional experimentalSpatialSvcSupport "--enable-spatial-svc"
     ++ optional experimentalFpMbStatsSupport "--enable-fp-mb-stats"
     ++ optional experimentalEmulateHardwareSupport "--enable-emulate-hardware";
 
@@ -144,38 +165,9 @@ stdenv.mkDerivation rec {
 
   postInstall = ''moveToOutput bin "$bin" '';
 
-  crossAttrs = let
-    isCygwin = stdenv.cross.libc == "msvcrt";
-    isDarwin = stdenv.cross.libc == "libSystem";
-  in {
-    dontSetConfigureCross = true;
-    configureFlags = configureFlags ++ [
-      #"--extra-cflags="
-      #"--extra-cxxflags="
-      #"--prefix="
-      #"--libc="
-      #"--libdir="
-      "--enable-external-build"
-      # libvpx darwin targets include darwin version (ie. ARCH-darwinXX-gcc, XX being the darwin version)
-      # See all_platforms: https://github.com/webmproject/libvpx/blob/master/configure
-      # Darwin versions: 10.4=8, 10.5=9, 10.6=10, 10.7=11, 10.8=12, 10.9=13, 10.10=14
-      "--force-target=${stdenv.cross.config}${(
-              if isDarwin then (
-                if      stdenv.cross.osxMinVersion == "10.10" then "14"
-                else if stdenv.cross.osxMinVersion == "10.9"  then "13"
-                else if stdenv.cross.osxMinVersion == "10.8"  then "12"
-                else if stdenv.cross.osxMinVersion == "10.7"  then "11"
-                else if stdenv.cross.osxMinVersion == "10.6"  then "10"
-                else if stdenv.cross.osxMinVersion == "10.5"  then "9"
-                else "8")
-              else "")}-gcc"
-      (if isCygwin then "--enable-static-msvcrt" else "")
-    ];
-  };
-
   meta = with stdenv.lib; {
     description = "WebM VP8/VP9 codec SDK";
-    homepage    = http://www.webmproject.org/;
+    homepage    = https://www.webmproject.org/;
     license     = licenses.bsd3;
     maintainers = with maintainers; [ codyopel ];
     platforms   = platforms.all;

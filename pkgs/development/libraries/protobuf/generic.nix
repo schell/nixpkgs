@@ -1,10 +1,11 @@
-{ stdenv, lib, version, src
+{ stdenv, version, src
 , autoreconfHook, zlib, gtest
 , ...
 }:
 
-stdenv.mkDerivation rec {
-  name = "protobuf-${version}";
+stdenv.mkDerivation {
+  pname = "protobuf";
+  inherit version;
 
   inherit src;
 
@@ -19,7 +20,8 @@ stdenv.mkDerivation rec {
 
   outputs = [ "out" "lib" ];
 
-  buildInputs = [ autoreconfHook zlib ];
+  nativeBuildInputs = [ autoreconfHook ];
+  buildInputs = [ zlib ];
 
   # The generated C++ code uses static initializers which mutate a global data
   # structure. This causes problems for an executable when:

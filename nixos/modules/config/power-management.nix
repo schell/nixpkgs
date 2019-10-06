@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
 with lib;
 
@@ -69,9 +69,6 @@ in
 
   config = mkIf cfg.enable {
 
-    # Leftover for old setups, should be set by nixos-generate-config now
-    powerManagement.cpuFreqGovernor = mkDefault "ondemand";
-
     systemd.targets.post-resume = {
       description = "Post-Resume Actions";
       requires = [ "post-resume.service" ];
@@ -81,7 +78,7 @@ in
     };
 
     # Service executed before suspending/hibernating.
-    systemd.services."pre-sleep" =
+    systemd.services.pre-sleep =
       { description = "Pre-Sleep Actions";
         wantedBy = [ "sleep.target" ];
         before = [ "sleep.target" ];
@@ -92,7 +89,7 @@ in
         serviceConfig.Type = "oneshot";
       };
 
-    systemd.services."post-resume" =
+    systemd.services.post-resume =
       { description = "Post-Resume Actions";
         after = [ "suspend.target" "hibernate.target" "hybrid-sleep.target" ];
         script =

@@ -19,11 +19,11 @@ in
       description = "spice-vdagent daemon";
       wantedBy = [ "graphical.target" ];
       preStart = ''
-        mkdir -p "/var/run/spice-vdagentd/"
+        mkdir -p "/run/spice-vdagentd/"
       '';
       serviceConfig = {
         Type = "forking";
-        ExecStart = "/bin/sh -c '${pkgs.spice-vdagent}/bin/spice-vdagentd'";
+        ExecStart = "${pkgs.spice-vdagent}/bin/spice-vdagentd";
       };
     };
   };

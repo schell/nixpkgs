@@ -12,11 +12,11 @@ let
   ++ [ bzip2 xz lzip ]);
 
 in pythonPackages.buildPythonApplication rec {
-  name = "dtrx-${version}";
+  pname = "dtrx";
   version = "7.1";
 
   src = fetchurl {
-    url = "http://brettcsmith.org/2007/dtrx/dtrx-${version}.tar.gz";
+    url = "https://brettcsmith.org/2007/dtrx/dtrx-${version}.tar.gz";
     sha256 = "15yf4n27zbhvv0byfv3i89wl5zn6jc2wbc69lk5a3m6rx54gx6hw";
   };
 
@@ -26,7 +26,7 @@ in pythonPackages.buildPythonApplication rec {
 
   meta = with stdenv.lib; {
     description = "Do The Right Extraction: A tool for taking the hassle out of extracting archives";
-    homepage = "http://brettcsmith.org/2007/dtrx/";
+    homepage = https://brettcsmith.org/2007/dtrx/;
     license = licenses.gpl3Plus;
     maintainers = [ maintainers.spwhitt ];
     platforms = platforms.all;

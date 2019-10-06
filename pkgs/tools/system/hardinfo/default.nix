@@ -3,7 +3,7 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "hardinfo-${version}";
+  pname = "hardinfo";
   version = "0.5.1";
 
   src = fetchurl {
@@ -13,10 +13,14 @@ stdenv.mkDerivation rec {
 
   # Not adding 'hostname' command, the build shouldn't depend on what the build
   # host is called.
-  buildInputs = [ which pkgconfig gtk2 pcre glib libxml2 libsoup ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ which gtk2 pcre glib libxml2 libsoup ];
 
   # Fixes '#error You must compile this program without "-O"'
   hardeningDisable = [ "all" ];
+
+  # Ignore undefined references to a bunch of libsoup symbols
+  NIX_LDFLAGS = "--unresolved-symbol=ignore-all";
 
   preConfigure = ''
     patchShebangs configure
@@ -26,6 +30,7 @@ stdenv.mkDerivation rec {
     sed -i -e "s/^CFLAGS = \(.*\)/CFLAGS = \1 -std=gnu89/" Makefile.in
 
     substituteInPlace ./arch/linux/common/modules.h --replace /sbin/modinfo modinfo
+    substituteInPlace ./arch/linux/common/os.h --replace /lib/libc.so.6 ${stdenv.glibc.out}/lib/libc.so.6
   '';
 
   # Makefile supports DESTDIR but not PREFIX (it hardcodes $DESTDIR/usr/).

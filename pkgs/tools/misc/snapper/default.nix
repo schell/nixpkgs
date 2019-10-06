@@ -1,17 +1,17 @@
 { stdenv, fetchFromGitHub
 , autoreconfHook, pkgconfig, docbook_xsl, libxslt, docbook_xml_dtd_45
-, acl, attr, boost, btrfs-progs, dbus_libs, diffutils, e2fsprogs, libxml2
+, acl, attr, boost, btrfs-progs, dbus, diffutils, e2fsprogs, libxml2
 , lvm2, pam, python, utillinux }:
 
 stdenv.mkDerivation rec {
-  name = "snapper-${version}";
-  version = "0.3.3";
+  pname = "snapper";
+  version = "0.8.3";
 
   src = fetchFromGitHub {
     owner = "openSUSE";
     repo = "snapper";
     rev = "v${version}";
-    sha256 = "12c2ygaanr4gny4ixnly4vpi0kv7snbg3khr3i5zwridhmdzz9hm";
+    sha256 = "0f3nsqk8820jh08qdh23n01vxbigsfcn9s5qvgqz6jf4pwin6j0x";
   };
 
   nativeBuildInputs = [
@@ -19,7 +19,7 @@ stdenv.mkDerivation rec {
     docbook_xsl libxslt docbook_xml_dtd_45
   ];
   buildInputs = [
-    acl attr boost btrfs-progs dbus_libs diffutils e2fsprogs libxml2
+    acl attr boost btrfs-progs dbus diffutils e2fsprogs libxml2
     lvm2 pam python utillinux
   ];
 
@@ -62,6 +62,6 @@ stdenv.mkDerivation rec {
     homepage = http://snapper.io;
     license = licenses.gpl2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx tstrobel ];
+    maintainers = with maintainers; [ tstrobel markuskowa ];
   };
 }

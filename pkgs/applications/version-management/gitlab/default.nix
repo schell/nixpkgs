@@ -1,50 +1,59 @@
-{ stdenv, lib, bundler, fetchurl, fetchFromGitHub, bundlerEnv, libiconv, ruby
-, tzdata, git, nodejs, procps, dpkg
+{ stdenv, lib, fetchurl, fetchFromGitLab, bundlerEnv
+, ruby, tzdata, git, nettools, nixosTests
+, gitlabEnterprise ? false
 }:
 
-/* When updating the Gemfile add `gem "activerecord-nulldb-adapter"`
-   to allow building the assets without a database */
-
 let
-  env = bundlerEnv {
-    name = "gitlab";
+  rubyEnv = bundlerEnv rec {
+    name = "gitlab-env-${version}";
     inherit ruby;
-    gemdir = ./.;
-    meta = with lib; {
-      homepage = http://www.gitlab.com/;
-      platforms = platforms.linux;
-      maintainers = with maintainers; [ fpletz ];
-      license = licenses.mit;
+    gemdir = ./rubyEnv- + (if gitlabEnterprise then "ee" else "ce");
+    gemset =
+      let x = import (gemdir + "/gemset.nix");
+      in x // {
+        # grpc expects the AR environment variable to contain `ar rpc`. See the
+        # discussion in nixpkgs #63056.
+        grpc = x.grpc // {
+          patches = [ ./fix-grpc-ar.patch ];
+          dontBuild = false;
+        };
+      };
+    groups = [
+      "default" "unicorn" "ed25519" "metrics" "development" "puma" "test"
+    ];
+    # N.B. omniauth_oauth2_generic and apollo_upload_server both provide a
+    # `console` executable.
+    ignoreCollisions = true;
+  };
+
+  flavour = if gitlabEnterprise then "ee" else "ce";
+  data = (builtins.fromJSON (builtins.readFile ./data.json)).${flavour};
+
+  version = data.version;
+  sources = {
+    gitlab = fetchFromGitLab {
+      owner = data.owner;
+      repo = data.repo;
+      rev = data.rev;
+      sha256 = data.repo_hash;
+    };
+    gitlabDeb = fetchurl {
+      url = data.deb_url;
+      sha256 = data.deb_hash;
     };
   };
-
-  version = "8.17.6";
-
-  gitlabDeb = fetchurl {
-    url = "https://packages.gitlab.com/gitlab/gitlab-ce/packages/debian/jessie/gitlab-ce_${version}-ce.0_amd64.deb/download";
-    sha256 = "1pr8nfnkzmicn5nxjkq48l4nfjsp6v5j3v8p7cp8r86lgfdc6as3";
-  };
-
 in
 
-stdenv.mkDerivation rec {
-  name = "gitlab-${version}";
+stdenv.mkDerivation {
+  name = "gitlab${if gitlabEnterprise then "-ee" else ""}-${version}";
+
+  src = sources.gitlab;
 
   buildInputs = [
-    env ruby bundler tzdata git nodejs procps dpkg
+    rubyEnv rubyEnv.wrappedRuby rubyEnv.bundler tzdata git nettools
   ];
 
-  src = fetchFromGitHub {
-    owner = "gitlabhq";
-    repo = "gitlabhq";
-    rev = "v${version}";
-    sha256 = "1yyyn2j0a457q2xbcxz6b33r23myr8kxbm9whj2dwrrbp4p273hr";
-  };
-
-  patches = [
-    ./remove-hardcoded-locations.patch
-    ./nulladapter.patch
-  ];
+  patches = [ ./remove-hardcoded-locations.patch ];
 
   postPatch = ''
     # For reasons I don't understand "bundle exec" ignores the
@@ -55,42 +64,37 @@ stdenv.mkDerivation rec {
 
     rm config/initializers/gitlab_shell_secret_token.rb
 
-    substituteInPlace app/controllers/admin/background_jobs_controller.rb \
-        --replace "ps -U" "${procps}/bin/ps -U"
-
-    # required for some gems:
-    cat > config/database.yml <<EOF
-      production:
-        adapter: <%= ENV["GITLAB_DATABASE_ADAPTER"] || sqlite %>
-        database: gitlab
-        host: <%= ENV["GITLAB_DATABASE_HOST"] || "127.0.0.1" %>
-        password: <%= ENV["GITLAB_DATABASE_PASSWORD"] || "blerg" %>
-        username: gitlab
-        encoding: utf8
-    EOF
+    sed -i '/ask_to_continue/d' lib/tasks/gitlab/two_factor.rake
+    sed -ri -e '/log_level/a config.logger = Logger.new(STDERR)' config/environments/production.rb
   '';
 
   buildPhase = ''
     mv config/gitlab.yml.example config/gitlab.yml
 
-    dpkg -x ${gitlabDeb} .
-    mv -v opt/gitlab/embedded/service/gitlab-rails/public/assets public
-    rm -rf opt
+    # Building this requires yarn, node &c, so we just get it from the deb
+    ar p ${sources.gitlabDeb} data.tar.gz | gunzip > gitlab-deb-data.tar
+    # Work around unpacking deb containing binary with suid bit
+    tar -f gitlab-deb-data.tar --delete ./opt/gitlab/embedded/bin/ksu
+    tar -xf gitlab-deb-data.tar
+    rm gitlab-deb-data.tar
 
-    export GITLAB_DATABASE_ADAPTER=nulldb
-    export SKIP_STORAGE_VALIDATION=true
-    rake assets:precompile RAILS_ENV=production
+    mv -v opt/gitlab/embedded/service/gitlab-rails/public/assets public
+    rm -rf opt # only directory in data.tar.gz
 
     mv config/gitlab.yml config/gitlab.yml.example
-    rm config/secrets.yml
+    rm -f config/secrets.yml
     mv config config.dist
   '';
 
   installPhase = ''
+    rm -r tmp
     mkdir -p $out/share
     cp -r . $out/share/gitlab
+    rm -rf $out/share/gitlab/log
+    ln -sf /run/gitlab/log $out/share/gitlab/log
     ln -sf /run/gitlab/uploads $out/share/gitlab/public/uploads
     ln -sf /run/gitlab/config $out/share/gitlab/config
+    ln -sf /run/gitlab/tmp $out/share/gitlab/tmp
 
     # rake tasks to mitigate CVE-2017-0882
     # see https://about.gitlab.com/2017/03/20/gitlab-8-dot-17-dot-4-security-release/
@@ -98,7 +102,30 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    inherit env;
-    inherit ruby;
+    inherit rubyEnv;
+    ruby = rubyEnv.wrappedRuby;
+    GITALY_SERVER_VERSION = data.passthru.GITALY_SERVER_VERSION;
+    GITLAB_PAGES_VERSION = data.passthru.GITLAB_PAGES_VERSION;
+    GITLAB_SHELL_VERSION = data.passthru.GITLAB_SHELL_VERSION;
+    GITLAB_WORKHORSE_VERSION = data.passthru.GITLAB_WORKHORSE_VERSION;
+    tests = {
+      nixos-test-passes = nixosTests.gitlab;
+    };
   };
+
+  meta = with lib; {
+    homepage = http://www.gitlab.com/;
+    platforms = platforms.linux;
+    maintainers = with maintainers; [ fpletz globin krav ];
+  } // (if gitlabEnterprise then
+    {
+      license = licenses.unfreeRedistributable; # https://gitlab.com/gitlab-org/gitlab-ee/raw/master/LICENSE
+      description = "GitLab Enterprise Edition";
+    }
+  else
+    {
+      license = licenses.mit;
+      description = "GitLab Community Edition";
+      longDescription = "GitLab Community Edition (CE) is an open source end-to-end software development platform with built-in version control, issue tracking, code review, CI/CD, and more. Self-host GitLab CE on your own servers, in a container, or on a cloud provider.";
+    });
 }

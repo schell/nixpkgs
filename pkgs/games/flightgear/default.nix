@@ -1,19 +1,20 @@
-{ stdenv, fetchurl, makeWrapper
-, freeglut, freealut, mesa, libICE, libjpeg, openal, openscenegraph, plib
-, libSM, libunwind, libX11, xproto, libXext, xextproto, libXi, inputproto
+{ stdenv, fetchurl, wrapQtAppsHook
+, freeglut, freealut, libGLU_combined, libICE, libjpeg, openal, openscenegraph, plib
+, libSM, libunwind, libX11, xorgproto, libXext, libXi
 , libXmu, libXt, simgear, zlib, boost, cmake, libpng, udev, fltk13, apr
-, makeDesktopItem, qtbase
+, makeDesktopItem, qtbase, qtdeclarative, glew
 }:
 
 let
-  version = "2016.4.4";
-  shortVersion = "2016.4";
+  version = "2019.1.1";
+  shortVersion = builtins.substring 0 6 version;
   data = stdenv.mkDerivation rec {
-    name = "flightgear-base-${version}";
+    pname = "flightgear-base";
+    inherit version;
 
     src = fetchurl {
       url = "mirror://sourceforge/flightgear/release-${shortVersion}/FlightGear-${version}-data.tar.bz2";
-      sha256 = "0s4nlkwi9jfc408agsl0w5xl3vajrvplc66k3nwg92wsr614pz9x";
+      sha256 = "14zm0hzshbca4ych72631hpc4pw2w24zib62ri3lwm8nz6j63qhf";
     };
 
     phases = [ "installPhase" ];
@@ -25,13 +26,13 @@ let
   };
 in
 stdenv.mkDerivation rec {
-  name = "flightgear-${version}";
+  pname = "flightgear";
    # inheriting data for `nix-prefetch-url -A pkgs.flightgear.data.src`
   inherit version data;
 
   src = fetchurl {
-    url = "mirror://sourceforge/flightgear/release-${shortVersion}/${name}.tar.bz2";
-    sha256 = "1z7s9m2g85g8q9zxawhpal84rq2jin1ppchshbwi460gwk5r46fm";
+    url = "mirror://sourceforge/flightgear/release-${shortVersion}/${pname}-${version}.tar.bz2";
+    sha256 = "189wal08p9lrz757pmazxnf85sfymsqrm3nfvdad95pfp6bg7pyi";
   };
 
   # Of all the files in the source and data archives, there doesn't seem to be
@@ -44,31 +45,31 @@ stdenv.mkDerivation rec {
   desktopItem = makeDesktopItem {
     name = "flightgear";
     exec = "fgfs";
-    icon = "${iconsrc}";
+    icon = iconsrc;
     comment = "FlightGear Flight Simulator";
     desktopName = "FlightGear";
     genericName = "Flight simulator";
     categories = "Game;Simulation";
   };
 
+  nativeBuildInputs = [ cmake wrapQtAppsHook ];
   buildInputs = [
-    makeWrapper
-    freeglut freealut mesa libICE libjpeg openal openscenegraph plib
-    libSM libunwind libX11 xproto libXext xextproto libXi inputproto
-    libXmu libXt simgear zlib boost cmake libpng udev fltk13 apr qtbase
+    freeglut freealut libGLU_combined libICE libjpeg openal openscenegraph plib
+    libSM libunwind libX11 xorgproto libXext libXi
+    libXmu libXt simgear zlib boost libpng udev fltk13 apr qtbase
+    glew qtdeclarative
   ];
 
   postInstall = ''
     mkdir -p "$out/share/applications/"
     cp "${desktopItem}"/share/applications/* "$out/share/applications/" #*/
-
-    for f in $out/bin/* #*/
-    do
-      wrapProgram $f --set FG_ROOT "${data}/share/FlightGear"
-    done
-
-
   '';
+
+  qtWrapperArgs = [
+    "--set FG_ROOT ${data}/share/FlightGear"
+  ];
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     description = "Flight simulator";

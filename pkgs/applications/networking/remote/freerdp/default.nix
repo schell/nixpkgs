@@ -1,26 +1,26 @@
 { stdenv, lib, fetchFromGitHub, cmake, pkgconfig
-, alsaLib, ffmpeg_2, glib, openssl, pcre, zlib
+, alsaLib, ffmpeg, glib, openssl, pcre, zlib
 , libX11, libXcursor, libXdamage, libXext, libXi, libXinerama, libXrandr, libXrender, libXv
 , libxkbcommon, libxkbfile
 , wayland
-, gstreamer, gst-plugins-base, gst-plugins-good
+, gstreamer, gst-plugins-base, gst-plugins-good, libunwind, orc
 , libpulseaudio ? null
 , cups ? null
 , pcsclite ? null
 , systemd ? null
 , buildServer ? true
-, optimize ? true
+, nocaps ? false
 }:
 
 stdenv.mkDerivation rec {
-  name = "freerdp-git-${version}";
-  version = "20170502";
+  pname = "freerdp";
+  version = "2.0.0-rc4";
 
   src = fetchFromGitHub {
     owner  = "FreeRDP";
     repo   = "FreeRDP";
-    rev    = "8569102c3a011602de3a1cdf69f7c69adbb864ee";
-    sha256 = "0m61aiy8l3ybnk2d2kjmpp9ql31zfs63gjixyj9x95jd4m507j67";
+    rev    = version;
+    sha256 = "0546i0m2d4nz5jh84ngwzpcm3c43fp987jk6cynqspsmvapab6da";
   };
 
   # outputs = [ "bin" "out" "dev" ];
@@ -31,12 +31,15 @@ stdenv.mkDerivation rec {
       --replace "Requires:" "Requires: @WINPR_PKG_CONFIG_FILENAME@"
   '' + lib.optionalString (pcsclite != null) ''
     substituteInPlace "winpr/libwinpr/smartcard/smartcard_pcsc.c" \
-      --replace "libpcsclite.so" "${pcsclite}/lib/libpcsclite.so"
+      --replace "libpcsclite.so" "${stdenv.lib.getLib pcsclite}/lib/libpcsclite.so"
+  '' + lib.optionalString nocaps ''
+    substituteInPlace "libfreerdp/locale/keyboard_xkbfile.c" \
+      --replace "RDP_SCANCODE_CAPSLOCK" "RDP_SCANCODE_LCONTROL"
   '';
 
   buildInputs = with lib; [
-    alsaLib cups ffmpeg_2 glib openssl pcre pcsclite libpulseaudio zlib
-    gstreamer gst-plugins-base gst-plugins-good
+    alsaLib cups ffmpeg glib openssl pcre pcsclite libpulseaudio zlib
+    gstreamer gst-plugins-base gst-plugins-good libunwind orc
     libX11 libXcursor libXdamage libXext libXi libXinerama libXrandr libXrender libXv
     libxkbcommon libxkbfile
     wayland
@@ -46,17 +49,19 @@ stdenv.mkDerivation rec {
     cmake pkgconfig
   ];
 
+  enableParallelBuilding = true;
+
   doCheck = false;
 
   cmakeFlags = with lib; [
     "-DCMAKE_INSTALL_LIBDIR=lib"
     "-DWITH_CUNIT=OFF"
     "-DWITH_OSS=OFF"
-  ] ++ optional (libpulseaudio != null) "-DWITH_PULSE=ON"
-    ++ optional (cups != null)          "-DWITH_CUPS=ON"
-    ++ optional (pcsclite != null)      "-DWITH_PCSC=ON"
-    ++ optional buildServer             "-DWITH_SERVER=ON"
-    ++ optional optimize                "-DWITH_SSE2=ON";
+  ] ++ optional (libpulseaudio != null)       "-DWITH_PULSE=ON"
+    ++ optional (cups != null)                "-DWITH_CUPS=ON"
+    ++ optional (pcsclite != null)            "-DWITH_PCSC=ON"
+    ++ optional buildServer                   "-DWITH_SERVER=ON"
+    ++ optional (stdenv.isx86_64)             "-DWITH_SSE2=ON";
 
   meta = with lib; {
     description = "A Remote Desktop Protocol Client";
@@ -66,7 +71,7 @@ stdenv.mkDerivation rec {
     '';
     homepage = http://www.freerdp.com/;
     license = licenses.asl20;
-    maintainers = with maintainers; [ wkennington peterhoeg ];
+    maintainers = with maintainers; [ peterhoeg ];
     platforms = platforms.unix;
   };
 }

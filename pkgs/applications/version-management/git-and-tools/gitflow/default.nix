@@ -4,14 +4,13 @@ with pkgs.lib;
 
 stdenv.mkDerivation rec {
   pname = "gitflow";
-  version = "1.10.2";
-  name = "${pname}-${version}";
+  version = "1.12.2";
 
   src = fetchFromGitHub {
     owner = "petervanderdoes";
     repo = pname;
     rev = version;
-    sha256 = "1i8bwi83qcqvi8zrkjn4mp2v8v7y11fd520wpg2jgy5hqyz34chg";
+    sha256 = "0smwlc1wa4ndvspc9x6f4jwnzr58achysrhhip402j98d7di8hw5";
   };
 
   buildInputs = [ pkgs.makeWrapper ];
@@ -37,6 +36,6 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.bsd2;
     platforms = platforms.all;
-    maintainers = with maintainers; [ offline jgeerds ];
+    maintainers = with maintainers; [ offline ];
   };
 }

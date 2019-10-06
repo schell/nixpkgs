@@ -1,33 +1,31 @@
 args @ { fetchurl, ... }:
-rec {
+{
   baseName = ''ironclad'';
-  version = ''ironclad_0.33.0'';
+  version = ''v0.46'';
+
+  parasites = [ "ironclad/tests" ];
 
   description = ''A cryptographic toolkit written in pure Common Lisp'';
 
-  deps = [ args."nibbles" ];
+  deps = [ args."alexandria" args."bordeaux-threads" args."nibbles" args."rt" ];
 
   src = fetchurl {
-    url = ''http://beta.quicklisp.org/archive/ironclad/2014-11-06/ironclad_0.33.0.tgz'';
-    sha256 = ''1ld0xz8gmi566zxl1cva5yi86aw1wb6i6446gxxdw1lisxx3xwz7'';
+    url = ''http://beta.quicklisp.org/archive/ironclad/2019-07-10/ironclad-v0.46.tgz'';
+    sha256 = ''1bcqz7z30dpr9rz5wg94bbq93swn6lxqj60rn9f5q0fryn9na3l2'';
   };
 
-  overrides = x: {
-    postInstall = ''
-      find "$out/lib/common-lisp/" -name '*.asd' | grep -iv '/ironclad[.]asd${"$"}' |
-        while read f; do
-          env -i \
-          NIX_LISP="$NIX_LISP" \
-          NIX_LISP_PRELAUNCH_HOOK="nix_lisp_run_single_form '(progn
-            (asdf:load-system :$(basename "$f" .asd))
-            (asdf:perform (quote asdf:compile-bundle-op) :$(basename "$f" .asd))
-            (ignore-errors (asdf:perform (quote asdf:deliver-asd-op) :$(basename "$f" .asd)))
-            )'" \
-            "$out"/bin/*-lisp-launcher.sh ||
-          mv "$f"{,.sibling}; done || true
-    '';
-  };
+  packageName = "ironclad";
+
+  asdFilesToKeep = ["ironclad.asd"];
+  overrides = x: x;
 }
-/* (SYSTEM ironclad DESCRIPTION A cryptographic toolkit written in pure Common Lisp SHA256 1ld0xz8gmi566zxl1cva5yi86aw1wb6i6446gxxdw1lisxx3xwz7 URL
-    http://beta.quicklisp.org/archive/ironclad/2014-11-06/ironclad_0.33.0.tgz MD5 2b7befe607e2fedffbdd45b2443db718 NAME ironclad TESTNAME NIL FILENAME ironclad
-    DEPS ((NAME nibbles)) DEPENDENCIES (nibbles) VERSION ironclad_0.33.0 SIBLINGS (ironclad-text)) */
+/* (SYSTEM ironclad DESCRIPTION
+    A cryptographic toolkit written in pure Common Lisp SHA256
+    1bcqz7z30dpr9rz5wg94bbq93swn6lxqj60rn9f5q0fryn9na3l2 URL
+    http://beta.quicklisp.org/archive/ironclad/2019-07-10/ironclad-v0.46.tgz
+    MD5 23f67c2312723bdaf1ff78898d2354c7 NAME ironclad FILENAME ironclad DEPS
+    ((NAME alexandria FILENAME alexandria)
+     (NAME bordeaux-threads FILENAME bordeaux-threads)
+     (NAME nibbles FILENAME nibbles) (NAME rt FILENAME rt))
+    DEPENDENCIES (alexandria bordeaux-threads nibbles rt) VERSION v0.46
+    SIBLINGS (ironclad-text) PARASITES (ironclad/tests)) */

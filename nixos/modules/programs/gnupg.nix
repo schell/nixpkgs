@@ -11,6 +11,15 @@ in
 {
 
   options.programs.gnupg = {
+    package = mkOption {
+      type = types.package;
+      default = pkgs.gnupg;
+      defaultText = "pkgs.gnupg";
+      description = ''
+        The gpg package that should be used.
+      '';
+    };
+
     agent.enable = mkOption {
       type = types.bool;
       default = false;
@@ -55,99 +64,47 @@ in
   };
 
   config = mkIf cfg.agent.enable {
-    systemd.user.services.gpg-agent = {
-      serviceConfig = {
-        ExecStart = [
-          ""
-          ("${pkgs.gnupg}/bin/gpg-agent --supervised "
-            + optionalString cfg.agent.enableSSHSupport "--enable-ssh-support")
-        ];
-        ExecReload = "${pkgs.gnupg}/bin/gpgconf --reload gpg-agent";
-      };
-    };
-
     systemd.user.sockets.gpg-agent = {
       wantedBy = [ "sockets.target" ];
-      listenStreams = [ "%t/gnupg/S.gpg-agent" ];
-      socketConfig = {
-        FileDescriptorName = "std";
-        SocketMode = "0600";
-        DirectoryMode = "0700";
-      };
     };
 
     systemd.user.sockets.gpg-agent-ssh = mkIf cfg.agent.enableSSHSupport {
       wantedBy = [ "sockets.target" ];
-      listenStreams = [ "%t/gnupg/S.gpg-agent.ssh" ];
-      socketConfig = {
-        FileDescriptorName = "ssh";
-        Service = "gpg-agent.service";
-        SocketMode = "0600";
-        DirectoryMode = "0700";
-      };
     };
 
     systemd.user.sockets.gpg-agent-extra = mkIf cfg.agent.enableExtraSocket {
       wantedBy = [ "sockets.target" ];
-      listenStreams = [ "%t/gnupg/S.gpg-agent.extra" ];
-      socketConfig = {
-        FileDescriptorName = "extra";
-        Service = "gpg-agent.service";
-        SocketMode = "0600";
-        DirectoryMode = "0700";
-      };
     };
 
     systemd.user.sockets.gpg-agent-browser = mkIf cfg.agent.enableBrowserSocket {
       wantedBy = [ "sockets.target" ];
-      listenStreams = [ "%t/gnupg/S.gpg-agent.browser" ];
-      socketConfig = {
-        FileDescriptorName = "browser";
-        Service = "gpg-agent.service";
-        SocketMode = "0600";
-        DirectoryMode = "0700";
-      };
     };
 
-    systemd.user.services.dirmngr = {
-      requires = [ "dirmngr.socket" ];
-      after = [ "dirmngr.socket" ];
-      unitConfig = {
-        RefuseManualStart = "true";
-      };
-      serviceConfig = {
-        ExecStart = "${pkgs.gnupg}/bin/dirmngr --supervised";
-        ExecReload = "${pkgs.gnupg}/bin/gpgconf --reload dirmngr";
-      };
-    };
-
-    systemd.user.sockets.dirmngr = {
+    systemd.user.sockets.dirmngr = mkIf cfg.dirmngr.enable {
       wantedBy = [ "sockets.target" ];
-      listenStreams = [ "%t/gnupg/S.dirmngr" ];
-      socketConfig = {
-        SocketMode = "0600";
-        DirectoryMode = "0700";
-      };
     };
+    
+    environment.systemPackages = with pkgs; [ cfg.package ];
+    systemd.packages = [ cfg.package ];
 
-    systemd.packages = [ pkgs.gnupg ];
-
-    environment.extraInit = ''
+    environment.interactiveShellInit = ''
       # Bind gpg-agent to this TTY if gpg commands are used.
       export GPG_TTY=$(tty)
 
     '' + (optionalString cfg.agent.enableSSHSupport ''
       # SSH agent protocol doesn't support changing TTYs, so bind the agent
       # to every new TTY.
-      ${pkgs.gnupg}/bin/gpg-connect-agent --quiet updatestartuptty /bye > /dev/null
-
-      if [ -z "$SSH_AUTH_SOCK" ]; then
-        export SSH_AUTH_SOCK=$(${pkgs.gnupg}/bin/gpgconf --list-dirs agent-ssh-socket)
-      fi
+      ${cfg.package}/bin/gpg-connect-agent --quiet updatestartuptty /bye > /dev/null
     '');
 
+    environment.extraInit = mkIf cfg.agent.enableSSHSupport ''
+      if [ -z "$SSH_AUTH_SOCK" ]; then
+        export SSH_AUTH_SOCK=$(${cfg.package}/bin/gpgconf --list-dirs agent-ssh-socket)
+      fi
+    '';
+
     assertions = [
-      { assertion = cfg.agent.enableSSHSupport && !config.programs.ssh.startAgent;
+      { assertion = cfg.agent.enableSSHSupport -> !config.programs.ssh.startAgent;
         message = "You can't use ssh-agent and GnuPG agent with SSH support enabled at the same time!";
       }
     ];

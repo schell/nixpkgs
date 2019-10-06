@@ -1,64 +1,51 @@
-{ stdenv, fetchurl, fetchpatch, poppler_utils, pkgconfig, libpng
-, imagemagick, libjpeg, fontconfig, podofo, qtbase, qmakeHook, icu, sqlite
-, makeWrapper, unrarSupport ? false, chmlib, python2Packages, xz, libusb1, libmtp
-, xdg_utils, makeDesktopItem, wrapGAppsHook
+{ stdenv, mkDerivation,  fetchurl, poppler_utils, pkgconfig, libpng
+, imagemagick, libjpeg, fontconfig, podofo, qtbase, qmake, icu, sqlite
+, unrarSupport ? false, chmlib, python2Packages, libusb1, libmtp
+, xdg_utils, makeDesktopItem, wrapGAppsHook, removeReferencesTo, qt5
 }:
 
-stdenv.mkDerivation rec {
-  version = "2.84.0";
-  name = "calibre-${version}";
+mkDerivation rec {
+  pname = "calibre";
+  version = "3.47.1";
 
   src = fetchurl {
-    url = "https://download.calibre-ebook.com/${version}/${name}.tar.xz";
-    sha256 = "1kvnmb6hsby4bdnx70bcy32f4dz1axzlr310dr6mkvnc8bqw59km";
+    url = "https://download.calibre-ebook.com/${version}/${pname}-${version}.tar.xz";
+    sha256 = "17lz6rawlv268vv8i5kj59rswsipq3c14066adaz1paw54zr62dk";
   };
 
   patches = [
     # Patches from Debian that:
     # - disable plugin installation (very insecure)
-    # - disables loading of web bug for privacy
+    ./disable_plugins.patch
     # - switches the version update from enabled to disabled by default
-    (fetchpatch {
-      name = "disable_plugins.patch";
-      url = "http://bazaar.launchpad.net/~calibre-packagers/calibre/debian/download/head:/disable_plugins.py-20111220183043-dcl08ccfagjxt1dv-1/disable_plugins.py";
-      sha256 = "19spdx52dhbrfn9lm084yl3cfwm6f90imd51k97sf7flmpl569pk";
-    })
-    (fetchpatch {
-      name = "links_privacy.patch";
-      url = "http://bazaar.launchpad.net/~calibre-packagers/calibre/debian/download/head:/linksprivacy.patch-20160417214308-6hvive72pc0r4awc-1/links-privacy.patch";
-      sha256 = "0f6pq2b7q56pxrq2j8yqd7bksc623q2zgq29qcli30f13vga1w60";
-    })
-    (fetchpatch {
-      name = "no_updates_dialog.patch";
-      url = "http://bazaar.launchpad.net/~calibre-packagers/calibre/debian/download/head:/no_updates_dialog.pa-20081231120426-rzzufl0zo66t3mtc-16/no_updates_dialog.patch";
-      sha256 = "16xwa2fa47jvs954fjrwr8rhh89aljgi1d1wrfxa40sknlmfwxif";
-    })
+    ./no_updates_dialog.patch
     # the unrar patch is not from debian
   ] ++ stdenv.lib.optional (!unrarSupport) ./dont_build_unrar_plugin.patch;
 
   prePatch = ''
-    sed -i "/pyqt_sip_dir/ s:=.*:= '${python2Packages.pyqt5}/share/sip/PyQt5':"  \
+    sed -i "/pyqt_sip_dir/ s:=.*:= '${python2Packages.pyqt5_with_qtwebkit}/share/sip/PyQt5':"  \
       setup/build_environment.py
 
     # Remove unneeded files and libs
     rm -rf resources/calibre-portable.* \
-           src/{chardet,cherrypy,html5lib,odf,routes}
+           src/odf
   '';
 
   dontUseQmakeConfigure = true;
 
   enableParallelBuilding = true;
 
-  nativeBuildInputs = [ makeWrapper pkgconfig qmakeHook ];
+  nativeBuildInputs = [ pkgconfig qmake removeReferencesTo wrapGAppsHook ];
 
   buildInputs = [
     poppler_utils libpng imagemagick libjpeg
-    fontconfig podofo qtbase chmlib icu sqlite libusb1 libmtp xdg_utils wrapGAppsHook
+    fontconfig podofo qtbase chmlib icu sqlite libusb1 libmtp xdg_utils
   ] ++ (with python2Packages; [
-    apsw cssselect cssutils dateutil lxml mechanize netifaces pillow
-    python pyqt5 sip
+    apsw cssselect css-parser dateutil dnspython html5-parser lxml mechanize netifaces pillow
+    python pyqt5_with_qtwebkit sip
+    regex msgpack beautifulsoup4
     # the following are distributed with calibre, but we use upstream instead
-    chardet cherrypy html5lib_0_9999999 odfpy routes
+    odfpy
   ]);
 
   installPhase = ''
@@ -71,8 +58,8 @@ stdenv.mkDerivation rec {
     export MAGICK_LIB=${imagemagick.out}/lib
     export FC_INC_DIR=${fontconfig.dev}/include/fontconfig
     export FC_LIB_DIR=${fontconfig.lib}/lib
-    export PODOFO_INC_DIR=${podofo}/include/podofo
-    export PODOFO_LIB_DIR=${podofo}/lib
+    export PODOFO_INC_DIR=${podofo.dev}/include/podofo
+    export PODOFO_LIB_DIR=${podofo.lib}/lib
     export SIP_BIN=${python2Packages.sip}/bin/sip
     ${python2Packages.python.interpreter} setup.py install --prefix=$out
 
@@ -83,11 +70,6 @@ stdenv.mkDerivation rec {
     sed -i "s/env python[0-9.]*/python/" $PYFILES
     sed -i "2i import sys; sys.argv[0] = 'calibre'" $out/bin/calibre
 
-    for a in $out/bin/*; do
-      wrapProgram $a --prefix PYTHONPATH : $PYTHONPATH \
-                     --prefix PATH : ${poppler_utils.out}/bin
-    done
-
     # Replace @out@ by the output path.
     mkdir -p $out/share/applications/
     cp {$calibreDesktopItem,$ebookEditDesktopItem,$ebookViewerDesktopItem}/share/applications/* $out/share/applications/
@@ -95,11 +77,35 @@ stdenv.mkDerivation rec {
       substituteAllInPlace $entry
     done
 
+    mkdir -p $out/share
+    cp -a man-pages $out/share/man
+
     runHook postInstall
   '';
 
+  # Wrap manually
+  dontWrapQtApps = true;
+  dontWrapGApps = true;
+
+  # Remove some references to shrink the closure size. This reference (as of
+  # 2018-11-06) was a single string like the following:
+  #   /nix/store/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-podofo-0.9.6-dev/include/podofo/base/PdfVariant.h
+  preFixup = ''
+    remove-references-to -t ${podofo.dev} $out/lib/calibre/calibre/plugins/podofo.so
+
+    for program in $out/bin/*; do
+      wrapProgram $program \
+        ''${qtWrapperArgs[@]} \
+        ''${gappsWrapperArgs[@]} \
+        --prefix PYTHONPATH : $PYTHONPATH \
+        --prefix PATH : ${poppler_utils.out}/bin
+    done
+  '';
+
+  disallowedReferences = [ podofo.dev ];
+
   calibreDesktopItem = makeDesktopItem {
-    name = "calibre";
+    name = "calibre-gui";
     desktopName = "calibre";
     exec = "@out@/bin/calibre --detach %F";
     genericName = "E-book library management";
@@ -145,7 +151,7 @@ stdenv.mkDerivation rec {
   };
 
   ebookEditDesktopItem = makeDesktopItem {
-    name = "calibre-edit-ebook";
+    name = "calibre-edit-book";
     desktopName = "Edit E-book";
     genericName = "E-book Editor";
     comment = "Edit e-books";
@@ -172,7 +178,7 @@ stdenv.mkDerivation rec {
     description = "Comprehensive e-book software";
     homepage = https://calibre-ebook.com;
     license = with licenses; if unrarSupport then unfreeRedistributable else gpl3;
-    maintainers = with maintainers; [ viric domenkozar pSub AndersonTorres ];
+    maintainers = with maintainers; [ domenkozar pSub AndersonTorres ];
     platforms = platforms.linux;
     inherit version;
   };

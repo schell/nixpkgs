@@ -19,16 +19,15 @@ with lib;
   };
 
   config = {
-
-    boot.loader.grub.version = 2;
-
     # Don't build the GRUB menu builder script, since we don't need it
     # here and it causes a cyclic dependency.
     boot.loader.grub.enable = false;
 
     # !!! Hack - attributes expected by other modules.
-    system.boot.loader.kernelFile = "bzImage";
-    environment.systemPackages = [ pkgs.grub2 pkgs.grub2_efi pkgs.syslinux ];
+    environment.systemPackages = [ pkgs.grub2_efi ]
+      ++ (if pkgs.stdenv.hostPlatform.system == "aarch64-linux"
+          then []
+          else [ pkgs.grub2 pkgs.syslinux ]);
 
     fileSystems."/" =
       { fsType = "tmpfs";
@@ -66,8 +65,7 @@ with lib;
       [ config.system.build.toplevel ];
 
     # Create the squashfs image that contains the Nix store.
-    system.build.squashfsStore = import ../../../lib/make-squashfs.nix {
-      inherit (pkgs) stdenv squashfsTools perl pathsFromGraph;
+    system.build.squashfsStore = pkgs.callPackage ../../../lib/make-squashfs.nix {
       storeContents = config.netboot.storeContents;
     };
 
@@ -84,7 +82,12 @@ with lib;
         ];
     };
 
-    system.build.netbootIpxeScript = pkgs.writeTextDir "netboot.ipxe" "#!ipxe\nkernel bzImage init=${config.system.build.toplevel}/init ${toString config.boot.kernelParams}\ninitrd initrd\nboot";
+    system.build.netbootIpxeScript = pkgs.writeTextDir "netboot.ipxe" ''
+      #!ipxe
+      kernel ${pkgs.stdenv.hostPlatform.platform.kernelTarget} init=${config.system.build.toplevel}/init initrd=initrd ${toString config.boot.kernelParams}
+      initrd initrd
+      boot
+    '';
 
     boot.loader.timeout = 10;
 

@@ -1,20 +1,13 @@
 { stdenv, fetchurl, lcms2, jasper, pkgconfig }:
 
 stdenv.mkDerivation rec {
-  name = "libraw-${version}";
-  version = "0.17.2";
+  pname = "libraw";
+  version = "0.19.3";
 
   src = fetchurl {
-    url = "http://www.libraw.org/data/LibRaw-${version}.tar.gz";
-    sha256 = "0p6imxpsfn82i0i9w27fnzq6q6gwzvb9f7sygqqakv36fqnc9c4j";
+    url = "https://www.libraw.org/data/LibRaw-${version}.tar.gz";
+    sha256 = "0xs1qb6pcvc4c43fy5xi3nkqxcif77gakkw99irf0fc5iccdd5px";
   };
-
-  patches =
-    [ (fetchurl {
-        url = https://anonscm.debian.org/cgit/pkg-phototools/libraw.git/plain/debian/patches/0001-Fix_gcc6_narrowing_conversion.patch?id=d890937aaca6359df45a66b35e547c94ca564823;
-        sha256 = "1lcg5l0wmwiyzhhm67c1c7hy8py6ihxfmicnhrwpi3i6f16vq29w";
-      })
-    ];
 
   outputs = [ "out" "lib" "dev" "doc" ];
 
@@ -26,9 +19,9 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "Library for reading RAW files obtained from digital photo cameras (CRW/CR2, NEF, RAF, DNG, and others)";
-    homepage = http://www.libraw.org/;
+    homepage = https://www.libraw.org/;
     license = stdenv.lib.licenses.gpl2Plus;
-    platforms = stdenv.lib.platforms.linux;
+    platforms = stdenv.lib.platforms.unix;
   };
 }
 

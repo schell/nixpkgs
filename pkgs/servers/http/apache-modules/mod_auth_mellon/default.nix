@@ -2,7 +2,7 @@
 
 stdenv.mkDerivation rec {
 
-  name = "mod_auth_mellon-${version}";
+  pname = "mod_auth_mellon";
   version = "0.13.1";
 
   src = fetchFromGitHub {
@@ -16,7 +16,8 @@ stdenv.mkDerivation rec {
     ./fixdeps.patch
   ];
 
-  buildInputs = [ apacheHttpd autoconf autoreconfHook automake curl glib lasso libtool libxml2 libxslt openssl pkgconfig xmlsec ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ apacheHttpd autoconf automake curl glib lasso libtool libxml2 libxslt openssl xmlsec ];
 
   configureFlags = ["--with-apxs2=${apacheHttpd.dev}/bin/apxs" "--exec-prefix=$out"];
 

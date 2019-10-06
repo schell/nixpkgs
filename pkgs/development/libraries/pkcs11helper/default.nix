@@ -1,20 +1,23 @@
 { stdenv, fetchFromGitHub, pkgconfig, openssl, autoreconfHook }:
 
 stdenv.mkDerivation rec {
-  name = "pkcs11-helper-${version}";
-  version = "1.21";
+  pname = "pkcs11-helper";
+  version = "1.25.1";
 
   src = fetchFromGitHub {
     owner = "OpenSC";
     repo = "pkcs11-helper";
-    rev = "${name}";
-    sha256 = "17a2cssycl7fh44xikmhszigx57vvn0h2sjsnmsy3772kfj796b1";
+    rev = "${pname}-${version}";
+    sha256 = "1nvj6kdbps860kw64m2rz3v2slyn7jkagfdmskrl6966n99iy2ns";
   };
 
-  buildInputs = [ pkgconfig openssl autoreconfHook ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
+  buildInputs = [ openssl ];
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
-    homepage = https://www.opensc-project.org/opensc/wiki/pkcs11-helper;
+    homepage = https://github.com/OpenSC/pkcs11-helper;
     license = with licenses; [ bsd3 gpl2 ];
     description = "Library that simplifies the interaction with PKCS#11 providers";
     platforms = platforms.unix;

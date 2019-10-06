@@ -1,23 +1,31 @@
-{ stdenv, fetchurl, xorg, ncurses, freetype, fontconfig, pkgconfig, makeWrapper
+{ stdenv, fetchurl, fetchpatch, xorg, ncurses, freetype, fontconfig, pkgconfig, makeWrapper
 , enableDecLocator ? true
 }:
 
 stdenv.mkDerivation rec {
-  name = "xterm-327";
+  name = "xterm-349";
 
   src = fetchurl {
-    url = "ftp://invisible-island.net/xterm/${name}.tgz";
-    sha256 = "02qmfr1y24y5vq6kddksw84b8gxalc96n9wwaj7i8hmk6mn2zyv6";
+    urls = [
+     "ftp://ftp.invisible-island.net/xterm/${name}.tgz"
+     "https://invisible-mirror.net/archives/xterm/${name}.tgz"
+   ];
+    sha256 = "0ps7b2b2kbrkv5q49cmb8c51z0w21jmm7hwciw30m6jgfb9s79ir";
   };
 
   buildInputs =
-    [ xorg.libXaw xorg.xproto xorg.libXt xorg.libXext xorg.libX11 xorg.libSM xorg.libICE
+    [ xorg.libXaw xorg.xorgproto xorg.libXt xorg.libXext xorg.libX11 xorg.libSM xorg.libICE
       ncurses freetype fontconfig pkgconfig xorg.libXft xorg.luit makeWrapper
     ];
 
   patches = [
     ./sixel-256.support.patch
-  ];
+  ] ++ stdenv.lib.optional stdenv.hostPlatform.isMusl
+    (fetchpatch {
+      name = "posix-ptys.patch";
+      url = "https://git.alpinelinux.org/cgit/aports/plain/community/xterm/posix-ptys.patch?id=3aa532e77875fa1db18c7fcb938b16647031bcc1";
+      sha256 = "0czgnsxkkmkrk1idw69qxbprh0jb4sw3c24zpnqq2v76jkl7zvlr";
+    });
 
   configureFlags = [
     "--enable-wide-chars"
@@ -55,9 +63,9 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    homepage = http://invisible-island.net/xterm;
-    license = "BSD";
-    maintainers = with stdenv.lib.maintainers; [viric vrthra];
+    homepage = https://invisible-island.net/xterm;
+    license = with stdenv.lib.licenses; [ mit ];
+    maintainers = with stdenv.lib.maintainers; [vrthra];
     platforms = with stdenv.lib.platforms; linux ++ darwin;
   };
 }

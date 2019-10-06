@@ -1,11 +1,11 @@
 { stdenv, fetchurl, pkgconfig, libmnl }:
 
 stdenv.mkDerivation rec {
-  name = "ipset-6.27";
+  name = "ipset-7.3";
 
   src = fetchurl {
     url = "http://ipset.netfilter.org/${name}.tar.bz2";
-    sha256 = "0ddj66wr0xh9v6ks430l8r80lj2s9qc44d9c2ik48lwm0fl9fj3j";
+    sha256 = "0nm3vagr1pb5hr1028qrwx6v6s8bxf1m4qjx72vak42y032wfi26";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -18,6 +18,5 @@ stdenv.mkDerivation rec {
     description = "Administration tool for IP sets";
     license = licenses.gpl2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ wkennington ];
   };
 }

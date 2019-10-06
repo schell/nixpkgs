@@ -4,11 +4,11 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "dvdisaster-${version}";
+  pname = "dvdisaster";
   version = "0.79.5";
 
   src = fetchurl {
-    url = "http://dvdisaster.net/downloads/${name}.tar.bz2";
+    url = "http://dvdisaster.net/downloads/${pname}-${version}.tar.bz2";
     sha256 = "0f8gjnia2fxcbmhl8b3qkr5b7idl8m855dw7xw2fnmbqwvcm6k4w";
   };
 
@@ -33,8 +33,7 @@ stdenv.mkDerivation rec {
     "--docdir=share/doc"
     "--with-nls=yes"
     "--with-embedded-src-path=no"
-  ] ++ stdenv.lib.optional (builtins.elem stdenv.system
-      stdenv.lib.platforms.x86_64) "--with-sse2=yes";
+  ] ++ stdenv.lib.optional (stdenv.hostPlatform.isx86_64) "--with-sse2=yes";
 
   # fatal error: inlined-icons.h: No such file or directory
   enableParallelBuilding = false;
@@ -84,6 +83,6 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ jgeerds nckx ];
+    maintainers = with maintainers; [ ];
   };
 }

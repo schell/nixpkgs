@@ -1,49 +1,46 @@
-{ stdenv, fetchurl, chromaprint, fftw, flac, libid3tag, libmad
-, libopus, libshout, libsndfile, libusb1, libvorbis, pkgconfig
-, portaudio, portmidi, protobuf, qt4, rubberband, scons, sqlite
-, taglib, vampSDK
+{ stdenv, mkDerivation, fetchFromGitHub, chromaprint
+, fftw, flac, faad2, glibcLocales, mp4v2
+, libid3tag, libmad, libopus, libshout, libsndfile, libusb1, libvorbis
+, libGLU, libxcb, lilv, lv2, opusfile
+, pkgconfig, portaudio, portmidi, protobuf, qtbase, qtscript, qtsvg
+, qtx11extras, rubberband, scons, sqlite, taglib, upower, vampSDK
 }:
 
-stdenv.mkDerivation rec {
-  name = "mixxx-${version}";
-  version = "2.0.0";
+mkDerivation rec {
+  pname = "mixxx";
+  version = "2.2.2";
 
-  src = fetchurl {
-    url = "http://downloads.mixxx.org/${name}/${name}-src.tar.gz";
-    sha256 = "0vb71w1yq0xwwsclrn2jj9bk8w4n14rfv5c0aw46c11mp8xz7f71";
+  src = fetchFromGitHub {
+    owner = "mixxxdj";
+    repo = "mixxx";
+    rev = "release-${version}";
+    sha256 = "0dmkvcsgq7abxqd4wms8c4w0mr5c53z7n5r8jgzp4swz9nmfjpfg";
   };
 
   buildInputs = [
-    chromaprint fftw flac libid3tag libmad libopus libshout libsndfile
-    libusb1 libvorbis pkgconfig portaudio portmidi protobuf qt4
-    rubberband scons sqlite taglib vampSDK
+    chromaprint fftw flac faad2 glibcLocales mp4v2 libid3tag libmad libopus libshout libsndfile
+    libusb1 libvorbis libxcb libGLU lilv lv2 opusfile pkgconfig portaudio portmidi protobuf qtbase qtscript qtsvg
+    qtx11extras rubberband scons sqlite taglib upower vampSDK
   ];
+
+  enableParallelBuilding = true;
 
   sconsFlags = [
     "build=release"
-    "qtdir=${qt4}"
+    "qtdir=${qtbase}"
+    "faad=1"
+    "opus=1"
   ];
 
-  buildPhase = ''
-    runHook preBuild
-    mkdir -p "$out"
-    scons \
-      -j$NIX_BUILD_CORES -l$NIX_BUILD_CORES \
-      $sconsFlags "prefix=$out"
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    scons $sconsFlags "prefix=$out" install
-    runHook postInstall
-  '';
+  qtWrapperArgs = [
+    "--set LOCALE_ARCHIVE ${glibcLocales}/lib/locale/locale-archive"
+  ];
 
   meta = with stdenv.lib; {
-    homepage = http://mixxx.org;
+    homepage = https://mixxx.org;
     description = "Digital DJ mixing software";
     license = licenses.gpl2Plus;
-    maintainers = [ maintainers.aszlig maintainers.goibhniu ];
+    maintainers = [ maintainers.aszlig maintainers.goibhniu maintainers.bfortz ];
     platforms = platforms.linux;
   };
 }

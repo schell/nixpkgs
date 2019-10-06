@@ -1,33 +1,36 @@
-{ stdenv, fetchPypi, buildPythonPackage, isPy3k, execnet, pytest, setuptools_scm }:
+{ stdenv, fetchPypi, buildPythonPackage, execnet, pytest
+, setuptools_scm, pytest-forked, filelock, six, isPy3k }:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "pytest-xdist";
-  version = "1.16.0";
+  version = "1.28.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "42e5a1e5da9d7cff3e74b07f8692598382f95624f234ff7e00a3b1237e0feba2";
+    sha256 = "f83a485293e81fd57c8a5a85a3f12473a532c5ca7dec518857cbb72766bb526c";
   };
 
-  buildInputs = [ pytest setuptools_scm ];
-  propagatedBuildInputs = [ execnet ];
+  nativeBuildInputs = [ setuptools_scm pytest ];
+  checkInputs = [ pytest filelock ];
+  propagatedBuildInputs = [ execnet pytest-forked six ];
 
-  postPatch = ''
-    rm testing/acceptance_test.py testing/test_remote.py testing/test_slavemanage.py
-  '';
+  # Encountered a memory leak
+  # https://github.com/pytest-dev/pytest-xdist/issues/462
+  doCheck = !isPy3k;
 
   checkPhase = ''
-    py.test testing
+    # Excluded tests access file system
+    py.test testing -k "not test_distribution_rsyncdirs_example \
+                    and not test_rsync_popen_with_path \
+                    and not test_popen_rsync_subdir \
+                    and not test_init_rsync_roots \
+                    and not test_rsyncignore"
   '';
-
-  # Only test on 3.x
-  # INTERNALERROR> AttributeError: 'NoneType' object has no attribute 'getconsumer'
-  doCheck = isPy3k;
 
   meta = with stdenv.lib; {
     description = "py.test xdist plugin for distributed testing and loop-on-failing modes";
     homepage = https://github.com/pytest-dev/pytest-xdist;
     license = licenses.mit;
+    maintainers = with maintainers; [ dotlambda ];
   };
 }

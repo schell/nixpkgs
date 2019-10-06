@@ -1,4 +1,4 @@
-{ stdenv, fetchPypi, buildPythonPackage, fetchFromGitHub, python, gnugrep }:
+{ stdenv, buildPythonPackage, fetchFromGitHub, python, gnugrep }:
 
 let
 
@@ -18,10 +18,9 @@ let
 
 in
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "PyLD";
   version = "0.7.2";
-  name = "${pname}-${version}";
 
   src = fetchFromGitHub {
     owner = "digitalbazaar";
@@ -49,7 +48,7 @@ buildPythonPackage rec {
 
   meta = with stdenv.lib; {
     description = "Python implementation of the JSON-LD API";
-    homepage = "https://github.com/digitalbazaar/pyld";
+    homepage = https://github.com/digitalbazaar/pyld;
     license = licenses.bsd3;
     maintainers = with maintainers; [ apeschar ];
   };

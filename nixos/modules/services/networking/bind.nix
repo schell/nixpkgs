@@ -10,6 +10,11 @@ let
 
   confFile = pkgs.writeText "named.conf"
     ''
+      include "/etc/bind/rndc.key";
+      controls {
+        inet 127.0.0.1 allow {localhost;} keys {"rndc-key";};
+      };
+
       acl cachenetworks { ${concatMapStrings (entry: " ${entry}; ") cfg.cacheNetworks} };
       acl badnetworks { ${concatMapStrings (entry: " ${entry}; ") cfg.blockedNetworks} };
 
@@ -20,14 +25,15 @@ let
         blackhole { badnetworks; };
         forward first;
         forwarders { ${concatMapStrings (entry: " ${entry}; ") cfg.forwarders} };
-        directory "/var/run/named";
-        pid-file "/var/run/named/named.pid";
+        directory "/run/named";
+        pid-file "/run/named/named.pid";
+        ${cfg.extraOptions}
       };
 
       ${cfg.extraConfig}
 
       ${ concatMapStrings
-          ({ name, file, master ? true, slaves ? [], masters ? [] }:
+          ({ name, file, master ? true, slaves ? [], masters ? [], extraConfig ? "" }:
             ''
               zone "${name}" {
                 type ${if master then "master" else "slave"};
@@ -46,6 +52,7 @@ let
                    ''
                 }
                 allow-query { any; };
+                ${extraConfig}
               };
             '')
           cfg.zones }
@@ -125,6 +132,7 @@ in
           file = "/var/dns/example.com";
           masters = ["192.168.0.1"];
           slaves = [];
+          extraConfig = "";
         }];
       };
 
@@ -134,6 +142,15 @@ in
         description = "
           Extra lines to be added verbatim to the generated named configuration file.
         ";
+      };
+
+      extraOptions = mkOption {
+        type = types.lines;
+        default = "";
+        description = ''
+          Extra lines to be added verbatim to the options section of the
+          generated named configuration file.
+        '';
       };
 
       configFile = mkOption {
@@ -153,9 +170,11 @@ in
 
   ###### implementation
 
-  config = mkIf config.services.bind.enable {
+  config = mkIf cfg.enable {
 
-    users.extraUsers = singleton
+    networking.resolvconf.useLocalResolver = mkDefault true;
+
+    users.users = singleton
       { name = bindUser;
         uid = config.ids.uids.bind;
         description = "BIND daemon user";
@@ -167,11 +186,21 @@ in
       wantedBy = [ "multi-user.target" ];
 
       preStart = ''
-        ${pkgs.coreutils}/bin/mkdir -p /var/run/named
-        chown ${bindUser} /var/run/named
+        mkdir -m 0755 -p /etc/bind
+        if ! [ -f "/etc/bind/rndc.key" ]; then
+          ${pkgs.bind.out}/sbin/rndc-confgen -c /etc/bind/rndc.key -u ${bindUser} -a -A hmac-sha256 2>/dev/null
+        fi
+
+        ${pkgs.coreutils}/bin/mkdir -p /run/named
+        chown ${bindUser} /run/named
       '';
 
-      script = "${pkgs.bind.out}/sbin/named -u ${bindUser} ${optionalString cfg.ipv4Only "-4"} -c ${cfg.configFile} -f";
+      serviceConfig = {
+        ExecStart  = "${pkgs.bind.out}/sbin/named -u ${bindUser} ${optionalString cfg.ipv4Only "-4"} -c ${cfg.configFile} -f";
+        ExecReload = "${pkgs.bind.out}/sbin/rndc -k '/etc/bind/rndc.key' reload";
+        ExecStop   = "${pkgs.bind.out}/sbin/rndc -k '/etc/bind/rndc.key' stop";
+      };
+
       unitConfig.Documentation = "man:named(8)";
     };
   };

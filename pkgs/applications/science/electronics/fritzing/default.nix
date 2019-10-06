@@ -1,9 +1,9 @@
-{ stdenv, fetchpatch, fetchFromGitHub, makeQtWrapper, qmakeHook, pkgconfig
+{ stdenv, fetchpatch, fetchFromGitHub, qmake, pkgconfig
 , qtbase, qtsvg, qtserialport, boost, libgit2
 }:
 
 stdenv.mkDerivation rec {
-  name = "fritzing-${version}";
+  pname = "fritzing";
   version = "0.9.3b";
 
   src = fetchFromGitHub {
@@ -28,18 +28,12 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ qtbase qtsvg qtserialport boost libgit2 ];
 
-  nativeBuildInputs = [ qmakeHook makeQtWrapper pkgconfig ];
+  nativeBuildInputs = [ qmake pkgconfig ];
 
   qmakeFlags = [ "phoenix.pro" ];
 
-  enableParallelBuilding = true;
-
   preConfigure = ''
     ln -s "$parts" parts
-  '';
-
-  postInstall = ''
-    wrapQtProgram $out/bin/Fritzing
   '';
 
   meta = {

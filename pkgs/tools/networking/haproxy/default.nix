@@ -9,14 +9,11 @@ assert usePcre -> pcre != null;
 
 stdenv.mkDerivation rec {
   pname = "haproxy";
-  majorVersion = "1.7";
-  minorVersion = "3";
-  version = "${majorVersion}.${minorVersion}";
-  name = "${pname}-${version}";
+  version = "1.9.8";
 
   src = fetchurl {
-    url = "http://www.haproxy.org/download/${majorVersion}/src/${name}.tar.gz";
-    sha256 = "ebb31550a5261091034f1b6ac7f4a8b9d79a8ce2a3ddcd7be5b5eb355c35ba65";
+    url = "https://www.haproxy.org/download/${stdenv.lib.versions.majorMinor version}/src/${pname}-${version}.tar.gz";
+    sha256 = "1via9k84ycrdr8qh4qchcbqgpv0gynm3ra23nwsvqwfqvc0376id";
   };
 
   buildInputs = [ openssl zlib ]
@@ -41,7 +38,8 @@ stdenv.mkDerivation rec {
     "USE_LUA=yes"
     "LUA_LIB=${lua5_3}/lib"
     "LUA_INC=${lua5_3}/include"
-  ] ++ stdenv.lib.optional stdenv.isDarwin "CC=cc";
+  ] ++ stdenv.lib.optional stdenv.isDarwin "CC=cc"
+    ++ stdenv.lib.optional stdenv.isLinux "USE_GETADDRINFO=1";
 
   meta = {
     description = "Reliable, high performance TCP/HTTP load balancer";
@@ -54,7 +52,7 @@ stdenv.mkDerivation rec {
       hardware.
     '';
     homepage = http://haproxy.1wt.eu;
-    maintainers = with stdenv.lib.maintainers; [ fuzzy-id garbas ];
+    maintainers = with stdenv.lib.maintainers; [ fuzzy-id ];
     platforms = with stdenv.lib.platforms; linux ++ darwin;
     license = stdenv.lib.licenses.gpl2;
   };

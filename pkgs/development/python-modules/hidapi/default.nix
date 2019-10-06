@@ -1,19 +1,21 @@
-{ stdenv, libusb1, udev, fetchPypi, buildPythonPackage, cython }:
+{ stdenv, libusb1, udev, darwin, fetchPypi, buildPythonPackage, cython }:
 
 buildPythonPackage rec {
-  name = "${pname}-${version}";
   pname = "hidapi";
-  version = "0.7.99.post20";
+  version = "0.7.99.post21";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1k7z5m7xsqy8j4qkjy4pfxdx4hm36ha68vi65z6smvnyg4zgv22z";
+    sha256 = "e0be1aa6566979266a8fc845ab0e18613f4918cf2c977fe67050f5dc7e2a9a97";
   };
 
-  propagatedBuildInputs = [ libusb1 udev cython ];
+  propagatedBuildInputs =
+    stdenv.lib.optionals stdenv.isLinux [ libusb1 udev ] ++
+    stdenv.lib.optionals stdenv.isDarwin [ darwin.IOKit darwin.apple_sdk.frameworks.CoreFoundation ] ++
+    [ cython ];
 
   # Fix the USB backend library lookup
-  postPatch = ''
+  postPatch = stdenv.lib.optionalString stdenv.isLinux ''
     libusb=${libusb1.dev}/include/libusb-1.0
     test -d $libusb || { echo "ERROR: $libusb doesn't exist, please update/fix this build expression."; exit 1; }
     sed -i -e "s|/usr/include/libusb-1.0|$libusb|" setup.py

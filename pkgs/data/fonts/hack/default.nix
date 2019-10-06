@@ -1,27 +1,20 @@
-{ stdenv, fetchurl, unzip }:
+{ lib, fetchzip }:
 
-stdenv.mkDerivation rec {
+let
+  version = "3.003";
+in fetchzip {
   name = "hack-font-${version}";
-  version = "2.020";
 
-  src = let
-    version_ = with stdenv.lib;
-      concatStringsSep "_" (splitString "." version);
-  in fetchurl {
-    sha256 = "16kkmc3psckw1b7k07ccn1gi5ymhlg9djh43nqjzg065g6p6d184";
-    url = "https://github.com/chrissimpkins/Hack/releases/download/v${version}/Hack-v${version_}-ttf.zip";
-  };
+  url = "https://github.com/chrissimpkins/Hack/releases/download/v${version}/Hack-v${version}-ttf.zip";
 
-  sourceRoot = ".";
-
-  nativeBuildInputs = [ unzip ];
-
-  installPhase = ''
-    mkdir -p $out/share/fonts/hack
-    cp *.ttf $out/share/fonts/hack
+  postFetch = ''
+    mkdir -p $out/share/fonts
+    unzip -j $downloadedFile \*.ttf -d $out/share/fonts/hack
   '';
 
-  meta = with stdenv.lib; {
+  sha256 = "1l6ih6v7dqali5c7zh6z2xnbf9h2wz0ag6fdgszmqd5lnhw39v6s";
+
+  meta = with lib; {
     description = "A typeface designed for source code";
     longDescription = ''
       Hack is hand groomed and optically balanced to be a workhorse face for
@@ -30,7 +23,7 @@ stdenv.mkDerivation rec {
       The face has been re-designed with a larger glyph set, modifications of
       the original glyph shapes, and meticulous attention to metrics.
     '';
-    homepage = http://sourcefoundry.org/hack/;
+    homepage = https://sourcefoundry.org/hack/;
 
     /*
      "The font binaries are released under a license that permits unlimited
@@ -41,7 +34,7 @@ stdenv.mkDerivation rec {
       the license is available in LICENSE.md" (From the GitHub page)
     */
     license = licenses.free;
+    maintainers = with maintainers; [ dywedir ];
     platforms = platforms.all;
-    maintainers = with maintainers; [ nckx ];
   };
 }

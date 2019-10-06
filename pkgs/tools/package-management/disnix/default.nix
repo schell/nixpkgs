@@ -1,14 +1,15 @@
-{ stdenv, fetchurl, pkgconfig, glib, libxml2, libxslt, getopt, nixUnstable, dysnomia, libintlOrEmpty, libiconv }:
+{ stdenv, fetchurl, pkgconfig, glib, libxml2, libxslt, getopt, nixUnstable, dysnomia, libintl, libiconv }:
 
 stdenv.mkDerivation {
-  name = "disnix-0.7";
-  
+  name = "disnix-0.9";
+
   src = fetchurl {
-    url = https://github.com/svanderburg/disnix/files/842828/disnix-0.7.tar.gz;
-    sha256 = "120iaqpj7zcy94dpizzdxjwf8qb2rfrx5394jghmhc6jy88vdp71";
+    url = https://github.com/svanderburg/disnix/releases/download/disnix-0.9/disnix-0.9.tar.gz;
+    sha256 = "1kc4520zjc1z72mknylfvrsyda9rbmm5c9mw8w13zhdwg3zbna06";
   };
-  
-  buildInputs = [ pkgconfig glib libxml2 libxslt getopt nixUnstable libintlOrEmpty libiconv dysnomia ];
+
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ glib libxml2 libxslt getopt nixUnstable libintl libiconv dysnomia ];
 
   meta = {
     description = "A Nix-based distributed service deployment tool";

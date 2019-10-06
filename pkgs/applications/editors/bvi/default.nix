@@ -1,11 +1,11 @@
 { stdenv, fetchurl, ncurses }:
 
 stdenv.mkDerivation rec {
-  name = "bvi-${version}";
+  pname = "bvi";
   version = "1.4.0";
 
   src = fetchurl {
-    url = "mirror://sourceforge/bvi/${name}.src.tar.gz";
+    url = "mirror://sourceforge/bvi/${pname}-${version}.src.tar.gz";
     sha256 = "00pq9rv7s8inqxq2m3xshxi58691i3pxw9smibcrgh6768l3qnh1";
   };
 
@@ -16,6 +16,6 @@ stdenv.mkDerivation rec {
     homepage = http://bvi.sourceforge.net/download.html;
     license = licenses.gpl2;
     maintainers = with maintainers; [ pSub ];
-    platforms = platforms.linux;
+    platforms = with platforms; linux ++ darwin;
   };
 }

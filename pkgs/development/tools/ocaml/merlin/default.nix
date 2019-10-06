@@ -1,39 +1,23 @@
-{ stdenv, fetchzip, ocaml, findlib, yojson, lib
-, withEmacsMode ? false, emacs }:
+{ stdenv, fetchFromGitHub, buildDunePackage, yojson }:
 
-assert stdenv.lib.versionAtLeast (stdenv.lib.getVersion ocaml) "4.00";
+buildDunePackage rec {
+  pname = "merlin";
+  version = "3.3.2";
 
-let
-  version = if lib.versionOlder (lib.getVersion ocaml) "4.02.0"
-  then
-    "2.3.1"
-  else
-    "2.5.4";
-  hashes = {
-    "2.3.1" = "192jamcc7rmvadlqqsjkzsl6hlgwhg9my1qc89fxh1lmd4qdsrpn";
-    "2.5.4" = "101vk16c5wayd51s8w0mvy99bk7q3gm2gz8i8616wa1lmyszjknh";
-  };
-in
+  minimumOCamlVersion = "4.02.1";
 
-stdenv.mkDerivation {
-
-  name = "merlin-${version}";
-
-  src = fetchzip {
-    url = "https://github.com/the-lambda-church/merlin/archive/v${version}.tar.gz";
-    sha256 = hashes."${version}";
+  src = fetchFromGitHub {
+    owner = "ocaml";
+    repo = pname;
+    rev = "v${version}";
+    sha256 = "1z9mcxflraj15sbz6q7f84n31n9fsialw7z8bi3r1biz68nypva9";
   };
 
-  buildInputs = [ ocaml findlib yojson ]
-    ++ stdenv.lib.optional withEmacsMode emacs;
-
-  preConfigure = "mkdir -p $out/bin";
-  prefixKey = "--prefix ";
-  configureFlags = stdenv.lib.optional withEmacsMode "--enable-compiled-emacs-mode";
+  buildInputs = [ yojson ];
 
   meta = with stdenv.lib; {
     description = "An editor-independent tool to ease the development of programs in OCaml";
-    homepage = "http://the-lambda-church.github.io/merlin/";
+    homepage = "https://github.com/ocaml/merlin";
     license = licenses.mit;
     maintainers = [ maintainers.vbgl ];
   };

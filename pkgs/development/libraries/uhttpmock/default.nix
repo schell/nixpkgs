@@ -1,8 +1,8 @@
-{ stdenv, lib, fetchFromGitLab, autoconf, gtk_doc, automake, libtool, pkgconfig, glib, libsoup, gobjectIntrospection }:
+{ stdenv, lib, fetchFromGitLab, autoconf, gtk-doc, automake, libtool, pkgconfig, glib, libsoup, gobject-introspection }:
 
 stdenv.mkDerivation rec {
   version="0.5.0";
-  name = "uhttpmock-${version}";
+  pname = "uhttpmock";
 
   src = fetchFromGitLab {
     repo = "uhttpmock";
@@ -11,7 +11,8 @@ stdenv.mkDerivation rec {
     sha256 = "0kkf670abkq5ikm3mqls475lydfsd9by1kv5im4k757xrl1br1d4";
   };
 
-  buildInputs = [ autoconf gtk_doc automake libtool pkgconfig glib libsoup gobjectIntrospection ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ autoconf gtk-doc automake libtool glib libsoup gobject-introspection ];
 
   preConfigure = "./autogen.sh";
 

@@ -1,32 +1,37 @@
-{ stdenv, lib, fetchFromGitHub, cmake, pkgconfig
-, openssl, curl, libxml2, libxslt, asciidoc, docbook_xsl }:
+{ stdenv, lib, fetchFromGitHub, asciidoc, cmake, docbook_xsl, pkgconfig
+, bash-completion, openssl, curl, libxml2, libxslt }:
 
 stdenv.mkDerivation rec {
-  name = "lastpass-cli-${version}";
-
-  version = "1.1.1";
+  pname = "lastpass-cli";
+  version = "1.3.3";
 
   src = fetchFromGitHub {
     owner = "lastpass";
-    repo = "lastpass-cli";
+    repo = pname;
     rev = "v${version}";
-    sha256 = "1slqrv877c1bhivgd2i9cr1lsd72371dpz6a3h6s56l3qbyk28sa";
+    sha256 = "168jg8kjbylfgalhicn0llbykd7kdc9id2989gg0nxlgmnvzl58a";
   };
 
-  nativeBuildInputs = [ cmake pkgconfig ];
+  nativeBuildInputs = [ asciidoc cmake docbook_xsl pkgconfig ];
+
   buildInputs = [
-    openssl curl libxml2 asciidoc docbook_xsl libxslt
+    bash-completion curl openssl libxml2 libxslt
   ];
 
-  makeFlags = "PREFIX=$(out)";
+  enableParallelBuilding = true;
 
-  installTargets = "install install-doc";
+  installTargets = [ "install" "install-doc" ];
+
+  postInstall = ''
+    install -Dm644 -T ../contrib/lpass_zsh_completion $out/share/zsh/site-functions/_lpass
+    install -Dm644 -T ../contrib/completions-lpass.fish $out/share/fish/vendor_completions.d/lpass.fish
+  '';
 
   meta = with lib; {
     description = "Stores, retrieves, generates, and synchronizes passwords securely";
     homepage    = "https://github.com/lastpass/lastpass-cli";
     license     = licenses.gpl2Plus;
-    platforms   = stdenv.lib.platforms.unix;
+    platforms   = platforms.unix;
     maintainers = with maintainers; [ cstrahan ];
   };
 }

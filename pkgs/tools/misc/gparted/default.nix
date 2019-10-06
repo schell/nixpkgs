@@ -1,26 +1,41 @@
-{ stdenv, fetchurl, intltool, gettext, makeWrapper
-, parted, glib, libuuid, pkgconfig, gtkmm2, libxml2, hicolor_icon_theme
-, gpart, hdparm, procps, utillinux
+{ stdenv, fetchurl, intltool, gettext, makeWrapper, coreutils, gnused, gnome3
+, gnugrep, parted, glib, libuuid, pkgconfig, gtkmm3, libxml2, hicolor-icon-theme
+, gpart, hdparm, procps, utillinux, polkit, wrapGAppsHook, substituteAll
 }:
 
 stdenv.mkDerivation rec {
-  name = "gparted-0.28.1";
+  name = "gparted-1.0.0";
 
   src = fetchurl {
-    sha256 = "0cyk8lpimm6wani8khw0szwqkgw5wpq2mfnfxkbgfm2774a1z2bn";
     url = "mirror://sourceforge/gparted/${name}.tar.gz";
+    sha256 = "0mdvn85jvy72ff7nds3dakx9kzknh8gx1z8i0w2sf970q03qp2z4";
   };
+
+  # Tries to run `pkexec --version` to get version.
+  # however the binary won't be suid so it returns
+  # an error preventing the program from detection
+  patches = [
+    (substituteAll {
+      src = ./polkit.patch;
+      polkit_version = polkit.version;
+    })
+  ];
 
   configureFlags = [ "--disable-doc" ];
 
-  buildInputs = [ parted glib libuuid gtkmm2 libxml2 hicolor_icon_theme ];
-  nativeBuildInputs = [ intltool gettext makeWrapper pkgconfig ];
+  buildInputs = [ parted glib libuuid gtkmm3 libxml2 hicolor-icon-theme polkit.bin gnome3.adwaita-icon-theme  ];
+  nativeBuildInputs = [ intltool gettext pkgconfig wrapGAppsHook ];
 
+  preFixup = ''
+    gappsWrapperArgs+=(
+       --prefix PATH : "${stdenv.lib.makeBinPath [ gpart hdparm utillinux procps coreutils gnused gnugrep ]}"
+    )
+  '';
+
+  # Doesn't get installed automaticallly if PREFIX != /usr
   postInstall = ''
-    wrapProgram $out/sbin/gparted \
-      --prefix PATH : "${procps}/bin"
-    wrapProgram $out/sbin/gpartedbin \
-      --prefix PATH : "${stdenv.lib.makeBinPath [ gpart hdparm utillinux ]}"
+    install -D -m0644 org.gnome.gparted.policy \
+      $out/share/polkit-1/actions/org.gnome.gparted.policy
   '';
 
   meta = with stdenv.lib; {
@@ -30,9 +45,8 @@ stdenv.mkDerivation rec {
       partitions. GParted enables you to change the partition organization
       while preserving the partition contents.
     '';
-    homepage = http://gparted.org;
+    homepage = https://gparted.org;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

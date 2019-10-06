@@ -1,65 +1,72 @@
-{ stdenv, fetchurl, fetchFromGitHub, luaPackages, cairo, librsvg, cmake, imagemagick, pkgconfig, gdk_pixbuf
+{ stdenv, fetchFromGitHub, luaPackages, cairo, librsvg, cmake, imagemagick, pkgconfig, gdk-pixbuf
 , xorg, libstartup_notification, libxdg_basedir, libpthreadstubs
-, xcb-util-cursor, makeWrapper, pango, gobjectIntrospection, unclutter
-, compton, procps, iproute, coreutils, curl, alsaUtils, findutils, xterm
-, which, dbus, nettools, git, asciidoc, doxygen
+, xcb-util-cursor, makeWrapper, pango, gobject-introspection
+, which, dbus, nettools, git, doxygen
 , xmlto, docbook_xml_dtd_45, docbook_xsl, findXMLCatalogs
-, libxkbcommon, xcbutilxrm, hicolor_icon_theme
+, libxkbcommon, xcbutilxrm, hicolor-icon-theme
+, asciidoctor
+, fontsConf
+, gtk3Support ? false, gtk3 ? null
 }:
 
+# needed for beautiful.gtk to work
+assert gtk3Support -> gtk3 != null;
+
 with luaPackages; stdenv.mkDerivation rec {
-  name = "awesome-${version}";
-  version = "4.1";
-  
+  pname = "awesome";
+  version = "4.3";
+
   src = fetchFromGitHub {
     owner = "awesomewm";
     repo = "awesome";
     rev = "v${version}";
-    sha256 = "1qik8h5nwjq4535lpdpal85vas1k7am3s6l5r763kpdzxhfcyyaj";
+    sha256 = "1i7ajmgbsax4lzpgnmkyv35x8vxqi0j84a14k6zys4blx94m9yjf";
   };
 
   nativeBuildInputs = [
-    asciidoc
     cmake
     doxygen
     imagemagick
     makeWrapper
     pkgconfig
-    xmlto docbook_xml_dtd_45 
+    xmlto docbook_xml_dtd_45
     docbook_xsl findXMLCatalogs
+    asciidoctor
+    ldoc
   ];
-   
-  propagatedUserEnvPkgs = [ hicolor_icon_theme ];
-  buildInputs = [ cairo librsvg dbus gdk_pixbuf gobjectIntrospection
+
+  outputs = [ "out" "doc" ];
+
+  FONTCONFIG_FILE = toString fontsConf;
+
+  propagatedUserEnvPkgs = [ hicolor-icon-theme ];
+  buildInputs = [ cairo librsvg dbus gdk-pixbuf gobject-introspection
                   git lgi libpthreadstubs libstartup_notification
                   libxdg_basedir lua nettools pango xcb-util-cursor
                   xorg.libXau xorg.libXdmcp xorg.libxcb xorg.libxshmfence
                   xorg.xcbutil xorg.xcbutilimage xorg.xcbutilkeysyms
                   xorg.xcbutilrenderutil xorg.xcbutilwm libxkbcommon
-                  xcbutilxrm ];
-
-  patches = [
-    (fetchurl {
-      url = "https://patch-diff.githubusercontent.com/raw/awesomeWM/awesome/pull/1639.patch";
-      sha256 = "00piynmbxajd2xbg960gmf0zlqn7m489f4ww482y49ravfy1jhsj";
-    })
-  ];
+                  xcbutilxrm ]
+                  ++ stdenv.lib.optional gtk3Support gtk3;
 
   #cmakeFlags = "-DGENERATE_MANPAGES=ON";
+  cmakeFlags = "-DOVERRIDE_VERSION=${version}";
 
-  LD_LIBRARY_PATH = "${stdenv.lib.makeLibraryPath [ cairo pango gobjectIntrospection ]}";
   GI_TYPELIB_PATH = "${pango.out}/lib/girepository-1.0";
+  # LUA_CPATH and LUA_PATH are used only for *building*, see the --search flags
+  # below for how awesome finds the libraries it needs at runtime.
   LUA_CPATH = "${lgi}/lib/lua/${lua.luaversion}/?.so";
-  LUA_PATH  = "${lgi}/share/lua/${lua.luaversion}/?.lua;${lgi}/share/lua/${lua.luaversion}/lgi/?.lua";
+  LUA_PATH  = "${lgi}/share/lua/${lua.luaversion}/?.lua;;";
 
   postInstall = ''
-    wrapProgram $out/bin/awesome \
+    # Don't use wrapProgram or the wrapper will duplicate the --search
+    # arguments every restart
+    mv "$out/bin/awesome" "$out/bin/.awesome-wrapped"
+    makeWrapper "$out/bin/.awesome-wrapped" "$out/bin/awesome" \
       --set GDK_PIXBUF_MODULE_FILE "$GDK_PIXBUF_MODULE_FILE" \
-      --prefix LUA_CPATH ";" '"${lgi}/lib/lua/${lua.luaversion}/?.so"' \
-      --prefix LUA_PATH ";" '"${lgi}/share/lua/${lua.luaversion}/?.lua;${lgi}/share/lua/${lua.luaversion}/lgi/?.lua"' \
-      --prefix GI_TYPELIB_PATH : "$GI_TYPELIB_PATH" \
-      --prefix LD_LIBRARY_PATH : "$LD_LIBRARY_PATH" \
-      --prefix PATH : "${stdenv.lib.makeBinPath [ compton unclutter procps iproute coreutils curl alsaUtils findutils xterm ]}"
+      --add-flags '--search ${lgi}/lib/lua/${lua.luaversion}' \
+      --add-flags '--search ${lgi}/share/lua/${lua.luaversion}' \
+      --prefix GI_TYPELIB_PATH : "$GI_TYPELIB_PATH"
 
     wrapProgram $out/bin/awesome-client \
       --prefix PATH : "${which}/bin"

@@ -2,11 +2,11 @@
 , autoreconfHook }:
 
 stdenv.mkDerivation rec {
-  version = "0.3.4";
-  name = "opkg-${version}";
+  version = "0.4.1";
+  pname = "opkg";
   src = fetchurl {
-    url = "http://downloads.yoctoproject.org/releases/opkg/opkg-${version}.tar.gz";
-    sha256 = "1glkxjhsaaji172phd1gv8g0k0fs09pij6k01cl9namnac5r02vm";
+    url = "https://downloads.yoctoproject.org/releases/opkg/opkg-${version}.tar.gz";
+    sha256 = "0hqa4lqxs3w9fmn9idzfscjkm23jw5asby43v0szcxrqgl1ixb25";
   };
 
   nativeBuildInputs = [ pkgconfig autoreconfHook ];
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A lightweight package management system based upon ipkg";
-    homepage = http://code.google.com/p/opkg/;
+    homepage = https://git.yoctoproject.org/cgit/cgit.cgi/opkg/;
     license = licenses.gpl2;
     platforms = platforms.linux;
     maintainers = with maintainers; [ pSub ];

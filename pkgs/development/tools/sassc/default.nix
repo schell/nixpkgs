@@ -1,12 +1,14 @@
-{ stdenv, fetchurl, autoreconfHook, libsass }:
+{ stdenv, fetchFromGitHub, autoreconfHook, libsass }:
 
 stdenv.mkDerivation rec {
-  name = "sassc-${version}";
-  version = "3.3.2";
+  pname = "sassc";
+  version = "3.6.1";
 
-  src = fetchurl {
-    url = "https://github.com/sass/sassc/archive/${version}.tar.gz";
-    sha256 = "15a2b2698639dfdc7bd6a5ba7a9ecdaf8ebb9f15503fb04dea1be3133308e41d";
+  src = fetchFromGitHub {
+    owner = "sass";
+    repo = pname;
+    rev = version;
+    sha256 = "1sxm54mkhs9m4vnl7vn11y17mhzamc403hv3966j1c7p2rbzg5pv";
   };
 
   patchPhase = ''

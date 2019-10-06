@@ -3,7 +3,7 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "gpshell-${version}";
+  pname = "gpshell";
   version = "1.4.4";
 
   src = fetchurl {
@@ -11,7 +11,8 @@ stdenv.mkDerivation rec {
     sha256 = "19a77zvyf2vazbv17185s4pynhylk2ky8vhl4i8pg9zww29sicqi";
   };
 
-  buildInputs = [ pkgconfig globalplatform pcsclite makeWrapper ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ globalplatform pcsclite makeWrapper ];
 
   postFixup = ''
     wrapProgram "$out/bin/gpshell" --prefix LD_LIBRARY_PATH : "${gppcscconnectionplugin}/lib"

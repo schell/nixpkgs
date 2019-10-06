@@ -1,124 +1,74 @@
-{ stdenv, lib, fetchurl, makeDesktopItem, makeWrapper
-, freetype, fontconfig, libX11, libXext, libXrender, zlib
-, glib, gtk2, libXtst, jdk, gsettings_desktop_schemas
-, webkitgtk2 ? null  # for internal web browser
-, buildEnv, writeText, runCommand
+{ stdenv, fetchurl, makeDesktopItem, makeWrapper
+, freetype, fontconfig, libX11, libXrender, zlib
+, glib, gtk3, libXtst, jdk, gsettings-desktop-schemas
+, webkitgtk ? null  # for internal web browser
+, buildEnv, runCommand
 , callPackage
 }:
 
 assert stdenv ? glibc;
 
-rec {
+# http://download.eclipse.org/eclipse/downloads/ is the main place to
+# find the downloads needed for new versions
+
+let
+  platform_major = "4";
+  platform_minor = "12";
+  year = "2019";
+  month = "06";
+  timestamp = "201906051800";
+
+in rec {
 
   buildEclipse = import ./build-eclipse.nix {
     inherit stdenv makeDesktopItem freetype fontconfig libX11 libXrender zlib
-            jdk glib gtk2 libXtst gsettings_desktop_schemas webkitgtk2
+            jdk glib gtk3 libXtst gsettings-desktop-schemas webkitgtk
             makeWrapper;
   };
 
   ### Eclipse CPP
 
-  eclipse-cpp = eclipse-cpp-46; # always point to latest
-
-  eclipse-cpp-46 = buildEclipse {
-    name = "eclipse-cpp-4.6.0";
-    description = "Eclipse IDE for C/C++ Developers, Neon release";
+  eclipse-cpp = buildEclipse {
+    name = "eclipse-cpp-${platform_major}.${platform_minor}";
+    description = "Eclipse IDE for C/C++ Developers, Oxygen release";
     src =
-      if stdenv.system == "x86_64-linux" then
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/neon/R/eclipse-cpp-neon-R-linux-gtk-x86_64.tar.gz;
-          sha256 = "09fqsgvbjfdqvn7z03crkii34z4bsb34y272q68ib8741bxk0i6m";
-        }
-      else if stdenv.system == "i686-linux" then
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/neon/R/eclipse-cpp-neon-R-linux-gtk.tar.gz;
-          sha256 = "0a12qmqq22v7sbmwn1hjv1zcrkmp64bf0ajmdjljhs9ac79mxn5h";
-        }
-      else throw "Unsupported system: ${stdenv.system}";
+      fetchurl {
+        url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/${year}-${month}/R/eclipse-cpp-${year}-${month}-R-linux-gtk-x86_64.tar.gz";
+        sha512 = "3mfljabrwbwq256vvsp9qjb96hzlbpwgnb3wz806pbyh0ibfq6s1hn8kh5aaa2da5821v0ykcxa12jagj7naqp4g91jqxp1wb1ygz2q";
+      };
   };
-
-  eclipse-cpp-37 = buildEclipse {
-    name = "eclipse-cpp-3.7";
-    description = "Eclipse IDE for C/C++ Developers";
-    src =
-      if stdenv.system == "x86_64-linux" then
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/indigo/R/eclipse-cpp-indigo-incubation-linux-gtk-x86_64.tar.gz;
-          sha256 = "14ppc9g9igzvj1pq7jl01vwhzb66nmzbl9wsdl1sf3xnwa9wnqk3";
-        }
-      else
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/indigo/R/eclipse-cpp-indigo-incubation-linux-gtk.tar.gz;
-          sha256 = "1cvg1vgyazrkinwzlvlf0dpl197p4784752srqybqylyj5psdi3b";
-        };
-  };
-  eclipse_cpp_37 = eclipse-cpp-37; # backward compatibility, added 2016-01-30
 
   ### Eclipse Modeling
 
-  eclipse-modeling = eclipse-modeling-46; # always point to latest
-
-  eclipse-modeling-46 = buildEclipse {
-    name = "eclipse-modeling-4.6";
+  eclipse-modeling = buildEclipse {
+    name = "eclipse-modeling-${platform_major}.${platform_minor}";
     description = "Eclipse Modeling Tools";
     src =
-      if stdenv.system == "x86_64-linux" then
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/neon/1a/eclipse-modeling-neon-1a-linux-gtk-x86_64.tar.gz;
-          sha1 = "3695fd049c4cca2d235f424557e19877795a8183";
-        }
-      else
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/neon/1a/eclipse-modeling-neon-1a-linux-gtk.tar.gz;
-          sha1 = "fa0694a0b44e8e9c2301417f84dba45cf9ac6e61";
-        };
+      fetchurl {
+        url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/${year}-${month}/R/eclipse-modeling-${year}-${month}-R-linux-gtk-x86_64.tar.gz";
+        sha512 = "18p6xz6rq4w6j39b2k9kjpz8s1nljfq44g2cmvxqjgjfkq8lk4ij73ssyv1raly4wkm7r22ixacswdjmyj942k5vpv9y11i91hp1scv";
+      };
   };
-
-  eclipse-modeling-36 = buildEclipse {
-    name = "eclipse-modeling-3.6.2";
-    description = "Eclipse Modeling Tools (includes Incubating components)";
-    src =
-      if stdenv.system == "x86_64-linux" then
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/helios/SR2/eclipse-modeling-helios-SR2-incubation-linux-gtk-x86_64.tar.gz;
-          sha1 = "e96f5f006298f68476f4a15a2be8589158d5cc61";
-        }
-      else
-        fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/helios/SR2/eclipse-modeling-helios-SR2-incubation-linux-gtk.tar.gz;
-          sha1 = "696377895bb26445de39d82a916b7e69edb1d939";
-        };
-  };
-  eclipse_modeling_36 = eclipse-modeling-36; # backward compatibility, added 2016-01-30
 
   ### Eclipse Platform
 
-  eclipse-platform = eclipse-platform-46; # always point to latest
-
-  eclipse-platform-46 = buildEclipse {
-    name = "eclipse-platform-4.6.2";
-    description = "Eclipse Platform Neon 2";
-    sources = {
-      "x86_64-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops4/R-4.6.2-201611241400/eclipse-platform-4.6.2-linux-gtk-x86_64.tar.gz;
-          sha256 = "1fmpirjkp210angyfz3nr5jp58snjy6784zkkbmdxkiyg9kg2wqq";
-        };
-      "i686-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops4/R-4.6.2-201611241400/eclipse-platform-4.6.2-linux-gtk.tar.gz;
-          sha256 = "0274g6ypiqsqkch10868ygbm6avc5pa57saz9wd196kdivl1bdpm";
-        };
-    };
+  eclipse-platform = buildEclipse {
+    name = "eclipse-platform-${platform_major}.${platform_minor}";
+    description = "Eclipse Platform ${year}-${month}";
+    src =
+      fetchurl {
+        url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops${platform_major}/R-${platform_major}.${platform_minor}-${timestamp}/eclipse-platform-${platform_major}.${platform_minor}-linux-gtk-x86_64.tar.gz";
+        sha512 = "0qiyk95qhdqcfgg5hgc7pcpbpjy9jnx7l3vb7s4cgijdz2xz0n5psh11lpj3whk2amh4iwkyx7kn8fxdq7lm03rlgx67cbk7p8my16m";
+      };
   };
 
   ### Eclipse Scala SDK
 
-  eclipse-scala-sdk = eclipse-scala-sdk-441; # always point to latest
-
-  eclipse-scala-sdk-441 = buildEclipse {
+  eclipse-scala-sdk = buildEclipse {
     name = "eclipse-scala-sdk-4.4.1";
     description = "Eclipse IDE for Scala Developers";
     src =
-      if stdenv.system == "x86_64-linux" then
+      if stdenv.hostPlatform.system == "x86_64-linux" then
         fetchurl { # tested
           url = https://downloads.typesafe.com/scalaide-pack/4.4.1-vfinal-luna-211-20160504/scala-SDK-4.4.1-vfinal-2.11-linux.gtk.x86_64.tar.gz;
           sha256  = "4c2d1ac68384e12a11a851cf0fc7757aea087eba69329b21d539382a65340d27";
@@ -132,38 +82,27 @@ rec {
 
   ### Eclipse SDK
 
-  eclipse-sdk = eclipse-sdk-46; # always point to latest
-
-  eclipse-sdk-46 = buildEclipse {
-    name = "eclipse-sdk-4.6.2";
-    description = "Eclipse Neon 2 Classic";
-    sources = {
-      "x86_64-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops4/R-4.6.2-201611241400/eclipse-SDK-4.6.2-linux-gtk-x86_64.tar.gz;
-          sha256 = "0g3nk1gcz178j8xk6nblkfsaysm8gq8101383fx60x6w25rdfgjb";
-        };
-      "i686-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops4/R-4.6.2-201611241400/eclipse-SDK-4.6.2-linux-gtk.tar.gz;
-          sha256 = "09wlkcxs5h3j8habqxgr4all99vkgmyixc0vr9dj3qs0kl85k5mz";
-        };
-    };
+  eclipse-sdk = buildEclipse {
+    name = "eclipse-sdk-${platform_major}.${platform_minor}";
+    description = "Eclipse ${year}-${month} Classic";
+    src =
+      fetchurl {
+        url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops${platform_major}/R-${platform_major}.${platform_minor}-${timestamp}/eclipse-SDK-${platform_major}.${platform_minor}-linux-gtk-x86_64.tar.gz";
+        sha512 = "3bbc8d66ms7nhg6f8gb0bnzjqz26wixpipn4n9qf0azcplrv2j91z8hjw1fx39dx4pqnsf442bkgab4qqhkpks7qq54110l01q6gvy9";
+      };
   };
 
-  eclipse-sdk-37 = buildEclipse {
-    name = "eclipse-sdk-3.7";
-    description = "Eclipse Classic";
-    sources = {
-      "x86_64-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops/R-3.7.2-201202080800/eclipse-SDK-3.7.2-linux-gtk-x86_64.tar.gz;
-          sha256 = "0nf4nv7awhp1k8b1hjb7chpjyjrqnyszsjbc4dlk9phpjv3j4wg5";
-        };
-      "i686-linux" = fetchurl {
-          url = https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/eclipse/downloads/drops/R-3.7.2-201202080800/eclipse-SDK-3.7.2-linux-gtk.tar.gz;
-          sha256 = "1isn7i45l9kyn2yx6vm88jl1gnxph8ynank0aaa218cg8kdygk7j";
-        };
-    };
+  ### Eclipse Java
+
+  eclipse-java = buildEclipse {
+    name = "eclipse-java-${platform_major}.${platform_minor}";
+    description = "Eclipse IDE for Java Developers";
+    src =
+      fetchurl {
+        url = "https://www.eclipse.org/downloads/download.php?r=1&nf=1&file=/technology/epp/downloads/release/${year}-${month}/R/eclipse-java-${year}-${month}-R-linux-gtk-x86_64.tar.gz";
+        sha512 = "20qs1aagh4drsycvar3x42zy422zl34yg1p3vhxbqfbf7v3z1d3cxs9ah61x4bdxx9bkfwchasqp1wr15nflch9g0i50bdki3cgng1d";
+      };
   };
-  eclipse_sdk_37 = eclipse-sdk-37; # backward compatibility, added 2016-01-30
 
   ### Environments
 

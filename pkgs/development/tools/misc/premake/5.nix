@@ -1,19 +1,19 @@
-{ stdenv, fetchFromGitHub, CoreServices }:
+{ stdenv, fetchFromGitHub, Foundation, readline }:
 
 with stdenv.lib;
 
 stdenv.mkDerivation rec {
-  name = "premake-${version}";
-  version = "5.0.0pre.alpha.11";
+  pname = "premake5";
+  version = "5.0.0-alpha12";
 
   src = fetchFromGitHub {
     owner = "premake";
     repo = "premake-core";
-    rev = "5dfb0238bc309df04819dd430def621ce854678d";
-    sha256 = "0k9xbqrnbwj0hnmdgcrwn70py1kiqvr10l42aw42xnlmdyg1sgsc";
+    rev = "v${version}";
+    sha256 = "1h3hr96pdz94njn4bg02ldcz0k5j1x017d8svc7fdyvl2b77nqzf";
   };
 
-  buildInputs = optional stdenv.isDarwin [ CoreServices ];
+  buildInputs = optionals stdenv.isDarwin [ Foundation readline ];
 
   patchPhase = optional stdenv.isDarwin ''
     substituteInPlace premake5.lua \
@@ -30,6 +30,9 @@ stdenv.mkDerivation rec {
   installPhase = ''
     install -Dm755 bin/release/premake5 $out/bin/premake5
   '';
+
+  premake_cmd = "premake5";
+  setupHook = ./setup-hook.sh;
 
   meta = {
     homepage = https://premake.github.io;

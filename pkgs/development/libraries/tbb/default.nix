@@ -1,25 +1,28 @@
-{ stdenv, fetchurl }:
+{ stdenv, fetchFromGitHub, compiler ? if stdenv.cc.isClang then "clang" else null, stdver ? null }:
 
-let
-  SHLIB_EXT = if stdenv.isDarwin then "dylib" else "so";
-in
-stdenv.mkDerivation {
-  name = "tbb-4.4-u2";
+with stdenv.lib; stdenv.mkDerivation rec {
+  pname = "tbb";
+  version = "2019_U8";
 
-  src = fetchurl {
-    url = "https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb44_20151115oss_src.tgz";
-    sha256 = "1fvprkjdxj7529hr1qkzkxkk18mx6zllrpiwglq4k3y1hpyc9m9x";
+  src = fetchFromGitHub {
+    owner = "01org";
+    repo = "tbb";
+    rev = version;
+    sha256 = "0z0kh1a5g28gckcxlv3x7qqskh5fsl8knf2ypbbvk7z9ln9k3wfq";
   };
 
-  checkTarget = "test";
-  doCheck = false;
+  makeFlags = concatStringsSep " " (
+    optional (compiler != null) "compiler=${compiler}" ++
+    optional (stdver != null) "stdver=${stdver}"
+  );
+
+  patches = stdenv.lib.optional stdenv.hostPlatform.isMusl ./glibc-struct-mallinfo.patch;
 
   installPhase = ''
-    mkdir -p $out/{lib,share/doc}
-    cp "build/"*release*"/"*${SHLIB_EXT}* $out/lib/
+    mkdir -p $out/lib
+    cp "build/"*release*"/"*${stdenv.hostPlatform.extensions.sharedLibrary}* $out/lib/
     mv include $out/
     rm $out/include/index.html
-    mv doc/html $out/share/doc/tbb
   '';
 
   enableParallelBuilding = true;
@@ -27,7 +30,7 @@ stdenv.mkDerivation {
   meta = {
     description = "Intel Thread Building Blocks C++ Library";
     homepage = "http://threadingbuildingblocks.org/";
-    license = stdenv.lib.licenses.lgpl3Plus;
+    license = licenses.asl20;
     longDescription = ''
       Intel Threading Building Blocks offers a rich and complete approach to
       expressing parallelism in a C++ program. It is a library that helps you
@@ -36,7 +39,7 @@ stdenv.mkDerivation {
       represents a higher-level, task-based parallelism that abstracts platform
       details and threading mechanisms for scalability and performance.
     '';
-    platforms = with stdenv.lib.platforms; linux ++ darwin;
-    maintainers = with stdenv.lib.maintainers; [ peti thoughtpolice ];
+    platforms = with platforms; linux ++ darwin;
+    maintainers = with maintainers; [ thoughtpolice dizfer ];
   };
 }

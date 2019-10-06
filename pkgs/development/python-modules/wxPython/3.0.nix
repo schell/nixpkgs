@@ -19,7 +19,7 @@
 assert wxGTK.unicode;
 
 buildPythonPackage rec {
-  name = "wxPython-${version}";
+  pname = "wxPython";
   version = "3.0.2.0";
 
   disabled = isPy3k || isPyPy;
@@ -30,18 +30,27 @@ buildPythonPackage rec {
     sha256 = "0qfzx3sqx4mwxv99sfybhsij4b5pc03ricl73h4vhkzazgjjjhfm";
   };
 
+  dontUseSetuptoolsBuild = true;
+  dontUsePipInstall = true;
+
   hardeningDisable = [ "format" ];
 
-  propagatedBuildInputs = [ pkgconfig ]
-    ++ (lib.optional openglSupport pyopengl)
-    ++ (lib.optionals (!stdenv.isDarwin) [ wxGTK (wxGTK.gtk) libX11 ])
-    ++ (lib.optionals stdenv.isDarwin [ wxmac darwin.apple_sdk.frameworks.Cocoa ])
-    ;
+  nativeBuildInputs = [ pkgconfig ]
+    ++ (lib.optionals (!stdenv.isDarwin) [ wxGTK libX11 ])
+    ++ (lib.optionals stdenv.isDarwin [ wxmac darwin.apple_sdk.frameworks.Cocoa ]);
+
+  buildInputs = [ ]
+    ++ (lib.optionals (!stdenv.isDarwin) [  (wxGTK.gtk) ])
+    ++ (lib.optional openglSupport pyopengl);
+
   preConfigure = ''
     cd wxPython
     # remove wxPython's darwin hack that interference with python-2.7-distutils-C++.patch
     substituteInPlace config.py \
       --replace "distutils.unixccompiler.UnixCCompiler = MyUnixCCompiler" ""
+    # set the WXPREFIX to $out instead of the storepath of wxwidgets
+    substituteInPlace config.py \
+      --replace "WXPREFIX   = getWxConfigValue('--prefix')" "WXPREFIX   = '$out'"
     # this check is supposed to only return false on older systems running non-framework python
     substituteInPlace src/osx_cocoa/_core_wrap.cpp \
       --replace "return wxPyTestDisplayAvailable();" "return true;"
@@ -56,12 +65,10 @@ buildPythonPackage rec {
       ]}'
   '';
 
-  NIX_LDFLAGS = lib.optionalString (!stdenv.isDarwin) "-lX11 -lgdk-x11-2.0";
-
   buildPhase = "";
 
   installPhase = ''
-    ${python.interpreter} setup.py install WXPORT=${if stdenv.isDarwin then "osx_cocoa" else "gtk2"} NO_HEADERS=1 BUILD_GLCANVAS=${if openglSupport then "1" else "0"} UNICODE=1 --prefix=$out
+    ${python.interpreter} setup.py install WXPORT=${if stdenv.isDarwin then "osx_cocoa" else "gtk2"} NO_HEADERS=0 BUILD_GLCANVAS=${if openglSupport then "1" else "0"} UNICODE=1 --prefix=$out
     wrapPythonPrograms
   '';
 

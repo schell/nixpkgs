@@ -1,15 +1,16 @@
 { stdenv, fetchurl, cmake, fcitx, libhangul, gettext, pkgconfig }:
 
 stdenv.mkDerivation rec {
-  name = "fcitx-hangul-${version}";
-  version = "0.3.0";
+  pname = "fcitx-hangul";
+  version = "0.3.1";
 
   src = fetchurl {
-    url = "http://download.fcitx-im.org/fcitx-hangul/${name}.tar.xz";
-    sha256 = "1jq78nczliw6pnhfac8hspffybrry6syk17y0wwcq05j3r3nd2lp";
+    url = "http://download.fcitx-im.org/fcitx-hangul/${pname}-${version}.tar.xz";
+    sha256 = "0ds4071ljq620w7vnprm2jl8zqqkw7qsxvzbjapqak4jarczvmbd";
   };
 
-  buildInputs = [ cmake fcitx libhangul gettext pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ cmake fcitx libhangul gettext ];
 
   preInstall = ''
     substituteInPlace src/cmake_install.cmake \

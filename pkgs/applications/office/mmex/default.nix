@@ -5,7 +5,8 @@ let
   version = "1.3.3";
 in
   stdenv.mkDerivation {
-    name = "money-manager-ex-${version}";
+    pname = "money-manager-ex";
+    inherit version;
 
     src = fetchgit {
       url = "https://github.com/moneymanagerex/moneymanagerex.git";
@@ -17,7 +18,7 @@ in
 
     meta = {
       description = "Easy-to-use personal finance software";
-      homepage = http://www.moneymanagerex.org/;
+      homepage = https://www.moneymanagerex.org/;
       license = stdenv.lib.licenses.gpl2Plus;
       maintainers = with stdenv.lib.maintainers; [viric];
       platforms = with stdenv.lib.platforms; linux;

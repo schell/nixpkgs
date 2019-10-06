@@ -1,29 +1,28 @@
 { stdenv, fetchurl, kernel, alsaLib }:
 
-# The Magewell Pro Capture drivers are not supported for kernels older than 3.2
-assert stdenv.lib.versionAtLeast kernel.version "3.2.0";
+with stdenv.lib;
 
-# this package currently only supports x86 and x86_64, as I have no ARM device to test on
-assert (stdenv.system == "x86_64-linux") || (stdenv.system == "i686-linux");
+# The Magewell Pro Capture drivers are not supported for kernels older than 3.2
+assert versionAtLeast kernel.version "3.2.0";
 
 let
   bits =
   if stdenv.is64bit then "64"
   else "32";
 
-  libpath = stdenv.lib.makeLibraryPath [ stdenv.cc.cc stdenv.glibc alsaLib ];
+  libpath = makeLibraryPath [ stdenv.cc.cc stdenv.glibc alsaLib ];
 
 in
 stdenv.mkDerivation rec {
   name = "mwprocapture-1.2.${version}-${kernel.version}";
-  version = "3269";
+  version = "4054";
 
   src = fetchurl {
-    url = "http://www.magewell.com/files/ProCaptureForLinux_${version}.tar.gz";
-    sha256 = "0i1y50mf559flhxgaxy2gdpa7dvpp12ix9xfzgxa61rc135x0im4";
+    url = "http://www.magewell.com/files/drivers/ProCaptureForLinux_${version}.tar.gz";
+    sha256 = "0ylx75jcwlqds8w6lm11nxdlzxvy7xlz4rka2k5d6gmqa5fv19c2";
   };
 
-  patches = [ ./linux_4_11_include_fix.patch ];
+  nativeBuildInputs = [ kernel.moduleBuildDependencies ];
 
   preConfigure =
   ''
@@ -58,7 +57,7 @@ stdenv.mkDerivation rec {
       "$out"/bin/mwcap-info
   '';
 
-  meta = with stdenv.lib; {
+  meta = {
     homepage = http://www.magewell.com/;
     description = "Linux driver for the Magewell Pro Capture family";
     license = licenses.unfreeRedistributable;

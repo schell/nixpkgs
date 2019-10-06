@@ -2,9 +2,10 @@
 
 let
   version = "2.6.2";
-  SHLIB_EXT = if stdenv.isDarwin then "dylib" else "so";
+  SHLIB_EXT = stdenv.hostPlatform.extensions.sharedLibrary;
 in stdenv.mkDerivation {
-  name = "tinyxml-${version}";
+  pname = "tinyxml";
+  inherit version;
 
   src = fetchurl {
     url = "mirror://sourceforge/project/tinyxml/tinyxml/${version}/tinyxml_2_6_2.zip";
@@ -15,13 +16,16 @@ in stdenv.mkDerivation {
     # add pkgconfig file
     ./2.6.2-add-pkgconfig.patch
 
-    # http://sourceforge.net/tracker/index.php?func=detail&aid=3031828&group_id=13559&atid=313559
+    # https://sourceforge.net/tracker/index.php?func=detail&aid=3031828&group_id=13559&atid=313559
     ./2.6.2-entity.patch
 
     # Use CC, CXX, and LD from environment
     ./2.6.2-cxx.patch
   ];
+
   preConfigure = "export LD=${if stdenv.isDarwin then "clang++" else "g++"}";
+
+  hardeningDisable = [ "format" ];
 
   NIX_CFLAGS_COMPILE =
     stdenv.lib.optional stdenv.isDarwin "-mmacosx-version-min=10.9";
@@ -38,7 +42,7 @@ in stdenv.mkDerivation {
     # build the lib as a shared library
     ''${CXX} -Wall -O2 -shared -fpic tinyxml.cpp \
     tinyxmlerror.cpp tinyxmlparser.cpp      \
-    tinystr.cpp -o libtinyxml.${SHLIB_EXT}
+    tinystr.cpp -o libtinyxml${SHLIB_EXT}
   '';
 
   doCheck = true;
@@ -55,7 +59,7 @@ in stdenv.mkDerivation {
     mkdir -pv $out/lib/pkgconfig/
     mkdir -pv $out/share/doc/tinyxml/
 
-    cp -v libtinyxml.${SHLIB_EXT} $out/lib/
+    cp -v libtinyxml${SHLIB_EXT} $out/lib/
     cp -v *.h $out/include/
 
     substituteInPlace tinyxml.pc --replace "@out@" "$out"
@@ -69,7 +73,7 @@ in stdenv.mkDerivation {
 
   meta = {
     description = "Simple, small, C++ XML parser that can be easily integrating into other programs";
-    homepage = "http://www.grinninglizard.com/tinyxml/index.html";
+    homepage = http://www.grinninglizard.com/tinyxml/index.html;
     license = stdenv.lib.licenses.free;
     platforms = stdenv.lib.platforms.unix;
   };

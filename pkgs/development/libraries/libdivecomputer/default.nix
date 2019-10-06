@@ -1,12 +1,12 @@
 { stdenv, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "libdivecomputer-${version}";
-  version = "0.5.0";
+  pname = "libdivecomputer";
+  version = "0.6.0";
 
   src = fetchurl {
-    url = "http://www.libdivecomputer.org/releases/${name}.tar.gz";
-    sha256 = "11n2qpqg4b2h7mqifp9qm5gm1aqwy7wj1j4j5ha0wdjf55zzy30y";
+    url = "https://www.libdivecomputer.org/releases/${pname}-${version}.tar.gz";
+    sha256 = "0nm1mcscpxb9dv4p0lidd6rf5xg4vmcbigj6zqxvgn7pwnvpbzm0";
   };
 
   enableParallelBuilding = true;

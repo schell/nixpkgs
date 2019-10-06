@@ -4,8 +4,6 @@ with lib;
 
 let
 
-  inherit (pkgs) pam_usb;
-
   cfg = config.security.pam.usb;
 
   anyUsbAuth = any (attrByPath ["usbAuth"] false) (attrValues config.security.pam.services);
@@ -22,7 +20,7 @@ in
         description = ''
           Enable USB login for all login systems that support it.  For
           more information, visit <link
-          xlink:href="http://pamusb.org/doc/quickstart#setting_up" />.
+          xlink:href="https://github.com/aluzzardi/pam_usb/wiki/Getting-Started#setting-up-devices-and-users" />.
         '';
       };
 

@@ -1,37 +1,37 @@
-{ stdenv, fetchurl, pkgconfig, cmake, zlib, python, libssh2, openssl, curl, http-parser, libiconv }:
+{ stdenv, fetchFromGitHub, cmake, pkgconfig, python
+, zlib, libssh2, openssl, http-parser, curl
+, libiconv, Security
+}:
 
-stdenv.mkDerivation (rec {
-  version = "0.25.1";
-  name = "libgit2-${version}";
+stdenv.mkDerivation rec {
+  pname = "libgit2";
+  version = "0.27.8";
+  # keep the version in sync with pythonPackages.pygit2 and libgit2-glib
 
-  src = fetchurl {
-    name = "${name}.tar.gz";
-    url = "https://github.com/libgit2/libgit2/tarball/v${version}";
-    sha256 = "100bah8picqjzyhpw4wd7z5vyidcb8aggin50bhbpn607h8n8bml";
+  src = fetchFromGitHub {
+    owner = "libgit2";
+    repo = "libgit2";
+    rev = "v${version}";
+    sha256 = "0wzx8nkyy9m7mx6cks58chjd4289vjsw97mxm9w6f1ggqsfnmbr9";
   };
 
-  # TODO: `cargo` (rust's package manager) surfaced a serious bug in
-  # libgit2 when the `Security.framework` transport is used on Darwin.
-  # The upstream issue is tracked at
-  # https://github.com/libgit2/libgit2/issues/3885 - feel free to
-  # remove this patch as soon as it's resolved (i.E. when cargo is
-  # working fine without this patch)
-  patches = stdenv.lib.optionals stdenv.isDarwin [
-    ./disable-security.framework.patch
-  ];
-
-  cmakeFlags = "-DTHREADSAFE=ON";
+  cmakeFlags = [ "-DTHREADSAFE=ON" ];
 
   nativeBuildInputs = [ cmake python pkgconfig ];
-  buildInputs = [ zlib libssh2 openssl http-parser curl ];
+
+  buildInputs = [ zlib libssh2 openssl http-parser curl ]
+    ++ stdenv.lib.optional stdenv.isDarwin Security;
+
+  propagatedBuildInputs = stdenv.lib.optional (!stdenv.isLinux) libiconv;
+
+  enableParallelBuilding = true;
+
+  doCheck = false; # hangs. or very expensive?
 
   meta = {
     description = "The Git linkable library";
-    homepage = http://libgit2.github.com/;
+    homepage = https://libgit2.github.com/;
     license = stdenv.lib.licenses.gpl2;
     platforms = with stdenv.lib.platforms; all;
   };
-} // stdenv.lib.optionalAttrs (!stdenv.isLinux) {
-  NIX_LDFLAGS = "-liconv";
-  propagatedBuildInputs = [ libiconv ];
-})
+}

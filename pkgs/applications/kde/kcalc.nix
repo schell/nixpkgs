@@ -1,24 +1,19 @@
 {
-  kdeApp, lib, kdeWrapper,
+  mkDerivation, lib,
   extra-cmake-modules, kdoctools,
-  kconfig, kconfigwidgets, kguiaddons, kinit, knotifications, gmp
+  gmp, kconfig, kconfigwidgets, kcrash, kguiaddons, ki18n, kinit,
+  knotifications, kxmlgui, mpfr,
 }:
 
-let
-  unwrapped =
-    kdeApp {
-      name = "kcalc";
-      meta = {
-        license = with lib.licenses; [ gpl2 ];
-        maintainers = [ lib.maintainers.fridh ];
-      };
-      nativeBuildInputs = [ extra-cmake-modules kdoctools ];
-      propagatedBuildInputs = [
-        gmp kconfig kconfigwidgets kguiaddons kinit knotifications
-      ];
-    };
-in
-kdeWrapper {
-  inherit unwrapped;
-  targets = [ "bin/kcalc" ];
+mkDerivation {
+  name = "kcalc";
+  meta = {
+    license = with lib.licenses; [ gpl2 ];
+    maintainers = [ lib.maintainers.fridh ];
+  };
+  nativeBuildInputs = [ extra-cmake-modules kdoctools ];
+  buildInputs = [
+    gmp kconfig kconfigwidgets kcrash kguiaddons ki18n kinit knotifications
+    kxmlgui mpfr
+  ];
 }

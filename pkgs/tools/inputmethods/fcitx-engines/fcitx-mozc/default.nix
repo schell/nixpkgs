@@ -1,5 +1,5 @@
 { clangStdenv, fetchFromGitHub, fetchurl, fetchpatch, gyp, which, ninja,
-  python, pkgconfig, protobuf, gtk2, zinnia, qt5, libxcb, tegaki-zinnia-japanese,
+  python, pkgconfig, protobuf, gtk2, zinnia, qt5, libxcb,
   fcitx, gettext }:
 let
   japanese_usage_dictionary = fetchFromGitHub {
@@ -33,17 +33,22 @@ in clangStdenv.mkDerivation rec {
   '';
 
   patch_version = "2.18.2612.102.1";
-  patches = [ 
+  patches = [
     (fetchpatch rec {
       name   = "fcitx-mozc-${patch_version}.patch";
       url    = "https://download.fcitx-im.org/fcitx-mozc/${name}";
       sha256 = "1f9m4310kz09v5qvnv75ka2vq63m7by023qrkpddgq4dv7gxx3ca";
      })
+    # https://github.com/google/mozc/pull/444 - fix for gcc8 STL
+    (fetchpatch {
+      url = "https://github.com/google/mozc/commit/82d38f929882a9c62289b179c6fe41efed249987.patch";
+      sha256 = "07cja1b7qfsd3i76nscf1zwiav74h7d6h2g9g2w4bs3h1mc9jwla";
+    })
   ];
 
   postPatch = ''
     substituteInPlace src/unix/fcitx/mozc.conf \
-      --replace "/usr/share/fcitx/mozc/icon/mozc.png" "mozc" 
+      --replace "/usr/share/fcitx/mozc/icon/mozc.png" "mozc"
   '';
 
   configurePhase = ''
@@ -91,7 +96,7 @@ in clangStdenv.mkDerivation rec {
   meta = with clangStdenv.lib; {
     isFcitxEngine = true;
     description   = "Fcitx engine for Google japanese input method";
-    homepage      = http://code.google.com/p/mozc/;
+    homepage      = https://github.com/google/mozc;
     downloadPage  = "http://download.fcitx-im.org/fcitx-mozc/";
     license       = licenses.free;
     platforms     = platforms.linux;

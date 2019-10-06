@@ -1,38 +1,39 @@
-{ stdenv, fetchurl, cups, libssh, libXpm, nxproxy, openldap, makeWrapper, qt4 }:
+{ stdenv, fetchgit, cups, libssh, libXpm, nx-libs, openldap, openssh
+, mkDerivation, qtbase, qtsvg, qtx11extras, qttools, phonon, pkgconfig }:
 
-stdenv.mkDerivation rec {
-  name = "x2goclient-${version}";
-  version = "4.0.5.1";
+mkDerivation {
+  pname = "x2goclient";
+  version = "unstable-2019-07-24";
 
-  src = fetchurl {
-    url = "http://code.x2go.org/releases/source/x2goclient/${name}.tar.gz";
-    sha256 = "04gdccqywas029a76k3r9zhr2mfn385i9r06cmi8mznxpczrhkl4";
+  src = fetchgit {
+   url = "git://code.x2go.org/x2goclient.git";
+   rev = "704c4ab92d20070dd160824c9b66a6d1c56dcc49";
+   sha256 = "1pndp3lfzwifyxqq0gps3p1bwakw06clbk6n8viv020l4bsfmq5f";
   };
 
-  buildInputs = [ cups libssh libXpm nxproxy openldap qt4 ];
-  nativeBuildInputs = [ makeWrapper ];
+  buildInputs = [ cups libssh libXpm nx-libs openldap openssh
+                  qtbase qtsvg qtx11extras qttools phonon pkgconfig ];
 
-  patchPhase = ''
+  postPatch = ''
      substituteInPlace Makefile \
-       --replace "lrelease-qt4" "${qt4}/bin/lrelease" \
-       --replace "qmake-qt4" "${qt4}/bin/qmake" \
+       --replace "SHELL=/bin/bash" "SHELL=$SHELL" \
+       --replace "lrelease-qt4" "${qttools.dev}/bin/lrelease" \
+       --replace "qmake-qt4" "${qtbase.dev}/bin/qmake" \
        --replace "-o root -g root" ""
   '';
 
-  makeFlags = [ "PREFIX=$(out)" "ETCDIR=$(out)/etc" ];
+  makeFlags = [ "PREFIX=$(out)" "ETCDIR=$(out)/etc" "build_client" "build_man" ];
 
   enableParallelBuilding = true;
 
   installTargets = [ "install_client" "install_man" ];
-  postInstall = ''
-    wrapProgram "$out/bin/x2goclient" --suffix PATH : "${nxproxy}/bin";
-  '';
+
+  qtWrapperArgs = [ ''--suffix PATH : ${nx-libs}/bin:${openssh}/libexec'' ];
 
   meta = with stdenv.lib; {
     description = "Graphical NoMachine NX3 remote desktop client";
     homepage = http://x2go.org/;
     license = licenses.gpl2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

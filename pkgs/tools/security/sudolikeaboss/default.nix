@@ -2,7 +2,7 @@
 { stdenv, buildGoPackage, fetchFromGitHub, fixDarwinDylibNames, darwin }:
 
 buildGoPackage rec {
-  name = "sudolikeaboss-unstable-${version}";
+  pname = "sudolikeaboss-unstable";
   version = "20161127-${stdenv.lib.strings.substring 0 7 rev}";
   rev = "2d9afe19f872c9f433d476e57ee86169781b164c";
 
@@ -21,10 +21,6 @@ buildGoPackage rec {
     Cocoa
     fixDarwinDylibNames
   ];
-
-  postInstall = ''
-    install_name_tool -delete_rpath $out/lib -add_rpath $bin $bin/bin/sudolikeaboss
-  '';
 
   meta = with stdenv.lib; {
     inherit version;

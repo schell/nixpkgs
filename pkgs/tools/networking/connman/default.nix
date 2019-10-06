@@ -3,11 +3,11 @@
   wpa_supplicant, readline6, pptp, ppp }:
 
 stdenv.mkDerivation rec {
-  name = "connman-${version}";
-  version = "1.34";
+  pname = "connman";
+  version = "1.37";
   src = fetchurl {
-    url = "mirror://kernel/linux/network/connman/${name}.tar.xz";
-    sha256 = "07n71wcy1c4cc01ca4dl9k1jpdqr5nsyr33dqf7k87wwfa681859";
+    url = "mirror://kernel/linux/network/connman/${pname}-${version}.tar.xz";
+    sha256 = "05kfjiqhqfmbbwc4snnyvi5hc4zxanac62f6gcwaf5mvn0z9pqkc";
   };
 
   buildInputs = [ openconnect polkit
@@ -44,6 +44,7 @@ stdenv.mkDerivation rec {
     "--enable-datafiles"
     "--enable-pptp"
     "--with-pptp=${pptp}/sbin/pptp"
+    "--enable-iwd"
   ];
 
   postInstall = ''
@@ -52,7 +53,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A daemon for managing internet connections";
-    homepage = https://connman.net/;
+    homepage = https://01.org/connman;
     maintainers = [ maintainers.matejc ];
     platforms = platforms.linux;
     license = licenses.gpl2;

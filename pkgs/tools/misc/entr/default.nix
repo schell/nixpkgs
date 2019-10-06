@@ -1,12 +1,12 @@
 { stdenv, fetchurl, coreutils, ncurses }:
 
 stdenv.mkDerivation rec {
-  name = "entr-${version}";
-  version = "3.7";
+  pname = "entr";
+  version = "4.2";
 
   src = fetchurl {
-    url = "http://entrproject.org/code/${name}.tar.gz";
-    sha256 = "0bx2ivx9hwixjwmk7aqlx20mwmn3cvryppnmc285d7byiw6dbvwl";
+    url = "http://entrproject.org/code/${pname}-${version}.tar.gz";
+    sha256 = "0w2xkf77jikcjh15fp9g7661ss30pz3jbnh261vqpaqavwah4c17";
   };
 
   postPatch = ''

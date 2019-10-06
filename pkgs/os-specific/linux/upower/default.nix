@@ -1,40 +1,69 @@
-{ stdenv, fetchurl, pkgconfig, glib, dbus_glib
-, intltool, libxslt, docbook_xsl, udev, libgudev, libusb1
-, useSystemd ? true, systemd, gobjectIntrospection
+{ stdenv
+, fetchurl
+, pkgconfig
+, libxslt
+, docbook_xsl
+, udev
+, libgudev
+, libusb1
+, glib
+, gobject-introspection
+, gettext
+, systemd
+, useIMobileDevice ? true
+, libimobiledevice
 }:
 
-assert stdenv.isLinux;
+stdenv.mkDerivation {
+  pname = "upower";
+  version = "0.99.11";
 
-stdenv.mkDerivation rec {
-  name = "upower-0.99.4";
+  outputs = [ "out" "dev" ];
 
   src = fetchurl {
-    url = "http://upower.freedesktop.org/releases/${name}.tar.xz";
-    sha256 = "1c1ph1j1fnrf3vipxb7ncmdfc36dpvcvpsv8n8lmal7grjk2b8ww";
+    url = https://gitlab.freedesktop.org/upower/upower/uploads/93cfe7c8d66ed486001c4f3f55399b7a/upower-0.99.11.tar.xz;
+    sha256 = "1vxxvmz2cxb1qy6ibszaz5bskqdy9nd9fxspj9fv3gfmrjzzzdb4";
   };
 
-  buildInputs =
-    [ dbus_glib intltool libxslt docbook_xsl udev libgudev libusb1 gobjectIntrospection ]
-    ++ stdenv.lib.optional useSystemd systemd;
+  nativeBuildInputs = [
+    docbook_xsl
+    gettext
+    gobject-introspection
+    libxslt
+    pkgconfig
+  ];
 
-  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [
+    libgudev
+    libusb1
+    udev
+    systemd
+  ]
+  ++ stdenv.lib.optional useIMobileDevice libimobiledevice
+  ;
 
-  configureFlags =
-    [ "--with-backend=linux" "--localstatedir=/var"
-    ]
-    ++ stdenv.lib.optional useSystemd
-    [ "--with-systemdsystemunitdir=$(out)/etc/systemd/system"
-      "--with-systemdutildir=$(out)/lib/systemd"
-      "--with-udevrulesdir=$(out)/lib/udev/rules.d"
-    ];
+  propagatedBuildInputs = [
+    glib
+  ];
 
-  NIX_CFLAGS_LINK = "-lgcc_s";
+  configureFlags = [
+    "--localstatedir=/var"
+    "--with-backend=linux"
+    "--with-systemdsystemunitdir=${placeholder "out"}/etc/systemd/system"
+    "--with-systemdutildir=${placeholder "out"}/lib/systemd"
+    "--with-udevrulesdir=${placeholder "out"}/lib/udev/rules.d"
+  ];
 
-  installFlags = "historydir=$(TMPDIR)/foo";
+  doCheck = false; # fails with "env: './linux/integration-test': No such file or directory"
 
-  meta = {
-    homepage = http://upower.freedesktop.org/;
+  installFlags = [
+    "historydir=$(TMPDIR)/foo"
+  ];
+
+  meta = with stdenv.lib; {
+    homepage = https://upower.freedesktop.org/;
     description = "A D-Bus service for power management";
-    platforms = stdenv.lib.platforms.linux;
+    platforms = platforms.linux;
+    license = licenses.gpl2Plus;
   };
 }

@@ -1,32 +1,23 @@
-{ stdenv, fetchurl, pkgconfig, efl }:
+{ stdenv, fetchurl, pkgconfig, efl, pcre, mesa, makeWrapper }:
 
 stdenv.mkDerivation rec {
-  name = "ephoto-${version}";
-  version = "1.0";
-  
+  pname = "ephoto";
+  version = "1.5";
+
   src = fetchurl {
-    url = "http://www.smhouston.us/stuff/${name}.tar.gz";
-    sha256 = "0l6zrk22fap6pylmzxwp6nycy8l5wdc7jza890h4zrwmpfag8w31";
+    url = "http://www.smhouston.us/stuff/${pname}-${version}.tar.gz";
+    sha256 = "09kraa5zz45728h2dw1ssh23b87j01bkfzf977m48y1r507sy3vb";
   };
 
   nativeBuildInputs = [
-    pkgconfig
+    (pkgconfig.override { vanilla = true; })
+    mesa.dev # otherwise pkg-config does not find gbm
+    makeWrapper
   ];
 
   buildInputs = [
     efl
- ];
-
-  NIX_CFLAGS_COMPILE = [
-    "-I${efl}/include/ecore-con-1"
-    "-I${efl}/include/ecore-evas-1"
-    "-I${efl}/include/ecore-imf-1"
-    "-I${efl}/include/ecore-input-1"
-    "-I${efl}/include/eet-1"
-    "-I${efl}/include/eldbus-1"
-    "-I${efl}/include/emile-1"
-    "-I${efl}/include/ethumb-1"
-    "-I${efl}/include/ethumb-client-1"
+    pcre
   ];
 
   meta = {

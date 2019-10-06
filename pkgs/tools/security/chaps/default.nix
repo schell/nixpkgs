@@ -16,7 +16,7 @@ let
   src_platform2 = fetchgit {
     url = "https://chromium.googlesource.com/chromiumos/platform2";
     rev = "e999e989eaa71c3db7314fc7b4e20829b2b5473b";
-    sha256 = "bb43ef7918ec6219711cbba3ce91236413738f1341261a1845256b3d6cc9f843";
+    sha256 = "15n1bsv6r7cny7arx0hdb223xzzbk7vkxg2r7xajhl4nsj39adjh";
   };
 
 in
@@ -31,8 +31,12 @@ stdenv.mkDerivation rec {
     sha256 = "0chk6pnn365d5kcz6vfqx1d0383ksk97icc0lzg0vvb0kvyj0ff1";
   };
 
-  # readdir_r(3) is deprecated in glibc >= 2.24
-  NIX_CFLAGS_COMPILE = "-Wno-error=deprecated-declarations";
+  NIX_CFLAGS_COMPILE = [
+    # readdir_r(3) is deprecated in glibc >= 2.24
+    "-Wno-error=deprecated-declarations"
+    # gcc8 catching polymorphic type error
+    "-Wno-error=catch-value"
+  ];
 
   patches = [ ./fix_absolute_path.patch  ./fix_environment_variables.patch  ./fix_scons.patch  ./insert_prefetches.patch ];
 
@@ -76,9 +80,10 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "PKCS #11 implementation based on trusted platform module (TPM)";
-    homepage = "https://www.chromium.org/developers/design-documents/chaps-technical-design";
+    homepage = https://www.chromium.org/developers/design-documents/chaps-technical-design;
     maintainers = [ maintainers.tstrobel ];
     platforms = [ "x86_64-linux" ];
     license = licenses.bsd3;
+    broken = true;  # build failure withn openssl 1.1
   };
 }

@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, fuse, readline, libgcrypt, gmp }:
 
-stdenv.mkDerivation rec {
-  name = "afpfs-ng-${version}";
+stdenv.mkDerivation {
+  pname = "afpfs-ng";
   version = "0.8.2";
 
   src = fetchFromGitHub {
@@ -18,7 +18,7 @@ stdenv.mkDerivation rec {
     description = "A client implementation of the Apple Filing Protocol";
     license     = licenses.gpl2;
     maintainers = with maintainers; [ rnhmjoj ];
-    platform    = platforms.linux;
+    platforms   = platforms.linux;
   };
 
 }

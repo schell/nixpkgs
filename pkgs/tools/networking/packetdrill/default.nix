@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub, bison, flex }:
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   version = "1.0";
-  name = "packetdrill-${version}";
+  pname = "packetdrill";
   src = fetchFromGitHub {
     owner = "google";
     repo = "packetdrill";
@@ -19,7 +19,7 @@ stdenv.mkDerivation rec {
     description = "Quick, precise tests for entire TCP/UDP/IPv4/IPv6 network stacks";
     homepage = https://github.com/google/packetdrill;
     license = stdenv.lib.licenses.gpl2;
-    platforms = stdenv.lib.platforms.unix;
+    platforms = stdenv.lib.platforms.linux;
     maintainers = with stdenv.lib.maintainers; [ dmjio cleverca22 ];
   };
 }

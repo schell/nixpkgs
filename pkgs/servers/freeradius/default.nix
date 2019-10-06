@@ -13,7 +13,7 @@
 , withMemcached ? false
 , hiredis
 , withRedis ? false
-, libmysql
+, libmysqlclient
 , withMysql ? false
 , json_c
 , withJson ? false
@@ -21,6 +21,8 @@
 , withYubikey ? false
 , collectd
 , withCollectd ? false
+, curl
+, withRest ? false
 }:
 
 assert withSqlite -> sqlite != null;
@@ -29,9 +31,10 @@ assert withPcap -> libpcap != null;
 assert withCap -> libcap != null;
 assert withMemcached -> libmemcached != null;
 assert withRedis -> hiredis != null;
-assert withMysql -> libmysql != null;
+assert withMysql -> libmysqlclient != null;
 assert withYubikey -> libyubikey != null;
 assert withCollectd -> collectd != null;
+assert withRest -> curl != null && withJson;
 
 ## TODO: include windbind optionally (via samba?)
 ## TODO: include oracle optionally
@@ -39,12 +42,12 @@ assert withCollectd -> collectd != null;
 
 with stdenv.lib;
 stdenv.mkDerivation rec {
-  name = "freeradius-${version}";
-  version = "3.0.12";
+  pname = "freeradius";
+  version = "3.0.19";
 
   src = fetchurl {
     url = "ftp://ftp.freeradius.org/pub/freeradius/freeradius-server-${version}.tar.gz";
-    sha256 = "182xnb9pdsivlyfm471l90m37q9i04h7jadhkgm0ivvzrzpzcnja";
+    sha256 = "0v5b46rq878093ff549ijccy98md1l7l4rvshjxs672il0zvq5i4";
   };
 
   nativeBuildInputs = [ autoreconfHook ];
@@ -56,14 +59,16 @@ stdenv.mkDerivation rec {
     ++ optional withCap libcap
     ++ optional withMemcached libmemcached
     ++ optional withRedis hiredis
-    ++ optional withMysql libmysql
+    ++ optional withMysql libmysqlclient
     ++ optional withJson json_c
     ++ optional withYubikey libyubikey
-    ++ optional withCollectd collectd;
+    ++ optional withCollectd collectd
+    ++ optional withRest curl;
+
 
   configureFlags = [
-     "--sysconfdir=/etc"
-     "--localstatedir=/var"
+    "--sysconfdir=/etc"
+    "--localstatedir=/var"
   ] ++ optional (!linkOpenssl) "--with-openssl=no";
 
   postPatch = ''
@@ -75,11 +80,13 @@ stdenv.mkDerivation rec {
     "localstatedir=\${TMPDIR}"
   ];
 
+  outputs = [ "out" "dev" "man" "doc" ];
+
   meta = with stdenv.lib; {
-    homepage = http://freeradius.org/;
+    homepage = https://freeradius.org/;
     description = "A modular, high performance free RADIUS suite";
-    license = stdenv.lib.licenses.gpl2;
-    maintainers = with maintainers; [ sheenobu ];
+    license = licenses.gpl2;
+    maintainers = with maintainers; [ sheenobu willibutz ];
     platforms = with platforms; linux;
   };
 

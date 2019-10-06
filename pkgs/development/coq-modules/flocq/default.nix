@@ -1,17 +1,29 @@
-{stdenv, bash, which, autoconf, automake, fetchurl, coq}:
+{ stdenv, bash, which, autoconf, automake, fetchzip, coq }:
+
+let params =
+  if stdenv.lib.versionAtLeast coq.coq-version "8.7" then {
+    version = "3.2.0";
+    sha256 = "15bi36x7zj0glsb3s2gwqd4wswhfzh36rbp7imbyff53a7nna95l";
+  } else {
+    version = "2.6.1";
+    sha256 = "1y4czkfrd8p37vwv198nns4hz1brfv71na17pxsidwpxy7qnyfw1";
+  }
+; in
 
 stdenv.mkDerivation rec {
 
   name = "coq${coq.coq-version}-flocq-${version}";
-  version = "2.5.2";
+  inherit (params) version;
 
-  src = fetchurl {
-    url = https://gforge.inria.fr/frs/download.php/file/36199/flocq-2.5.2.tar.gz;
-    sha256 = "0h5mlasirfzc0wwn2isg4kahk384n73145akkpinrxq5jsn5d22h";
+  src = fetchzip {
+    url = "https://gitlab.inria.fr/flocq/flocq/-/archive/flocq-${version}.tar.gz";
+    inherit (params) sha256;
   };
 
-  buildInputs = [ coq.ocaml coq.camlp5 bash which autoconf automake ];
-  propagatedBuildInputs = [ coq ];
+  nativeBuildInputs = [ bash which autoconf automake ];
+  buildInputs = [ coq ] ++ (with coq.ocamlPackages; [
+    ocaml camlp5
+  ]);
 
   buildPhase = ''
     ${bash}/bin/bash autogen.sh
@@ -31,4 +43,7 @@ stdenv.mkDerivation rec {
     platforms = coq.meta.platforms;
   };
 
+  passthru = {
+    compatibleCoqVersions = v: builtins.elem v [ "8.5" "8.6" "8.7" "8.8" "8.9" "8.10" ];
+  };
 }

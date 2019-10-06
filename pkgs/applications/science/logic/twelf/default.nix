@@ -1,7 +1,7 @@
 { stdenv, fetchurl, pkgconfig, smlnj, rsync }:
 
 stdenv.mkDerivation rec {
-  name = "twelf-${version}";
+  pname = "twelf";
   version = "1.7.1";
 
   src = fetchurl {
@@ -9,7 +9,8 @@ stdenv.mkDerivation rec {
     sha256 = "0fi1kbs9hrdrm1x4k13angpjasxlyd1gc3ys8ah54i75qbcd9c4i";
   };
 
-  buildInputs = [ pkgconfig smlnj rsync ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ smlnj rsync ];
 
   buildPhase = ''
     export SMLNJ_HOME=${smlnj}

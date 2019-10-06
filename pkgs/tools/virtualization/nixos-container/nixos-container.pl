@@ -7,8 +7,8 @@ use File::Slurp;
 use Fcntl ':flock';
 use Getopt::Long qw(:config gnu_getopt);
 use Cwd 'abs_path';
+use Time::HiRes;
 
-my $nsenter = "@utillinux@/bin/nsenter";
 my $su = "@su@";
 
 # Ensure a consistent umask.
@@ -22,7 +22,7 @@ $ENV{"NIXOS_CONFIG"} = "";
 sub showHelp {
     print <<EOF;
 Usage: nixos-container list
-       nixos-container create <container-name> [--nixos-path <path>] [--system-path <path>] [--config-file <path>] [--config <string>] [--ensure-unique-name] [--auto-start] [--bridge <iface>] [--port <port>]
+       nixos-container create <container-name> [--nixos-path <path>] [--system-path <path>] [--config-file <path>] [--config <string>] [--ensure-unique-name] [--auto-start] [--bridge <iface>] [--port <port>] [--host-address <string>] [--local-address <string>]
        nixos-container destroy <container-name>
        nixos-container start <container-name>
        nixos-container stop <container-name>
@@ -47,6 +47,8 @@ my $port;
 my $extraConfig;
 my $signal;
 my $configFile;
+my $hostAddress;
+my $localAddress;
 
 GetOptions(
     "help" => sub { showHelp() },
@@ -58,8 +60,14 @@ GetOptions(
     "signal=s" => \$signal,
     "nixos-path=s" => \$nixosPath,
     "config=s" => \$extraConfig,
-    "config-file=s" => \$configFile
+    "config-file=s" => \$configFile,
+    "host-address=s" => \$hostAddress,
+    "local-address=s" => \$localAddress,
     ) or exit 1;
+
+if (defined $hostAddress and !defined $localAddress or defined $localAddress and !defined $hostAddress) {
+    die "With --host-address set, --local-address is required as well!";
+}
 
 my $action = $ARGV[0] or die "$0: no action specified\n";
 
@@ -148,16 +156,18 @@ if ($action eq "create") {
         $usedIPs{$1} = 1 if $s =~ /^LOCAL_ADDRESS=([0-9\.]+)$/m;
     }
 
-    my ($ipPrefix, $hostAddress, $localAddress);
-    for (my $nr = 1; $nr < 255; $nr++) {
-        $ipPrefix = "10.233.$nr";
-        $hostAddress = "$ipPrefix.1";
-        $localAddress = "$ipPrefix.2";
-        last unless $usedIPs{$hostAddress} || $usedIPs{$localAddress};
-        $ipPrefix = undef;
-    }
+    unless (defined $hostAddress) {
+        my $ipPrefix;
+        for (my $nr = 1; $nr < 255; $nr++) {
+            $ipPrefix = "10.233.$nr";
+            $hostAddress = "$ipPrefix.1";
+            $localAddress = "$ipPrefix.2";
+            last unless $usedIPs{$hostAddress} || $usedIPs{$localAddress};
+            $ipPrefix = undef;
+        }
 
-    die "$0: out of IP addresses\n" unless defined $ipPrefix;
+        die "$0: out of IP addresses\n" unless defined $ipPrefix;
+    }
 
     my @conf;
     push @conf, "PRIVATE_NETWORK=1\n";
@@ -214,21 +224,6 @@ if (!-e $confFile) {
     die "$0: container ‘$containerName’ does not exist\n" ;
 }
 
-sub isContainerRunning {
-    my $status = `systemctl show 'container\@$containerName'`;
-    return $status =~ /ActiveState=active/;
-}
-
-sub terminateContainer {
-    system("machinectl", "terminate", $containerName) == 0
-        or die "$0: failed to terminate container\n";
-}
-
-sub stopContainer {
-    system("systemctl", "stop", "container\@$containerName") == 0
-        or die "$0: failed to stop container\n";
-}
-
 # Return the PID of the init process of the container.
 sub getLeader {
     my $s = `machinectl show "$containerName" -p Leader`;
@@ -237,12 +232,47 @@ sub getLeader {
     return int($1);
 }
 
+sub isContainerRunning {
+    my $status = `systemctl show 'container\@$containerName'`;
+    return $status =~ /ActiveState=active/;
+}
+
+sub terminateContainer {
+    my $leader = getLeader;
+    system("machinectl", "terminate", $containerName) == 0
+        or die "$0: failed to terminate container\n";
+    # Wait for the leader process to exit
+    # TODO: As for any use of PIDs for process control where the process is
+    #       not a direct child of ours, this can go wrong when the pid gets
+    #       recycled after a PID overflow.
+    #       Relying entirely on some form of UUID provided by machinectl
+    #       instead of PIDs would remove this risk.
+    #       See https://github.com/NixOS/nixpkgs/pull/32992#discussion_r158586048
+    while ( kill 0, $leader ) { Time::HiRes::sleep(0.1) }
+}
+
+sub startContainer {
+    system("systemctl", "start", "container\@$containerName") == 0
+        or die "$0: failed to start container\n";
+}
+
+sub stopContainer {
+    system("systemctl", "stop", "container\@$containerName") == 0
+        or die "$0: failed to stop container\n";
+}
+
+sub restartContainer {
+    stopContainer;
+    startContainer;
+}
+
 # Run a command in the container.
 sub runInContainer {
     my @args = @_;
-    my $leader = getLeader;
-    exec($nsenter, "-t", $leader, "-m", "-u", "-i", "-n", "-p", "--", @args);
-    die "cannot run ‘nsenter’: $!\n";
+
+    exec("systemd-run", "--machine", $containerName, "--pty", "--quiet", "--", @args);
+
+    die "cannot run ‘systemd-run’: $!\n";
 }
 
 # Remove a directory while recursively unmounting all mounted filesystems within
@@ -275,9 +305,12 @@ if ($action eq "destroy") {
     unlink($confFile) or die;
 }
 
+elsif ($action eq "restart") {
+    restartContainer;
+}
+
 elsif ($action eq "start") {
-    system("systemctl", "start", "container\@$containerName") == 0
-        or die "$0: failed to start container\n";
+    startContainer;
 }
 
 elsif ($action eq "stop") {
@@ -331,7 +364,7 @@ elsif ($action eq "run") {
 
 elsif ($action eq "show-ip") {
     my $s = read_file($confFile) or die;
-    $s =~ /^LOCAL_ADDRESS=([0-9\.]+)$/m or die "$0: cannot get IP address\n";
+    $s =~ /^LOCAL_ADDRESS=([0-9\.]+)(\/[0-9]+)?$/m or die "$0: cannot get IP address\n";
     print "$1\n";
 }
 

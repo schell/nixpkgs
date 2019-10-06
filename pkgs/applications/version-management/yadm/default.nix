@@ -1,26 +1,31 @@
-{ stdenv, fetchurl, fetchFromGitHub }:
+{ stdenv, fetchFromGitHub }:
 
-let version = "1.07"; in
+let version = "1.12.0"; in
 stdenv.mkDerivation {
-  name = "yadm-${version}";
+  pname = "yadm";
+  inherit version;
 
   src = fetchFromGitHub {
     owner  = "TheLocehiliosan";
     repo   = "yadm";
-    rev    = "${version}";
-    sha256 = "0kkxrvw17pmrx1dq0dq53jb9pm545firakrxc48znfw54n2036fw";
+    rev    = version;
+    sha256 = "0873jgks7dpfkj5km1jchxdrhf7lia70p0f8zsrh9p4crj5f4pc6";
   };
 
   buildCommand = ''
     mkdir -p $out/bin
     mkdir -p $out/share/man/man1
+    mkdir -p $out/share/zsh/site-functions
+    mkdir -p $out/share/bash-completion/completions
     sed -e 's:/bin/bash:/usr/bin/env bash:' $src/yadm > $out/bin/yadm
     chmod 755 $out/bin/yadm
     install -m 644 $src/yadm.1 $out/share/man/man1/yadm.1
+    install -m644 $src/completion/yadm.zsh_completion $out/share/zsh/site-functions/_yadm
+    install -m644 $src/completion/yadm.bash_completion $out/share/bash-completion/completions/yadm.bash
   '';
 
   meta = {
-    homepage = "https://github.com/TheLocehiliosan/yadm";
+    homepage = https://github.com/TheLocehiliosan/yadm;
     description = "Yet Another Dotfiles Manager";
     longDescription = ''
     yadm is a dotfile management tool with 3 main features: Manages files across

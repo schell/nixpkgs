@@ -1,15 +1,23 @@
-{ stdenv, fetchurl, pkgconfig, gtk2, bison, intltool, flex, netpbm, imagemagick, dbus, xlibsWrapper, mesa, shared_mime_info, tcl, tk, gnome2, pangox_compat, gd, xorg }:
+{ stdenv, fetchurl, pkgconfig, gtk2, bison, intltool, flex
+, netpbm, imagemagick, dbus, xlibsWrapper, libGLU_combined
+, shared-mime-info, tcl, tk, gnome2, pangox_compat, gd, xorg
+}:
 
 stdenv.mkDerivation rec {
-  name = "pcb-${version}";
+  pname = "pcb";
   version = "20140316";
 
   src = fetchurl {
-    url = "http://ftp.geda-project.org/pcb/pcb-20140316/${name}.tar.gz";
+    url = "http://ftp.geda-project.org/pcb/pcb-20140316/${pname}-${version}.tar.gz";
     sha256 = "0l6944hq79qsyp60i5ai02xwyp8l47q7xdm3js0jfkpf72ag7i42";
   };
 
-  buildInputs = [ pkgconfig gtk2 bison intltool flex netpbm imagemagick dbus xlibsWrapper mesa tcl shared_mime_info tk gnome2.gtkglext pangox_compat gd xorg.libXmu ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [
+    gtk2 bison intltool flex netpbm imagemagick dbus xlibsWrapper
+    libGLU_combined tcl shared-mime-info tk
+    gnome2.gtkglext pangox_compat gd xorg.libXmu
+  ];
 
   configureFlags = ["--disable-update-desktop-database"];
 

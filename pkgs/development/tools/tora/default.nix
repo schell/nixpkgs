@@ -1,43 +1,37 @@
-{ stdenv, lib, fetchFromGitHub, cmake, extra-cmake-modules, makeQtWrapper
-, boost, doxygen, openssl, mysql, postgresql, graphviz, loki, qscintilla, qtbase }:
+{ mkDerivation, lib, fetchFromGitHub, cmake, extra-cmake-modules, makeWrapper
+, boost, doxygen, openssl, libmysqlclient, postgresql, graphviz, loki
+, qscintilla, qtbase, qttools }:
 
-let
-  qscintillaLib = (qscintilla.override { withQt5 = true; });
-
-in stdenv.mkDerivation rec {
-  name = "tora-${version}";
-  version = "3.1";
+mkDerivation {
+  pname = "tora";
+  version = "3.2.176";
 
   src = fetchFromGitHub {
     owner  = "tora-tool";
     repo   = "tora";
-    rev    = "v${version}";
-    sha256 = "0wninl10bcgiljf6wnhn2rv8kmzryw78x5qvbw8s2zfjlnxjsbn7";
+    rev    = "39bf2837779bf458fc72a9f0e49271152e57829f";
+    sha256 = "0fr9b542i8r6shgnz33lc3cz333fnxgmac033yxfrdjfglzk0j2k";
   };
 
-  enableParallelBuilding = true;
+  nativeBuildInputs = [ cmake extra-cmake-modules makeWrapper qttools ];
 
   buildInputs = [
-    cmake extra-cmake-modules makeQtWrapper
-    boost doxygen graphviz loki mysql openssl postgresql qscintillaLib qtbase
+    boost doxygen graphviz loki libmysqlclient openssl postgresql qscintilla qtbase
   ];
 
   preConfigure = ''
-    sed -i \
-      's|defaultGvHome = "/usr/bin"|defaultGvHome = "${lib.getBin graphviz}/bin"|' \
-      src/widgets/toglobalsetting.cpp
-
-    sed -i \
-      's|/usr/bin/dot|${lib.getBin graphviz}/bin/dot|' \
-      extlibs/libermodel/dotgraph.cpp
+    substituteInPlace src/widgets/toglobalsetting.cpp \
+      --replace 'defaultGvHome = "/usr/bin"' 'defaultGvHome = "${lib.getBin graphviz}/bin"'
+    substituteInPlace extlibs/libermodel/dotgraph.cpp \
+      --replace /usr/bin/dot ${lib.getBin graphviz}/bin/dot
   '';
 
   cmakeFlags = [
     "-DWANT_INTERNAL_LOKI=0"
     "-DWANT_INTERNAL_QSCINTILLA=0"
     # cmake/modules/FindQScintilla.cmake looks in qtbase and for the wrong library name
-    "-DQSCINTILLA_INCLUDE_DIR=${qscintillaLib}/include"
-    "-DQSCINTILLA_LIBRARY=${qscintillaLib}/lib/libqscintilla2.so"
+    "-DQSCINTILLA_INCLUDE_DIR=${qscintilla}/include"
+    "-DQSCINTILLA_LIBRARY=${qscintilla}/lib/libqscintilla2.so"
     "-DENABLE_DB2=0"
     "-DENABLE_ORACLE=0"
     "-DENABLE_TERADATA=0"
@@ -53,12 +47,13 @@ in stdenv.mkDerivation rec {
     "-lssl"
   ];
 
-  postFixup = ''
-    wrapQtProgram $out/bin/tora \
-      --prefix PATH : ${lib.getBin graphviz}/bin
-  '';
+  NIX_CFLAGS_COMPILE = [ "-L${libmysqlclient}/lib/mysql" "-I${libmysqlclient}/include/mysql" ];
 
-  meta = with stdenv.lib; {
+  qtWrapperArgs = [
+    ''--prefix PATH : ${lib.getBin graphviz}/bin''
+  ];
+
+  meta = with lib; {
     description = "Tora SQL tool";
     maintainers = with maintainers; [ peterhoeg ];
     platforms = platforms.linux;

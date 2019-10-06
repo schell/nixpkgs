@@ -1,12 +1,12 @@
 { stdenv, fetchurl, pkgconfig, readline, libxml2 }:
 
 stdenv.mkDerivation rec {
-  name = "augeas-${version}";
-  version = "1.8.0";
+  pname = "augeas";
+  version = "1.12.0";
 
   src = fetchurl {
-    url = "http://download.augeas.net/${name}.tar.gz";
-    sha256 = "1iac5lwi1q10r343ii9v5p2fdplvh06yv9svsi8zz6cd2c2fjp2i";
+    url = "http://download.augeas.net/${pname}-${version}.tar.gz";
+    sha256 = "11ybhb13wkkilsn7b416a1dn61m1xrq0lbdpkhp5w61jrk4l469j";
   };
   nativeBuildInputs = [ pkgconfig ];
   buildInputs = [ readline libxml2 ];

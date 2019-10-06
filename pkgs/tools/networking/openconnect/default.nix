@@ -1,26 +1,19 @@
 { stdenv, fetchurl, pkgconfig, vpnc, openssl ? null, gnutls ? null, gmp, libxml2, stoken, zlib } :
 
-let
-  xor = a: b: (a || b) && (!(a && b));
-in
-
-assert xor (openssl != null) (gnutls != null);
+assert (openssl != null) == (gnutls == null);
 
 stdenv.mkDerivation rec {
-  name = "openconnect-7.08";
+  pname = "openconnect";
+  version = "8.05";
 
   src = fetchurl {
     urls = [
-      "ftp://ftp.infradead.org/pub/openconnect/${name}.tar.gz"
+      "ftp://ftp.infradead.org/pub/openconnect/${pname}-${version}.tar.gz"
     ];
-    sha256 = "00wacb79l2c45f94gxs63b9z25wlciarasvjrb8jb8566wgyqi0w";
+    sha256 = "14i9q727c2zc9xhzp1a9hz3gzb5lwgsslbhircm84dnbs192jp1k";
   };
 
-  preConfigure = ''
-      export PKG_CONFIG=${pkgconfig}/bin/pkg-config
-      export LIBXML2_CFLAGS="-I ${libxml2.dev}/include/libxml2"
-      export LIBXML2_LIBS="-L${libxml2.out}/lib -lxml2"
-    '';
+  outputs = [ "out" "dev" ];
 
   configureFlags = [
     "--with-vpnc-script=${vpnc}/etc/vpnc/vpnc-script"
@@ -28,7 +21,7 @@ stdenv.mkDerivation rec {
     "--without-openssl-version-check"
   ];
 
-  buildInputs = [ pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
   propagatedBuildInputs = [ vpnc openssl gnutls gmp libxml2 stoken zlib ];
 
   meta = {

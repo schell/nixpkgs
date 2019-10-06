@@ -1,35 +1,102 @@
-{ fetchurl, stdenv, m4, glibc, gtk3, libexif, libgphoto2, libsoup, libxml2, vala_0_28, sqlite
-, webkitgtk, pkgconfig, gnome3, gst_all_1, which, udev, libgudev, libraw, glib, json_glib
-, gettext, desktop_file_utils, lcms2, gdk_pixbuf, librsvg, wrapGAppsHook
-, gnome_doc_utils, hicolor_icon_theme, itstool, libgdata }:
+{ stdenv
+, fetchurl
+, meson
+, ninja
+, gtk3
+, libexif
+, libgphoto2
+, libwebp
+, libsoup
+, libxml2
+, vala
+, sqlite
+, webkitgtk
+, pkgconfig
+, gnome3
+, gst_all_1
+, libgudev
+, libraw
+, glib
+, json-glib
+, gcr
+, libgee
+, gexiv2
+, librest
+, gettext
+, desktop-file-utils
+, gdk-pixbuf
+, librsvg
+, wrapGAppsHook
+, gobject-introspection
+, itstool
+, libgdata
+, libchamplain
+, gsettings-desktop-schemas
+, python3
+}:
 
-# for dependencies see http://www.yorba.org/projects/shotwell/install/
+# for dependencies see https://wiki.gnome.org/Apps/Shotwell/BuildingAndInstalling
 
 stdenv.mkDerivation rec {
-  version = "${major}.${minor}";
-  major = "0.26";
-  minor = "1";
-  name = "shotwell-${version}";
+  pname = "shotwell";
+  version = "0.31.0";
 
   src = fetchurl {
-    url = "mirror://gnome/sources/shotwell/${major}/${name}.tar.xz";
-    sha256 = "0xak1f69lp1yx3p8jgmr9c0z3jypi8zjpy3kiknn5n9g2f5cqq0a";
+    url = "mirror://gnome/sources/${pname}/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "1pwq953wl7h9cvw7rvlr6pcbq9w28kkr7ddb8x2si81ngp0imwyx";
   };
 
-  NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/glib-2.0 -I${glib.out}/lib/glib-2.0/include";
+  nativeBuildInputs = [
+    meson
+    ninja
+    vala
+    pkgconfig
+    itstool
+    gettext
+    desktop-file-utils
+    python3
+    wrapGAppsHook
+    gobject-introspection
+  ];
 
-  configureFlags = [ "--disable-gsettings-convert-install" ];
+  buildInputs = [
+    gtk3
+    libexif
+    libgphoto2
+    libwebp
+    libsoup
+    libxml2
+    sqlite
+    webkitgtk
+    gst_all_1.gstreamer
+    gst_all_1.gst-plugins-base
+    libgee
+    libgudev
+    gexiv2
+    gsettings-desktop-schemas
+    libraw
+    json-glib
+    glib
+    gdk-pixbuf
+    librsvg
+    librest
+    gcr
+    gnome3.adwaita-icon-theme
+    libgdata
+    libchamplain
+  ];
 
-  preConfigure = ''
-    patchShebangs .
+  postPatch = ''
+    chmod +x build-aux/meson/postinstall.py # patchShebangs requires executable file
+    patchShebangs build-aux/meson/postinstall.py
   '';
 
-  buildInputs = [ m4 glibc gtk3 libexif libgphoto2 libsoup libxml2 vala_0_28 sqlite webkitgtk
-                  pkgconfig gst_all_1.gstreamer gst_all_1.gst-plugins-base gnome3.libgee
-                  which udev libgudev gnome3.gexiv2 hicolor_icon_theme
-                  libraw json_glib gettext desktop_file_utils glib lcms2 gdk_pixbuf librsvg
-                  wrapGAppsHook gnome_doc_utils gnome3.rest gnome3.gcr
-                  gnome3.defaultIconTheme itstool libgdata ];
+  passthru = {
+    updateScript = gnome3.updateScript {
+      packageName = pname;
+      versionPolicy = "none";
+    };
+  };
 
   meta = with stdenv.lib; {
     description = "Popular photo organizer for the GNOME desktop";

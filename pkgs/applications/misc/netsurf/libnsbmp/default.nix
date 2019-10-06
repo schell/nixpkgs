@@ -6,14 +6,15 @@ stdenv.mkDerivation rec {
 
   name = "netsurf-${libname}-${version}";
   libname = "libnsbmp";
-  version = "0.1.3";
+  version = "0.1.5";
 
   src = fetchurl {
     url = "http://download.netsurf-browser.org/libs/releases/${libname}-${version}-src.tar.gz";
-    sha256 = "0gmvzw1whh7553d6s98vr4ri2whjwrgggcq1z5b160gwjw20mzyy";
+    sha256 = "0lib2m07d1i0k80m4blkwnj0g7rha4jbm5vrgd0wwbkyfa0hvk35";
   };
 
-  buildInputs = [ pkgconfig
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [
     buildsystem
   ];
 
@@ -23,7 +24,7 @@ stdenv.mkDerivation rec {
   ];
 
   meta = with stdenv.lib; {
-    homepage = "http://www.netsurf-browser.org/";
+    homepage = http://www.netsurf-browser.org/;
     description = "BMP Decoder for netsurf browser";
     license = licenses.gpl2;
     maintainers = [ maintainers.vrthra ];

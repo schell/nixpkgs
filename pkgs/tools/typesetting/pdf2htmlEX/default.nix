@@ -1,9 +1,9 @@
 { stdenv, fetchFromGitHub, cmake, pkgconfig
-, poppler, xlibs, pcre, python, glib, fontforge, cairo, pango, openjdk8
+, poppler, xorg, pcre, python, glib, fontforge, cairo, pango, openjdk8
 
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "pdf2htmlEX-0.14.6";
 
   src = fetchFromGitHub {
@@ -25,8 +25,8 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    xlibs.libpthreadstubs
-    xlibs.libXdmcp
+    xorg.libpthreadstubs
+    xorg.libXdmcp
     pcre
     python
     glib
@@ -43,5 +43,6 @@ stdenv.mkDerivation rec {
     license     = licenses.gpl3Plus;
     maintainers = [ maintainers.taktoa ];
     platforms   = with platforms; linux;
+    broken      = true; # 2018-09-08
   };
 }

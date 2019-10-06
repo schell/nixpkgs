@@ -1,24 +1,25 @@
 { stdenv, fetchFromGitHub, pkgconfig, autoreconfHook,
-  vapoursynth, yasm, fftwFloat
+  vapoursynth, nasm, fftwFloat
 }:
 
 stdenv.mkDerivation rec {
-  name = "vapoursynth-mvtools-${version}";
-  version = "17";
+  pname = "vapoursynth-mvtools";
+  version = "21";
 
   src = fetchFromGitHub {
-    owner = "dubhater";
-    repo  = "vapoursynth-mvtools";
-    rev    = "a2f5607420af8b8e76c0a6a06a517649bfa2c187";
-    sha256 = "06nq46jjyfpv74i27w2m6j64avs6shl99mk601m5h5mmdgm2mvcg";
+    owner  = "dubhater";
+    repo   = "vapoursynth-mvtools";
+    rev    = "v${version}";
+    sha256 = "0vjxpp4jmmjhcp8z81idsbgq6jyx0l4r4i32b8alnp6c9fahjh6p";
   };
 
+  nativeBuildInputs = [ pkgconfig ];
   buildInputs = [
-    pkgconfig autoreconfHook
-    yasm vapoursynth fftwFloat
+    autoreconfHook
+    nasm vapoursynth fftwFloat
   ];
 
-  configureFlags = "--libdir=$(out)/lib/vapoursynth";
+  configureFlags = [ "--libdir=$(out)/lib/vapoursynth" ];
 
   meta = with stdenv.lib; {
     description = "A set of filters for motion estimation and compensation";

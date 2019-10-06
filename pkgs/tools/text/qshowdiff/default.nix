@@ -1,7 +1,7 @@
 {stdenv, fetchurl, qt4, perl, pkgconfig }:
 
 stdenv.mkDerivation rec {
-  name = "qshowdiff-${version}";
+  pname = "qshowdiff";
   version = "1.2";
 
   src = fetchurl {
@@ -9,11 +9,12 @@ stdenv.mkDerivation rec {
     sha256 = "027959xbzvi5c2w9y1x122sr5i26k9mvp43banz2wln6gd860n1a";
   };
 
-  buildInputs = [ qt4 perl pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ qt4 perl ];
 
   configurePhase = ''
     mkdir -p $out/{bin,man/man1}
-    makeFlags="PREFIX=$out"
+    makeFlags="PREFIX=$out CC=$CXX"
   '';
 
   meta = {

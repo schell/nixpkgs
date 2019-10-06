@@ -1,9 +1,9 @@
-{ stdenv, fetchurl, intltool, pkgconfig, dbus_glib
+{ stdenv, fetchurl, intltool, pkgconfig, dbus-glib
 , udev, libnl, libuuid, gnutls, dhcp
 , libgcrypt, perl, libgudev, avahi, ppp, kmod }:
 
 stdenv.mkDerivation rec {
-  name = "network-manager-${version}";
+  pname = "network-manager";
   version = "0.9.8.10";
 
   src = fetchurl {
@@ -41,7 +41,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ udev libnl libuuid gnutls libgcrypt libgudev ];
 
-  propagatedBuildInputs = [ dbus_glib ];
+  propagatedBuildInputs = [ dbus-glib ];
 
   nativeBuildInputs = [ intltool pkgconfig ];
 

@@ -6,14 +6,14 @@ set the variable LEOCAD_LIB=/path/to/libs/ or use option -l /path/to/libs/
 { stdenv, fetchFromGitHub, qt4, qmake4Hook, zlib }:
 
 stdenv.mkDerivation rec {
-  name = "leocad-${version}";
-  version = "17.02";
+  pname = "leocad";
+  version = "19.07.1";
 
   src = fetchFromGitHub {
     owner = "leozide";
     repo = "leocad";
     rev = "v${version}";
-    sha256 = "0d7l2il6r4swnmrmaf1bsrgpjgai5xwhwk2mkpcsddnk59790mmc";
+    sha256 = "02kv1m18g6s4dady9jv4sjivfkrp192bmdw2a3d9lzlp60zks0p2";
   };
 
   nativeBuildInputs = [ qmake4Hook ];
@@ -24,8 +24,8 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "CAD program for creating virtual LEGO models";
-    homepage = http://www.leocad.org/;
+    homepage = https://www.leocad.org/;
     license = licenses.gpl2;
-    inherit (qt4.meta) platforms;
+    platforms = platforms.linux;
   };
 }

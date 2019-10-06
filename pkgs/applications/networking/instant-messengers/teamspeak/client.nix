@@ -1,6 +1,6 @@
 { stdenv, fetchurl, makeWrapper, makeDesktopItem, zlib, glib, libpng, freetype, openssl
-, xorg, fontconfig, qtbase, qtwebengine, qtwebchannel, xkeyboard_config, alsaLib, libpulseaudio ? null
-, libredirect, quazip, less, which, unzip, llvmPackages
+, xorg, fontconfig, qtbase, qtwebengine, qtwebchannel, qtsvg, xkeyboard_config, alsaLib
+, libpulseaudio ? null, libredirect, quazip, which, unzip, llvmPackages, writeShellScriptBin
 }:
 
 let
@@ -12,8 +12,8 @@ let
   deps =
     [ zlib glib libpng freetype xorg.libSM xorg.libICE xorg.libXrender openssl
       xorg.libXrandr xorg.libXfixes xorg.libXcursor xorg.libXinerama
-      xorg.libxcb fontconfig xorg.libXext xorg.libX11 alsaLib qtbase qtwebengine qtwebchannel libpulseaudio
-      quazip llvmPackages.libcxx llvmPackages.libcxxabi
+      xorg.libxcb fontconfig xorg.libXext xorg.libX11 alsaLib qtbase qtwebengine qtwebchannel qtsvg
+      libpulseaudio quazip llvmPackages.libcxx llvmPackages.libcxxabi
     ];
 
   desktopItem = makeDesktopItem {
@@ -26,34 +26,33 @@ let
     categories = "Network";
   };
 
+  fakeLess = writeShellScriptBin "less" "cat";
+
 in
 
 stdenv.mkDerivation rec {
-  name = "teamspeak-client-${version}";
+  pname = "teamspeak-client";
 
-  version = "3.1.4";
+  version = "3.3.2";
 
   src = fetchurl {
-    urls = [
-      "http://dl.4players.de/ts/releases/${version}/TeamSpeak3-Client-linux_${arch}-${version}.run"
-      "http://teamspeak.gameserver.gamed.de/ts3/releases/${version}/TeamSpeak3-Client-linux_${arch}-${version}.run"
-    ];
+    url = "https://files.teamspeak-services.com/releases/client/${version}/TeamSpeak3-Client-linux_${arch}-${version}.run";
     sha256 = if stdenv.is64bit
-                then "337aec99070366aa3bb82b1bedd8215372b9c74014b198d45d5d6375d1f1c3a8"
-                else "4e126e005b1180655b0847cbdbfc9c47c59c639b7f93f0d988b54a8c4c6ec80f";
+                then "1n916ds67dxj5bfgc5zm9nz2xh2914k85pzzspzvfyr7njcw7hpi"
+                else "0csl5xklcb4v8bzwvby5m2n38zjrnaw8dcvha7qvfbjllxr75yn2";
   };
 
   # grab the plugin sdk for the desktop icon
   pluginsdk = fetchurl {
-    url = "http://dl.4players.de/ts/client/pluginsdk/pluginsdk_3.0.19.1.zip";
-    sha256 = "1r1ss6zq5axr7h82inlp98zaz50041rizli5bwz3lfyipfr034ya";
+    url = "http://dl.4players.de/ts/client/pluginsdk/pluginsdk_3.1.1.1.zip";
+    sha256 = "1bywmdj54glzd0kffvr27r84n4dsd0pskkbmh59mllbxvj0qwy7f";
   };
 
-  buildInputs = [ makeWrapper less which unzip ];
+  nativeBuildInputs = [ makeWrapper fakeLess which unzip ];
 
   unpackPhase =
     ''
-      echo -e 'q\ny' | sh -xe $src
+      echo -e '\ny' | sh -xe $src
       cd TeamSpeak*
     '';
 
@@ -61,6 +60,7 @@ stdenv.mkDerivation rec {
     ''
       mv ts3client_linux_${arch} ts3client
       echo "patching ts3client..."
+      patchelf --replace-needed libquazip.so ${quazip}/lib/libquazip5.so ts3client
       patchelf \
         --interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
         --set-rpath ${stdenv.lib.makeLibraryPath deps}:$(cat $NIX_CC/nix-support/orig-cc)/${libDir} \
@@ -74,6 +74,7 @@ stdenv.mkDerivation rec {
       rm *.so.* *.so
       rm QtWebEngineProcess
       rm qt.conf
+      rm -r platforms # contains libqxcb.so
 
       # Install files.
       mkdir -p $out/lib/teamspeak
@@ -91,7 +92,7 @@ stdenv.mkDerivation rec {
 
       wrapProgram $out/bin/ts3client \
         --set LD_PRELOAD "${libredirect}/lib/libredirect.so" \
-        --set QT_PLUGIN_PATH "$out/lib/teamspeak/platforms" \
+        --set QT_PLUGIN_PATH "${qtbase}/${qtbase.qtPluginPrefix}" \
         --set NIX_REDIRECTS /usr/share/X11/xkb=${xkeyboard_config}/share/X11/xkb
     '';
 
@@ -107,7 +108,7 @@ stdenv.mkDerivation rec {
       free = false;
     };
     maintainers = [ stdenv.lib.maintainers.lhvwb ];
-    platforms = stdenv.lib.platforms.linux;
+    platforms = [ "i686-linux" "x86_64-linux" ];
   };
 }
 

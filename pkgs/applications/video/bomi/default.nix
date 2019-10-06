@@ -1,6 +1,7 @@
-{ stdenv, fetchFromGitHub, fetchpatch, pkgconfig, perl, python, which, makeQtWrapper
-, libX11, libxcb, mesa
-, qtbase, qtdeclarative, qtquickcontrols, qttools, qtx11extras, qmakeHook
+{ config, stdenv, fetchFromGitHub
+, fetchpatch, pkgconfig, perl, python, which
+, libX11, libxcb, libGLU_combined
+, qtbase, qtdeclarative, qtquickcontrols, qttools, qtx11extras, qmake, makeWrapper
 , libchardet
 , ffmpeg
 
@@ -15,7 +16,7 @@
 , libbluray
 , jackSupport ? false, jack ? null
 , portaudioSupport ? false, portaudio ? null
-, pulseSupport ? true, libpulseaudio ? null
+, pulseSupport ? config.pulseaudio or stdenv.isLinux, libpulseaudio ? null
 , cddaSupport ? false, libcdda ? null
 , youtubeSupport ? true, youtube-dl ? null
 }:
@@ -29,7 +30,7 @@ assert cddaSupport -> libcdda != null;
 assert youtubeSupport -> youtube-dl != null;
 
 stdenv.mkDerivation rec {
-  name = "bomi-${version}";
+  pname = "bomi";
   version = "0.9.11";
 
   src = fetchFromGitHub {
@@ -55,7 +56,7 @@ stdenv.mkDerivation rec {
   buildInputs = with stdenv.lib;
                 [ libX11
                   libxcb
-                  mesa
+                  libGLU_combined
                   qtbase
                   qtx11extras
                   qtdeclarative
@@ -90,7 +91,7 @@ stdenv.mkDerivation rec {
   '';
 
   postInstall = ''
-    wrapQtProgram $out/bin/bomi \
+    wrapProgram $out/bin/bomi \
       ${optionalString youtubeSupport "--prefix PATH ':' '${youtube-dl}/bin'"}
   '';
 
@@ -104,13 +105,11 @@ stdenv.mkDerivation rec {
                    ++ optional cddaSupport "--enable-cdda"
                    ;
 
-  nativeBuildInputs = [ pkgconfig perl python which qttools makeQtWrapper qmakeHook ];
-
-  enableParallelBuilding = true;
+  nativeBuildInputs = [ makeWrapper pkgconfig perl python which qttools qmake ];
 
   meta = with stdenv.lib; {
     description = "Powerful and easy-to-use multimedia player";
-    homepage = "https://bomi-player.github.io/";
+    homepage = https://bomi-player.github.io/;
     license = licenses.gpl2Plus;
     maintainers = [ maintainers.abbradar ];
     platforms = platforms.linux;

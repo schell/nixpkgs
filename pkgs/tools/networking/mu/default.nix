@@ -1,32 +1,31 @@
 { stdenv, fetchFromGitHub, sqlite, pkgconfig, autoreconfHook, pmccabe
-, xapian, glib, gmime, texinfo , emacs, guile
-, gtk3, webkitgtk24x, libsoup, icu
+, xapian, glib, gmime3, texinfo , emacs, guile
+, gtk3, webkitgtk24x-gtk3, libsoup, icu
 , withMug ? false }:
 
 stdenv.mkDerivation rec {
-  name = "mu-${version}";
-  version = "0.9.18";
+  pname = "mu";
+  version = "1.3.3";
 
   src = fetchFromGitHub {
     owner  = "djcb";
     repo   = "mu";
     rev    = version;
-    sha256 = "0zy0p196bfrfzsq8f58xv04rpnr948sdvljflgzvi6js0vz4009y";
+    sha256 = "06z1l27rp3dpyphg3zqg0ww568a4g8iwz01vy4f7rl62asrbglsy";
   };
 
-  # as of 0.9.18 2 tests are failing but previously we had no tests
-  patches = [
-    ./failing_tests.patch
-  ];
+  # test-utils coredumps so don't run those
+  postPatch = ''
+    sed -i -e '/test-utils/d' lib/parser/Makefile.am
+  '';
 
-  # pmccabe should be a checkInput instead, but configure looks for it
   buildInputs = [
-    sqlite xapian glib gmime texinfo emacs guile libsoup icu
-  ] ++ stdenv.lib.optionals withMug [ gtk3 webkitgtk24x ];
-  nativeBuildInputs = [ pkgconfig autoreconfHook ];
-  checkInputs = [ pmccabe ];
+    sqlite xapian glib gmime3 texinfo emacs guile libsoup icu
+  ] ++ stdenv.lib.optionals withMug [ gtk3 webkitgtk24x-gtk3 ];
 
-  doCheck = true;
+  nativeBuildInputs = [ pkgconfig autoreconfHook pmccabe ];
+
+  enableParallelBuilding = true;
 
   preBuild = ''
     # Fix mu4e-builddir (set it to $out)
@@ -45,10 +44,12 @@ stdenv.mkDerivation rec {
     done
   '';
 
+  doCheck = true;
+
   meta = with stdenv.lib; {
     description = "A collection of utilties for indexing and searching Maildirs";
     license = licenses.gpl3Plus;
-    homepage = "http://www.djcbsoftware.nl/code/mu/";
+    homepage = https://www.djcbsoftware.nl/code/mu/;
     platforms = platforms.mesaPlatforms;
     maintainers = with maintainers; [ antono the-kenny peterhoeg ];
   };

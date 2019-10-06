@@ -1,12 +1,12 @@
 { stdenv, fetchurl, unzip, jre, coreutils, makeDesktopItem }:
 
 stdenv.mkDerivation rec {
-  name = "basex-${version}";
-  version = "8.6.4";
+  pname = "basex";
+  version = "8.6.6";
 
   src = fetchurl {
-    url = "http://files.basex.org/releases/${version}/BaseX864.zip";
-    sha256 = "14320hfw53m0zl1v4377p0vcjvdnwfpa4gkj2y2wlrplma76y0w7";
+    url = "http://files.basex.org/releases/${version}/BaseX866.zip";
+    sha256 = "1kws6swisdaa17yhijjvkh2ikwz9rd5cw8mdjvkqw6vlcp1nq6m4";
   };
 
   buildInputs = [ unzip jre ];
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
   desktopItem = makeDesktopItem {
     name = "basex";
     exec = "basexgui %f";
-    icon = "${./basex.svg}"; # icon copied from Ubuntu basex package
+    icon = ./basex.svg; # icon copied from Ubuntu basex package
     comment = "Visually query and analyse your XML data";
     desktopName = "BaseX XML Database";
     genericName = "XML database tool";

@@ -1,103 +1,116 @@
-{ stdenv, fetchurl, system, makeWrapper,
-  alsaLib, dbus, glib, gstreamer, fontconfig, freetype, libpulseaudio, libxml2,
-  libxslt, mesa, nspr, nss, sqlite, utillinux, zlib, xorg, udev, expat, libv4l }:
+{ stdenv, fetchurl, mkDerivation, autoPatchelfHook
+, fetchFromGitHub
+# Dynamic libraries
+, dbus, glib, libGL, libX11, libXfixes, libuuid, libxcb, qtbase, qtdeclarative
+, qtimageformats, qtlocation, qtquickcontrols, qtquickcontrols2, qtscript, qtsvg
+, qttools, qtwayland, qtwebchannel, qtwebengine
+# Runtime
+, coreutils, libjpeg_turbo, pciutils, procps, utillinux, libv4l
+, pulseaudioSupport ? true, libpulseaudio ? null
+}:
+
+assert pulseaudioSupport -> libpulseaudio != null;
 
 let
+  inherit (stdenv.lib) concatStringsSep makeBinPath optional;
 
-  version = "2.0.91373.0502";
+  version = "3.0.301026.0930";
   srcs = {
     x86_64-linux = fetchurl {
       url = "https://zoom.us/client/${version}/zoom_x86_64.tar.xz";
-      sha256 = "0gcbfsvybkvnyklm82irgz19x3jl0hz9bwf2l9jga188057pfj7a";
+      sha256 = "0y3c7345y2wibz6p7d6p89wraaqb51651p176z4v7lcjv3gr8dar";
     };
   };
 
-in stdenv.mkDerivation {
-  name = "zoom-us-${version}";
+  # Used for icons, appdata, and desktop file.
+  desktopIntegration = fetchFromGitHub {
+    owner = "flathub";
+    repo = "us.zoom.Zoom";
+    rev = "0d294e1fdd2a4ef4e05d414bc680511f24d835d7";
+    sha256 = "0rm188844a10v8d6zgl2pnwsliwknawj09b02iabrvjw5w1lp6wl";
+  };
 
-  src = srcs.${system};
+in mkDerivation {
+  pname = "zoom-us";
+  inherit version;
 
-  buildInputs = [ makeWrapper ];
+  src = srcs.${stdenv.hostPlatform.system};
 
-  libPath = stdenv.lib.makeLibraryPath [
-    alsaLib
-    dbus
-    glib
-    gstreamer
-    fontconfig
-    freetype
-    libpulseaudio
-    libxml2
-    libxslt
-    mesa
-    nspr
-    nss
-    sqlite
-    utillinux
-    zlib
-    udev
-    expat
+  nativeBuildInputs = [ autoPatchelfHook ];
 
-    xorg.libX11
-    xorg.libSM
-    xorg.libICE
-    xorg.libxcb
-    xorg.xcbutilimage
-    xorg.xcbutilkeysyms
-    xorg.libXcursor
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXdamage
-    xorg.libXtst
-    xorg.libxshmfence
-    xorg.libXi
-    xorg.libXrender
-    xorg.libXcomposite
-    xorg.libXScrnSaver
-
-    stdenv.cc.cc
+  buildInputs = [
+    dbus glib libGL libX11 libXfixes libuuid libxcb libjpeg_turbo
+    qtbase qtdeclarative qtlocation qtquickcontrols qtquickcontrols2 qtscript
+    qtwebchannel qtwebengine qtimageformats qtsvg qttools qtwayland
   ];
 
-  installPhase = ''
-    $preInstallHooks
+  runtimeDependencies = optional pulseaudioSupport libpulseaudio;
 
-    packagePath=$out/share/zoom-us
-    mkdir -p $packagePath
-    mkdir -p $out/bin
-    cp -ar * $packagePath
+  installPhase =
+    let
+      files = concatStringsSep " " [
+        "*.pcm"
+        "*.png"
+        "ZoomLauncher"
+        "config-dump.sh"
+        "timezones"
+        "translations"
+        "version.txt"
+        "zcacert.pem"
+        "zoom"
+        "zoom.sh"
+        "zoomlinux"
+        "zopen"
+      ];
+    in ''
+      runHook preInstall
 
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)"  $packagePath/zoom
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)"  $packagePath/QtWebEngineProcess
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)"  $packagePath/qtdiag
-    patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)"  $packagePath/zopen
-    # included from https://github.com/NixOS/nixpkgs/commit/fc218766333a05c9352b386e0cbb16e1ae84bf53
-    # it works for me without it, but, well...
-    paxmark m $packagePath/zoom
-    #paxmark m $packagePath/QtWebEngineProcess # is this what dtzWill talked about?
+      mkdir -p $out/{bin,share/zoom-us}
 
-    # RUNPATH set via patchelf is used only for half of libraries (why?), so wrap it
-    wrapProgram $packagePath/zoom \
-        --prefix LD_LIBRARY_PATH : "$packagePath:$libPath" \
-        --prefix LD_PRELOAD : "${libv4l}/lib/v4l1compat.so" \
-        --set QT_PLUGIN_PATH "$packagePath/platforms" \
-        --set QT_XKB_CONFIG_ROOT "${xorg.xkeyboardconfig}/share/X11/xkb" \
-        --set QTCOMPOSE "${xorg.libX11.out}/share/X11/locale"
-    ln -s "$packagePath/zoom" "$out/bin/zoom-us"
+      cp -ar ${files} $out/share/zoom-us
 
-    cat > $packagePath/qt.conf <<EOF
-    [Paths]
-    Prefix = $packagePath
-    EOF
+      # TODO Patch this somehow; tries to dlopen './libturbojpeg.so' from cwd
+      ln -s $(readlink -e "${libjpeg_turbo.out}/lib/libturbojpeg.so") $out/share/zoom-us/libturbojpeg.so
 
-    $postInstallHooks
+      runHook postInstall
+    '';
+
+  postInstall = ''
+    mkdir -p $out/share/{applications,appdata,icons}
+
+    # Desktop File
+    cp ${desktopIntegration}/us.zoom.Zoom.desktop $out/share/applications
+    substituteInPlace $out/share/applications/us.zoom.Zoom.desktop \
+        --replace "Exec=zoom" "Exec=$out/bin/zoom-us"
+
+    # Appdata
+    cp ${desktopIntegration}/us.zoom.Zoom.appdata.xml $out/share/appdata
+
+    # Icons
+    for icon_size in 64 96 128 256; do
+        path=$icon_size'x'$icon_size
+        icon=${desktopIntegration}/us.zoom.Zoom.$icon_size.png
+
+        mkdir -p $out/share/icons/hicolor/$path/apps
+        cp $icon $out/share/icons/hicolor/$path/apps/us.zoom.Zoom.png
+    done
+
+    ln -s $out/share/zoom-us/zoom $out/bin/zoom-us
   '';
 
+  qtWrapperArgs = [
+    ''--prefix PATH : ${makeBinPath [ coreutils glib.dev pciutils procps qttools.dev utillinux ]}''
+    ''--prefix LD_PRELOAD : ${libv4l}/lib/libv4l/v4l2convert.so''
+  ];
+
+  passthru.updateScript = ./update.sh;
+
   meta = {
-    homepage = http://zoom.us;
+    homepage = https://zoom.us/;
     description = "zoom.us video conferencing application";
     license = stdenv.lib.licenses.unfree;
-    platforms = stdenv.lib.platforms.linux;
-    maintainers = with stdenv.lib.maintainers; [ danbst ];
+    platforms = builtins.attrNames srcs;
+    maintainers = with stdenv.lib.maintainers; [ danbst tadfisher ];
   };
 
 }

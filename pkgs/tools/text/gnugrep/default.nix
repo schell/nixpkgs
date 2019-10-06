@@ -1,13 +1,14 @@
 { stdenv, fetchurl, pcre, libiconv, perl }:
 
-let version = "3.0"; in
+let version = "3.3"; in
 
 stdenv.mkDerivation {
-  name = "gnugrep-${version}";
+  pname = "gnugrep";
+  inherit version;
 
   src = fetchurl {
     url = "mirror://gnu/grep/grep-${version}.tar.xz";
-    sha256 = "1dcasjp3a578nrvzrcn38mpizb8w1q6mvfzhjmcqqgkf0nsivj72";
+    sha256 = "055mqp6vrd0brkygmygb2673qwz409a7kyp1mzbfy6cn94f58q5r";
   };
 
   # Perl is needed for testing
@@ -22,7 +23,7 @@ stdenv.mkDerivation {
   #doCheck = !stdenv.isDarwin && !stdenv.isSunOS && !stdenv.isCygwin && !stdenv.isFreeBSD;
   doCheck = false;
 
-  # On Mac OS X, force use of mkdir -p, since Grep's fallback
+  # On macOS, force use of mkdir -p, since Grep's fallback
   # (./install-sh) is broken.
   preConfigure = ''
     export MKDIR_P="mkdir -p"
@@ -41,7 +42,7 @@ stdenv.mkDerivation {
     '';
 
   meta = with stdenv.lib; {
-    homepage = http://www.gnu.org/software/grep/;
+    homepage = https://www.gnu.org/software/grep/;
     description = "GNU implementation of the Unix grep command";
 
     longDescription = ''

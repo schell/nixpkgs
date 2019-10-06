@@ -1,35 +1,44 @@
-{ fetchurl, stdenv, lib, precision ? "double" }:
+{ fetchurl, stdenv, lib, precision ? "double", perl }:
 
 with lib;
 
 assert elem precision [ "single" "double" "long-double" "quad-precision" ];
 
-let version = "3.3.6-pl1"; in
+let
+  version = "3.3.8";
+  withDoc = stdenv.cc.isGNU;
+in
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "fftw-${precision}-${version}";
 
   src = fetchurl {
-    url = "ftp://ftp.fftw.org/pub/fftw/fftw-${version}.tar.gz";
-    sha256 = "0g8qk98lgq770ixdf7n36yd5xjsgm2v3wzvnphwmhy6r4y2amx0y";
+    urls = [
+      "http://fftw.org/fftw-${version}.tar.gz"
+      "ftp://ftp.fftw.org/pub/fftw/fftw-${version}.tar.gz"
+    ];
+    sha256 = "00z3k8fq561wq2khssqg0kallk0504dzlx989x3vvicjdqpjc4v1";
   };
 
-  outputs = [ "out" "dev" "doc" ]; # it's dev-doc only
+  outputs = [ "out" "dev" "man" ]
+    ++ optional withDoc "info"; # it's dev-doc only
   outputBin = "dev"; # fftw-wisdom
 
   configureFlags =
-    [ "--enable-shared" "--disable-static"
+    [ "--enable-shared"
       "--enable-threads"
     ]
     ++ optional (precision != "double") "--enable-${precision}"
     # all x86_64 have sse2
     # however, not all float sizes fit
     ++ optional (stdenv.isx86_64 && (precision == "single" || precision == "double") )  "--enable-sse2"
-    ++ optional stdenv.cc.isGNU "--enable-openmp"
+    ++ optional (stdenv.cc.isGNU && !stdenv.hostPlatform.isMusl) "--enable-openmp"
     # doc generation causes Fortran wrapper generation which hard-codes gcc
-    ++ optional (!stdenv.cc.isGNU) "--disable-doc";
+    ++ optional (!withDoc) "--disable-doc";
 
   enableParallelBuilding = true;
+
+  checkInputs = [ perl ];
 
   meta = with stdenv.lib; {
     description = "Fastest Fourier Transform in the West library";

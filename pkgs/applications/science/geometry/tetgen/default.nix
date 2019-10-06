@@ -2,7 +2,8 @@
 
 let version = "1.5.0"; in
 stdenv.mkDerivation {
-  name = "tetgen-${version}";
+  pname = "tetgen";
+  inherit version;
 
   src = fetchurl {
     url = "http://wias-berlin.de/software/tetgen/1.5/src/tetgen${version}.tar.gz";
@@ -17,7 +18,7 @@ stdenv.mkDerivation {
   meta = {
     inherit version;
     description = "Quality Tetrahedral Mesh Generator and 3D Delaunay Triangulator";
-    homepage = "http://tetgen.org/";
+    homepage = http://tetgen.org/;
     license = stdenv.lib.licenses.agpl3Plus;
     platforms = stdenv.lib.platforms.linux;
   };

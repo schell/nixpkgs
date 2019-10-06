@@ -1,7 +1,7 @@
 { stdenv, autoconf, automake, libtool, m4, fetchurl, bash, pkgconfig, sqlite }:
 
 stdenv.mkDerivation rec {
-  name = "libcangjie-${version}";
+  pname = "libcangjie";
   version = "1.4_rev_${rev}";
   rev = "a73c1d8783f7b6526fd9b2cc44a669ffa5518d3d";
 
@@ -10,7 +10,8 @@ stdenv.mkDerivation rec {
     sha256 = "0i5svvcx099fc9hh5dvr3gpb1041v6vn5fnylxy82zjy239114lg";
   };
 
-  buildInputs = [ automake autoconf libtool m4 pkgconfig sqlite ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ automake autoconf libtool m4 sqlite ];
 
   configureScript = "./autogen.sh";
   

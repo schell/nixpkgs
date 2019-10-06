@@ -1,20 +1,18 @@
-{ stdenv, fetchurl, buildPythonApplication, EditorConfig, pytest, six }:
+{ lib, fetchPypi, buildPythonApplication, editorconfig, pytest, six }:
 
 buildPythonApplication rec {
   pname = "jsbeautifier";
-  version = "1.6.14";
-  name = "jsbeautifier-1.6.14";
+  version = "1.10.0";
 
-  propagatedBuildInputs = [ six ];
+  propagatedBuildInputs = [ six editorconfig ];
+  checkInputs = [ pytest ];
 
-  buildInputs = [ EditorConfig pytest ];
-
-  src = fetchurl {
-    url = "mirror://pypi/j/jsbeautifier/${name}.tar.gz";
-    sha256 = "50b2af556aa1da7283a6a92eaa699668312cb91f2ba6b78a4422b1d42af964a2";
+  src = fetchPypi {
+    inherit pname version;
+    sha256 = "1e389572ade865173605471e98df4002f4b6e5235121c13f1e4497a3eac69108";
   };
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     homepage    = "http://jsbeautifier.org";
     description = "JavaScript unobfuscator and beautifier.";
     license     = licenses.mit;

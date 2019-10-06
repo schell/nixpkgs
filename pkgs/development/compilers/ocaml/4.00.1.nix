@@ -1,17 +1,17 @@
 { stdenv, fetchurl, ncurses, xlibsWrapper }:
 
 let
-   useX11 = !stdenv.isArm && !stdenv.isMips;
+   useX11 = !stdenv.isAarch32 && !stdenv.isMips;
    useNativeCompilers = !stdenv.isMips;
    inherit (stdenv.lib) optionals optionalString;
 in
 
 stdenv.mkDerivation rec {
-  name = "ocaml-${version}";
+  pname = "ocaml";
   version = "4.00.1";
   
   src = fetchurl {
-    url = "http://caml.inria.fr/pub/distrib/ocaml-4.00/${name}.tar.bz2";
+    url = "https://caml.inria.fr/pub/distrib/ocaml-4.00/${pname}-${version}.tar.bz2";
     sha256 = "33c3f4acff51685f5bfd7c260f066645e767d4e865877bf1613c176a77799951";
   };
 

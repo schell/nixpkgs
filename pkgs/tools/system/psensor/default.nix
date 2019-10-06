@@ -3,12 +3,12 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "psensor-${version}";
+  pname = "psensor";
 
   version = "1.2.0";
 
   src = fetchurl {
-    url = "http://wpitchoune.net/psensor/files/psensor-${version}.tar.gz";
+    url = "https://wpitchoune.net/psensor/files/psensor-${version}.tar.gz";
     sha256 = "1smbidbby4rh14jnh9kn7y64qf486aqnmyxcgacjvkz27cqqnw4r";
   };
 
@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "Graphical hardware monitoring application for Linux";
-    homepage = "https://wpitchoune.net/psensor/";
+    homepage = https://wpitchoune.net/psensor/;
     license = licenses.mit;
     platforms = platforms.linux;
     maintainers = with maintainers; [ cstrahan ];

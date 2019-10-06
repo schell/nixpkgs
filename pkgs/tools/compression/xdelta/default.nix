@@ -9,7 +9,7 @@ let
     then "--with-${name}"
     else "--without-${name}";
 in stdenv.mkDerivation rec {
-  name = "xdelta-${version}";
+  pname = "xdelta";
   version = "3.0.11";
 
   src = fetchFromGitHub {
@@ -57,6 +57,5 @@ in stdenv.mkDerivation rec {
     homepage = http://xdelta.org/;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

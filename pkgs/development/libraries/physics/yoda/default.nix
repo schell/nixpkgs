@@ -1,29 +1,19 @@
-{ stdenv, fetchurl, fetchpatch, python2Packages, root, makeWrapper, withRootSupport ? false }:
+{ stdenv, fetchurl, python2Packages, root, makeWrapper, zlib, withRootSupport ? false }:
 
 stdenv.mkDerivation rec {
-  name = "yoda-${version}";
-  version = "1.6.6";
+  pname = "yoda";
+  version = "1.7.7";
 
   src = fetchurl {
-    url = "http://www.hepforge.org/archive/yoda/YODA-${version}.tar.bz2";
-    sha256 = "088xx4q6b03bnj6xg5189m8wsznhal8aj3jk40sbj24idm4jl5yg";
+    url = "https://www.hepforge.org/archive/yoda/YODA-${version}.tar.bz2";
+    sha256 = "1ki88rscnym0vjxpfgql8m1lrc7vm1jb9w4jhw9lvv3rk84lpdng";
   };
 
   pythonPath = []; # python wrapper support
 
-  patches = [
-    (fetchpatch {
-      url = "https://yoda.hepforge.org/hg/yoda/rev/3dbc8927e715?style=raw";
-      sha256 = "02rm34z9lbab66p7gpij12qwdph5fddpksg80qz0m537wjwy2ddy";
-    })
-    (fetchpatch {
-      url = "https://yoda.hepforge.org/hg/yoda/rev/669c2be582ef?style=raw";
-      sha256 = "0s705cl3bazpvpvy46vv1k223knwxq2yy5na1c6lv217sq9w86wj";
-    })
-  ];
-
   buildInputs = with python2Packages; [ python numpy matplotlib makeWrapper ]
     ++ stdenv.lib.optional withRootSupport root;
+  propagatedBuildInputs = [ zlib ];
 
   enableParallelBuilding = true;
 
@@ -33,9 +23,11 @@ stdenv.mkDerivation rec {
     done
   '';
 
+  hardeningDisable = [ "format" ];
+
   meta = {
     description = "Provides small set of data analysis (specifically histogramming) classes";
-    license     = stdenv.lib.licenses.gpl2;
+    license     = stdenv.lib.licenses.gpl3;
     homepage    = https://yoda.hepforge.org;
     platforms   = stdenv.lib.platforms.unix;
     maintainers = with stdenv.lib.maintainers; [ veprbl ];

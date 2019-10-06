@@ -1,5 +1,6 @@
-{ stdenv, lib, fetchurl, perl, unzip, zip, which, pkgconfig
-, qtbase, qtscript, SDL2, libtheora, openal, glew, physfs, fribidi
+{ stdenv, mkDerivation, fetchurl, autoconf, automake
+, perl, unzip, zip, which, pkgconfig, qtbase, qtscript
+, SDL2, libtheora, openal, glew, physfs, fribidi, libXrandr
 , withVideos ? false
 }:
 
@@ -11,17 +12,24 @@ let
   };
 in
 
-stdenv.mkDerivation rec {
-  version = "3.2.2";
-  name = "${pname}-${version}";
+mkDerivation rec {
+  inherit pname;
+  version  = "3.3.0";
 
   src = fetchurl {
-    url = "mirror://sourceforge/${pname}/releases/${version}/${name}.tar.xz";
-    sha256 = "064xfxwkqpvqyy7kz46cwi71mxmimxi4wgjly9g51wwxkvz8snmg";
+    url = "mirror://sourceforge/${pname}/releases/${version}/${pname}-${version}_src.tar.xz";
+    sha256 = "1s0n67rh32g0bgq72p4qzkcqjlw58gc70r4r6gl9k90pil9chj6c";
   };
 
-  buildInputs = [ qtbase qtscript SDL2 libtheora openal glew physfs fribidi ];
-  nativeBuildInputs = [ perl zip unzip pkgconfig ];
+  buildInputs = [
+    qtbase qtscript SDL2 libtheora openal
+    glew physfs fribidi libXrandr
+  ];
+  nativeBuildInputs = [
+    perl zip unzip pkgconfig autoconf automake
+  ];
+
+  preConfigure = "./autogen.sh";
 
   postPatch = ''
     substituteInPlace lib/exceptionhandler/dumpinfo.cpp \
@@ -36,7 +44,8 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  postInstall = lib.optionalString withVideos "cp ${sequences_src} $out/share/warzone2100/sequences.wz";
+  postInstall = stdenv.lib.optionalString withVideos
+    "cp ${sequences_src} $out/share/warzone2100/sequences.wz";
 
   meta = with stdenv.lib; {
     description = "A free RTS game, originally developed by Pumpkin Studios";

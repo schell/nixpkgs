@@ -1,23 +1,21 @@
-{ stdenv, fetchFromGitHub }:
+{ lib, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
+fetchFromGitHub rec {
   name = "cabin-1.005";
 
-  src = fetchFromGitHub {
-    owner = "impallari";
-    repo = "Cabin";
-    rev = "982839c790e9dc57c343972aa34c51ed3b3677fd";
-    sha256 = "16v7spviphvdh2rrr8klv11lc9hxphg12ddf0qs7xdx801ri0ppn";
-  };
+  owner = "impallari";
+  repo = "Cabin";
+  rev = "982839c790e9dc57c343972aa34c51ed3b3677fd";
 
-  installPhase = ''
-    mkdir -p $out/share/fonts/opentype
-    mkdir -p $out/share/doc/${name}
-    cp -v "fonts/OTF/"*.otf $out/share/fonts/opentype/
-    cp -v README.md FONTLOG.txt $out/share/doc/${name}
+  postFetch = ''
+    tar xf $downloadedFile --strip=1
+    install -m444 -Dt $out/share/fonts/opentype fonts/OTF/*.otf
+    install -m444 -Dt $out/share/doc/${name}    README.md FONTLOG.txt
   '';
 
-  meta = with stdenv.lib; {
+  sha256 = "1bl7h217m695jn4rbniialfk573aa44fslp2rjxnhkicakpcm44h";
+
+  meta = with lib; {
     description = "A humanist sans with 4 weights and true italics";
     longDescription = ''
       The Cabin font family is a humanist sans with 4 weights and true italics,

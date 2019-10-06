@@ -1,24 +1,18 @@
-{ stdenv, fetchurl, unzip }:
+{ lib, fetchzip }:
 
-stdenv.mkDerivation rec {
-  name = "helvetica-neue-lt-std-${version}";
+let
   version = "2013.06.07"; # date of most recent file in distribution
+in fetchzip {
+  name = "helvetica-neue-lt-std-${version}";
 
-  src = fetchurl {
-    url = "http://www.ephifonts.com/downloads/helvetica-neue-lt-std.zip";
-    sha256 = "0nrjdj2a11dr6d3aihvjxzrkdi0wq6f2bvaiimi5iwmpyz80n0h6";
-  };
+  url = "http://www.ephifonts.com/downloads/helvetica-neue-lt-std.zip";
 
-  nativeBuildInputs = [ unzip ];
-
-  phases = [ "unpackPhase" "installPhase" ];
-
-  sourceRoot = "Helvetica Neue LT Std";
-
-  installPhase = ''
-    mkdir -p $out/share/fonts/opentype
-    cp -v *.otf $out/share/fonts/opentype
+  postFetch = ''
+    mkdir -p $out/share/fonts
+    unzip -j $downloadedFile Helvetica\ Neue\ LT\ Std/\*.otf -d $out/share/fonts/opentype
   '';
+
+  sha256 = "0ampp9vf9xw0sdppl4lb9i9h75ywljhdcqmzh45mx2x9m7h6xgg9";
 
   meta = {
     homepage = http://www.ephifonts.com/free-helvetica-font-helvetica-neue-lt-std.html;
@@ -34,8 +28,8 @@ stdenv.mkDerivation rec {
       font. The numbers are well spaced and defined with high accuracy. The
       punctuation marks are heavily detailed as well.
     '';
-    license = stdenv.lib.licenses.unfree;
-    maintainers = [ stdenv.lib.maintainers.romildo ];
-    platforms = stdenv.lib.platforms.all;
+    license = lib.licenses.unfree;
+    maintainers = [ lib.maintainers.romildo ];
+    platforms = lib.platforms.all;
   };
 }

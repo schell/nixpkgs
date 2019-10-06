@@ -56,7 +56,6 @@ in
     boot.initrd.kernelModules = mkIf inInitrd [ "nfs" ];
 
     systemd.packages = [ pkgs.nfs-utils ];
-    systemd.generator-packages = [ pkgs.nfs-utils ];
 
     environment.etc = {
       "idmapd.conf".source = idmapdConfFile;
@@ -85,8 +84,14 @@ in
         enable = mkDefault false;
       };
 
+    systemd.services.auth-rpcgss-module =
+      {
+        unitConfig.ConditionPathExists = [ "" "/etc/krb5.keytab" ];
+      };
+
     systemd.services.rpc-gssd =
       { restartTriggers = [ nfsConfFile ];
+        unitConfig.ConditionPathExists = [ "" "/etc/krb5.keytab" ];
       };
 
     systemd.services.rpc-statd =

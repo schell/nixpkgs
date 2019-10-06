@@ -1,24 +1,26 @@
-{ stdenv, glib, fetchurl, cyrus_sasl, gettext, openldap, ptlib, opal, libXv, rarian, intltool
-, perl, perlXMLParser, evolution_data_server, gnome_doc_utils, avahi, autoreconfHook
-, libsigcxx, gtk, dbus_glib, libnotify, libXext, xextproto, gnome3, boost, libsecret
-, pkgconfig, libxml2, videoproto, unixODBC, db, nspr, nss, zlib, hicolor_icon_theme
-, libXrandr, randrproto, which, libxslt, libtasn1, gmp, nettle, sqlite, makeWrapper }:
+{ stdenv, glib, fetchurl, fetchpatch, cyrus_sasl, gettext, openldap, ptlib, opal, libXv, rarian, intltool
+, perlPackages, evolution-data-server, gnome-doc-utils, avahi, autoreconfHook
+, libsigcxx, gtk2, dbus-glib, libnotify, libXext, xorgproto, gnome3, boost, libsecret
+, pkgconfig, libxml2, unixODBC, db, nspr, nss, zlib
+, libXrandr, which, libxslt, libtasn1, gmp, nettle, sqlite, makeWrapper }:
 
 stdenv.mkDerivation rec {
-  name = "ekiga-4.0.1";
+  pname = "ekiga";
+  version = "4.0.1";
 
   src = fetchurl {
-    url = "mirror://gnome/sources/ekiga/4.0/${name}.tar.xz";
+    url = "mirror://gnome/sources/${pname}/${stdenv.lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
     sha256 = "5f4f491c9496cf65ba057a9345d6bb0278f4eca07bcda5baeecf50bfcd9a4a3b";
   };
 
   buildInputs = [ cyrus_sasl gettext openldap ptlib opal libXv rarian intltool
-                  perl perlXMLParser evolution_data_server gnome_doc_utils avahi
-                  libsigcxx gtk dbus_glib libnotify libXext xextproto sqlite
-                  gnome3.libsoup glib gnome3.defaultIconTheme boost
-                  autoreconfHook pkgconfig libxml2 videoproto unixODBC db nspr
-                  nss zlib libsecret libXrandr randrproto which libxslt libtasn1
-                  gmp nettle makeWrapper ];
+                  evolution-data-server gnome-doc-utils avahi
+                  libsigcxx gtk2 dbus-glib libnotify libXext xorgproto sqlite
+                  gnome3.libsoup glib gnome3.adwaita-icon-theme boost
+                  autoreconfHook pkgconfig libxml2 unixODBC db nspr
+                  nss zlib libsecret libXrandr which libxslt libtasn1
+                  gmp nettle makeWrapper ]
+    ++ (with perlPackages; [ perl XMLParser ]);
 
   preAutoreconf = ''
     substituteInPlace configure.ac --replace AM_GCONF_SOURCE_2 ""
@@ -34,24 +36,38 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  patches = [ ./autofoo.patch ./boost.patch ];
+  patches = [
+    (fetchpatch { url = https://sources.debian.net/data/main/e/ekiga/4.0.1-7/debian/patches/autofoo.patch;
+      sha256 = "1vyagslws4mm9yfz1m5p1kv9sxmk5lls9vxpm6j72q2ahsgydzx4";
+    })
+    (fetchpatch { url = https://sources.debian.net/data/main/e/ekiga/4.0.1-7/debian/patches/boost.patch;
+      sha256 = "01k0rw8ibrrf9zn9lx6dzbrgy58w089hqxqxqdv9whb65cldlj5s";
+    })
+    (fetchpatch { url = https://src.fedoraproject.org/rpms/ekiga/raw/dbf5f5ba449d22bd79f0394cddb7d4d8a88ec6ac/f/ekiga-4.0.1-libresolv.patch;
+      sha256 = "18wc68im8422ibpa0gkrkgjq41m7hikaha3xqmjs2km45i1cwcaz";
+    })
+  ];
 
   postInstall = ''
     wrapProgram "$out"/bin/ekiga \
       --prefix XDG_DATA_DIRS : "$XDG_ICON_DIRS:$GSETTINGS_SCHEMAS_PATH"
   '';
 
-  meta = with stdenv.lib; {
-    description = "VOIP/Videoconferencing app with full SIP and H.323 support";
-    maintainers = [ maintainers.raskin ];
-    platforms = platforms.linux;
-    broken = true; # because of glibc-2.25
-  };
-
   passthru = {
     updateInfo = {
       downloadPage = "mirror://gnome/sources/ekiga";
     };
+    updateScript = gnome3.updateScript {
+      packageName = pname;
+    };
+  };
+
+  meta = with stdenv.lib; {
+    description = "VOIP/Videoconferencing app with full SIP and H.323 support";
+    homepage = "https://www.ekiga.org/";
+    maintainers = [ maintainers.raskin ];
+    platforms = platforms.linux;
+    license = licenses.gpl2Plus;
   };
 }
 

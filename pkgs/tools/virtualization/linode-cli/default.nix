@@ -1,7 +1,7 @@
-{ stdenv, fetchFromGitHub, buildPerlPackage, perlPackages, makeWrapper}:
+{ stdenv, fetchFromGitHub, perlPackages, makeWrapper}:
 
-buildPerlPackage rec {
-  name = "linode-cli-${version}";
+perlPackages.buildPerlPackage rec {
+  pname = "linode-cli";
   version = "1.4.7";
 
   src = fetchFromGitHub {
@@ -14,7 +14,7 @@ buildPerlPackage rec {
   buildInputs = [ makeWrapper ];
   propagatedBuildInputs = with perlPackages; [
     JSON
-    LWPUserAgent
+    LWP
     MozillaCA
     TryTiny
     WebServiceLinode
@@ -35,7 +35,7 @@ buildPerlPackage rec {
 
   meta = with stdenv.lib; {
     description = "Command-line interface to the Linode platform";
-    homepage = "https://github.com/linode/cli";
+    homepage = https://github.com/linode/cli;
     license = with licenses; [ artistic2 gpl2 ];
     maintainers = with maintainers; [ nixy ];
   };

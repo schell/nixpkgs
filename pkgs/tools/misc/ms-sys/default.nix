@@ -1,15 +1,15 @@
 { stdenv, fetchurl, gettext }:
 
 stdenv.mkDerivation rec {
-  name = "ms-sys-${version}";
-  version = "2.5.3";
- 
+  pname = "ms-sys";
+  version = "2.6.0";
+
   src = fetchurl {
-    url = "mirror://sourceforge/ms-sys/${name}.tar.gz";
-    sha256 = "0mijf82cbji4laip6hiy3l5ka5mzq5sivjvyv7wxnc2fd3v7hgp0";
+    url = "mirror://sourceforge/ms-sys/${pname}-${version}.tar.gz";
+    sha256 = "06xqpm2s9cg8fj7a1822wmh3p4arii0sifssazg1gr6i7xg7kbjz";
   };
 
-  buildInputs = [ gettext ];
+  nativeBuildInputs = [ gettext ];
 
   enableParallelBuilding = true;
 
@@ -19,7 +19,6 @@ stdenv.mkDerivation rec {
     description = "A program for writing Microsoft-compatible boot records";
     homepage = http://ms-sys.sourceforge.net/;
     license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ nckx ];
     platforms = with platforms; linux;
   };
 }

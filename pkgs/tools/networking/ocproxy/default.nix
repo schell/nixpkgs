@@ -2,7 +2,7 @@
 
 stdenv.mkDerivation rec {
   version = "1.60";
-  name = "ocproxy-${version}";
+  pname = "ocproxy";
 
   src = fetchFromGitHub {
     owner = "cernekee";
@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "OpenConnect proxy";
-    longdescription = ''
+    longDescription = ''
       ocproxy is a user-level SOCKS and port forwarding proxy for OpenConnect
       based on lwIP.
     '';

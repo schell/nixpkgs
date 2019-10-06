@@ -1,27 +1,21 @@
-{ stdenv, fetchurl, perl, getopt }:
+{ substituteAll, lib
+, coreutils, getopt
+}:
 
-stdenv.mkDerivation rec {
-  version = "1.4";
-  name = "lsb-release-${version}";
+substituteAll {
+  name = "lsb_release";
 
-  src = fetchurl {
-    url = "mirror://sourceforge/lsb/${name}.tar.gz";
-    sha256 = "0wkiy7ymfi3fh2an2g30raw6yxh6rzf6nz2v90fplbnnz2414clr";
-  };
+  src = ./lsb_release.sh;
 
-  preConfigure = ''
-    substituteInPlace help2man \
-      --replace /usr/bin/perl ${perl}/bin/perl
-  '';
+  dir = "bin";
+  isExecutable = true;
 
-  installFlags = [ "prefix=$(out)" ];
+  inherit coreutils getopt;
 
-  buildInputs = [ perl getopt ];
-
-  meta = {
+  meta = with lib; {
     description = "Prints certain LSB (Linux Standard Base) and Distribution information";
-    homepage = http://www.linuxfoundation.org/collaborate/workgroups/lsb;
-    license = [ stdenv.lib.licenses.gpl2Plus stdenv.lib.licenses.gpl3Plus ];
-    platforms = stdenv.lib.platforms.linux;
+    license = [ licenses.mit ];
+    maintainers = with maintainers; [ primeos ];
+    platforms = platforms.linux;
   };
 }

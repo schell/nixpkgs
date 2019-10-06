@@ -1,12 +1,12 @@
-{stdenv, fetchurl, m4, ncurses, ocaml, writeText}:
+{ stdenv, fetchurl, fetchpatch, m4, ncurses, ocaml, writeText }:
 
 stdenv.mkDerivation rec {
-  name = "ocaml-findlib-${version}";
-  version = "1.7.1";
+  pname = "ocaml-findlib";
+  version = "1.8.1";
 
   src = fetchurl {
     url = "http://download.camlcity.org/download/findlib-${version}.tar.gz";
-    sha256 = "1vsys5gpahi36nxv5yx29zhwn8b2d7sqqswza05vxy5bx5wrljsx";
+    sha256 = "00s3sfb02pnjmkax25pcnljcnhcggiliccfz69a72ic7gsjwz1cf";
   };
 
   buildInputs = [m4 ncurses ocaml];
@@ -34,13 +34,16 @@ stdenv.mkDerivation rec {
         if test -d "''$1/lib/ocaml/${ocaml.version}/site-lib"; then
             export OCAMLPATH="''${OCAMLPATH}''${OCAMLPATH:+:}''$1/lib/ocaml/${ocaml.version}/site-lib/"
         fi
+        if test -d "''$1/lib/ocaml/${ocaml.version}/site-lib/stublibs"; then
+            export CAML_LD_LIBRARY_PATH="''${CAML_LD_LIBRARY_PATH}''${CAML_LD_LIBRARY_PATH:+:}''$1/lib/ocaml/${ocaml.version}/site-lib/stublibs"
+        fi
         export OCAMLFIND_DESTDIR="''$out/lib/ocaml/${ocaml.version}/site-lib/"
         if test -n "$createFindlibDestdir"; then
           mkdir -p $OCAMLFIND_DESTDIR
         fi
     }
 
-    envHooks+=(addOCamlPath)
+    addEnvHooks "$targetOffset" addOCamlPath
   '';
 
   meta = {

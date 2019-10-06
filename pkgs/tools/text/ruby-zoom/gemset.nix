@@ -1,58 +1,64 @@
 {
   djinni = {
+    dependencies = ["fagin"];
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "0wl4q4qs1nyla5n2b2ys6n3i35gvli8xb8mxz2xv0ik306cikqm6";
+      sha256 = "18zk80jk70xq1bnsvzcgxb13x9fqdb5g4m02b2f6mvqm4cyw26pl";
       type = "gem";
     };
-    version = "2.0.1";
+    version = "2.2.4";
   };
   fagin = {
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "17d419vkfr26gdbad97fg2ikskhn82vs3bnxlzd27w6lwyf13qxk";
+      sha256 = "0psyydh4hf2s1kz0r50aiyjf5v2pqhkbmy0gicxzaj5n17q2ga24";
       type = "gem";
     };
-    version = "0.1.2";
+    version = "1.2.1";
   };
   hilighter = {
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1a9a9clgd6kx63a82msjzi6abznfqivsgmds7qaqwb1dsl1nznbh";
+      sha256 = "03zm49g96dfpan5fhblcjxrzv7ldwan57sn0jcllkcmrqfd0zlyz";
       type = "gem";
     };
-    version = "0.1.7";
+    version = "1.2.3";
   };
   json_config = {
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "16q3q0j9s8w93lzxa7rrvh5wqk11np7s2nmgmdlrh8gl3w76xcz6";
+      sha256 = "0slb618n1ipn47j6dsxbfv2j9pl06dxn2i651llix09d529m7zwa";
       type = "gem";
     };
-    version = "0.1.2";
-  };
-  ruby-terminfo = {
-    source = {
-      remotes = ["https://rubygems.org"];
-      sha256 = "0rl4ic5pzvrpgd42z0c1s2n3j39c9znksblxxvmhkzrc0ckyg2cm";
-      type = "gem";
-    };
-    version = "0.1.1";
+    version = "1.1.0";
   };
   ruby-zoom = {
+    dependencies = ["djinni" "fagin" "hilighter" "json_config" "scoobydoo"];
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "132pk0zp3rayvvbccfs5ksigg9zpflp9734b4r0jz5aimmv2qpvp";
+      sha256 = "0iqxc0rzypsxy4wbxnvgvk98dbcsrcczq3xi9xd4wz4ggwq564l3";
       type = "gem";
     };
-    version = "4.1.0";
+    version = "5.3.0";
   };
   scoobydoo = {
+    groups = ["default"];
+    platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1w83zgip3qvh20pgqgcp9yp0k35ypn7ny0d61xcv1ik0r3ab8ga0";
+      sha256 = "162p75nc9x078kqcpdsrsd7kngs6jc5n4injz3kzpwf0jgbbm8n7";
       type = "gem";
     };
-    version = "0.1.4";
+    version = "1.0.0";
   };
 }

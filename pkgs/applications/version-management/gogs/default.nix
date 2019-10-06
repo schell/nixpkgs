@@ -1,28 +1,37 @@
 { stdenv, buildGoPackage, fetchFromGitHub, makeWrapper
-, git, coreutils, bash, gzip, openssh
+, git, bash, gzip, openssh, pam
 , sqliteSupport ? true
+, pamSupport ? true
 }:
 
 with stdenv.lib;
 
 buildGoPackage rec {
-  name = "gogs-${version}";
-  version = "0.10.18";
+  pname = "gogs";
+  version = "0.11.86";
 
   src = fetchFromGitHub {
-    owner = "gogits";
+    owner = "gogs";
     repo = "gogs";
     rev = "v${version}";
-    sha256 = "1f1dlickjpdilf4j295i9v2h4ig4pf5d2mnpbr59wh14bby4bh0y";
+    sha256 = "0l8mwy0cyy3cdxqinf8ydb35kf7c8pj09xrhpr7rr7lldnvczabw";
   };
 
-  patchPhase = ''
+  patches = [ ./static-root-path.patch ];
+
+  postPatch = ''
     patchShebangs .
-    '';
+    substituteInPlace pkg/setting/setting.go --subst-var data
+  '';
 
-  nativeBuildInputs = [ makeWrapper ];
+  nativeBuildInputs = [ makeWrapper ]
+    ++ optional pamSupport pam;
 
-  buildFlags = optionalString sqliteSupport "-tags sqlite";
+  buildFlags = "-tags";
+
+  buildFlagsArray =
+    (  optional sqliteSupport "sqlite"
+    ++ optional pamSupport "pam");
 
   outputs = [ "bin" "out" "data" ];
 
@@ -31,18 +40,14 @@ buildGoPackage rec {
     cp -R $src/{public,templates} $data
 
     wrapProgram $bin/bin/gogs \
-      --prefix PATH : ${makeBinPath [ bash git gzip openssh ]} \
-      --run 'export GOGS_WORK_DIR=''${GOGS_WORK_DIR:-$PWD}' \
-      --run 'mkdir -p "$GOGS_WORK_DIR" && cd "$GOGS_WORK_DIR"' \
-      --run "ln -fs $data/{public,templates} ."
+      --prefix PATH : ${makeBinPath [ bash git gzip openssh ]}
   '';
 
-  goPackagePath = "github.com/gogits/gogs";
-  goDeps = ./deps.nix;
+  goPackagePath = "github.com/gogs/gogs";
 
   meta = {
     description = "A painless self-hosted Git service";
-    homepage = "https://gogs.io";
+    homepage = https://gogs.io;
     license = licenses.mit;
     maintainers = [ maintainers.schneefux ];
   };

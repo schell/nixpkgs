@@ -1,33 +1,25 @@
-{ stdenv, fetchurl, makeWrapper, glib
-, fontconfig, patchelf, libXext, libX11
-, freetype, libXrender
+{ stdenv, fetchurl, makeWrapper, patchelf
+, fontconfig, freetype, glib, libICE, libSM
+, libX11, libXext, libXrender, zlib
 }:
 
 let
-  arch = if stdenv.system == "x86_64-linux" then "x86_64"
-    else if stdenv.system == "i686-linux" then "i386"
-    else throw "Spideroak client for: ${stdenv.system} not supported!";
-
-  interpreter = if stdenv.system == "x86_64-linux" then "ld-linux-x86-64.so.2"
-    else if stdenv.system == "i686-linux" then "ld-linux.so.2"
-    else throw "Spideroak client for: ${stdenv.system} not supported!";
-
-  sha256 = if stdenv.system == "x86_64-linux" then "88fd785647def79ee36621fa2a8a5bea73c513de03103f068dd10bc25f3cf356"
-    else if stdenv.system == "i686-linux" then "8c23271291f40aa144bbf38ceb3cc2a05bed00759c87a65bd798cf8bb289d07a"
-    else throw "Spideroak client for: ${stdenv.system} not supported!";
+  sha256 = "6d6ca2b383bcc81af1217c696eb77864a2b6db7428f4b5bde5b5913ce705eec5";
 
   ldpath = stdenv.lib.makeLibraryPath [
-    glib fontconfig libXext libX11 freetype libXrender
+    fontconfig freetype glib libICE libSM
+    libX11 libXext libXrender zlib
   ];
 
-  version = "6.0.1";
+  version = "7.5.0";
 
 in stdenv.mkDerivation {
-  name = "spideroak-${version}";
+  pname = "spideroak";
+  inherit version;
 
   src = fetchurl {
-    name = "spideroak-${version}-${arch}";
-    url = "https://spideroak.com/getbuild?platform=slackware&arch=${arch}&version=${version}";
+    name = "SpiderOakONE-${version}-slack_tar_x64.tgz";
+    url = "https://spideroak.com/release/spideroak/slack_tar_x64";
     inherit sha256;
   };
 
@@ -43,7 +35,9 @@ in stdenv.mkDerivation {
     rmdir $out/usr/bin || true
     mv $out/usr/share $out/
 
-    patchelf --set-interpreter ${stdenv.glibc.out}/lib/${interpreter} \
+    rm -f $out/opt/SpiderOakONE/lib/libz*
+
+    patchelf --set-interpreter ${stdenv.glibc.out}/lib/ld-linux-x86-64.so.2 \
       "$out/opt/SpiderOakONE/lib/SpiderOakONE"
 
     RPATH=$out/opt/SpiderOakONE/lib:${ldpath}
@@ -54,10 +48,10 @@ in stdenv.mkDerivation {
     sed -i 's/^Exec=.*/Exec=spideroak/' $out/share/applications/SpiderOakONE.desktop
   '';
 
-  buildInputs = [ patchelf makeWrapper ];
+  nativeBuildInputs = [ patchelf makeWrapper ];
 
   meta = {
-    homepage = "https://spideroak.com";
+    homepage = https://spideroak.com;
     description = "Secure online backup and sychronization";
     license = stdenv.lib.licenses.unfree;
     maintainers = with stdenv.lib.maintainers; [ amorsillo ];

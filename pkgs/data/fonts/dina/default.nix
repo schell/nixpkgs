@@ -1,22 +1,20 @@
-{ stdenv, fetchurl, unzip }:
+{ stdenv, fetchzip }:
 
-stdenv.mkDerivation rec {
+let
   version = "2.92";
+in fetchzip {
   name = "dina-font-${version}";
 
-  src = fetchurl {
-    url = "http://www.donationcoder.com/Software/Jibz/Dina/downloads/Dina.zip";
-    sha256 = "1kq86lbxxgik82aywwhawmj80vsbz3hfhdyhicnlv9km7yjvnl8z";
-  };
+  # `meta.homepage` has no direct download link
+  url = "https://github.com/ProgrammingFonts/ProgrammingFonts/archive/b15ef365146be7eef4a46979cfe157c5aeefb7c0.zip";
 
-  nativeBuildInputs = [ unzip ];
-  phases = [ "unpackPhase" "installPhase" ];
-
-  installPhase =
-  ''
+  postFetch = ''
     mkdir -p $out/share/fonts
-    cp *.bdf $out/share/fonts
+    unzip -j $downloadedFile '*/Dina/*.bdf' -d $out/share/fonts
+    chmod u-x $out/share/fonts/*
   '';
+
+  sha256 = "02a6hqbq18sw69npylfskriqhvj1nsk65hjjyd05nl913ycc6jl7";
 
   meta = with stdenv.lib; {
     description = "A monospace bitmap font aimed at programmers";
@@ -29,6 +27,5 @@ stdenv.mkDerivation rec {
     downloadPage = https://www.donationcoder.com/Software/Jibz/Dina/;
     license = licenses.free;
     maintainers = [ maintainers.prikhi ];
-    platforms = platforms.unix;
   };
 }

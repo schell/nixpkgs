@@ -1,51 +1,40 @@
-{ stdenv, fetchFromGitHub, rustPlatform, cmake, perl, pkgconfig, zlib }:
+{ stdenv, fetchFromGitHub, rustPlatform, cmake, perl, pkgconfig, zlib
+, darwin, libiconv, installShellFiles
+}:
 
 with rustPlatform;
 
-let
-  # check for updates
-  zoneinfo_compiled = fetchFromGitHub {
-    owner = "rust-datetime";
-    repo = "zoneinfo-compiled";
-    rev = "f56921ea5e9f7cf065b1480ff270a1757c1f742f";
-    sha256 = "1xmw7c5f5n45lkxnyxp4llfv1bnqhc876w98165ccdbbiylfkw26";
-  };
-  cargoPatch = ''
-    # use non-git dependencies
-    patch Cargo.toml <<EOF
-    46c46
-    < git = "https://github.com/rust-datetime/zoneinfo-compiled.git"
-    ---
-    > path = "${zoneinfo_compiled}"
-    EOF
-  '';
-in buildRustPackage rec {
-  name = "exa-${version}";
-  version = "0.6.0";
+buildRustPackage rec {
+  pname = "exa";
+  version = "0.9.0";
 
-  depsSha256 = "0c1vyl1c67xq18ss0xs5cjdfn892jpwj6ml51dfppzfyns3namm4";
+  cargoSha256 = "1hgjp23rjd90wyf0nq6d5akjxdfjlaps54dv23zgwjvkhw24fidf";
 
   src = fetchFromGitHub {
     owner = "ogham";
     repo = "exa";
     rev = "v${version}";
-    sha256 = "0065gj4pbbppbnwp23s6bb7zlz428nrir00d0kz7axydxk6swhyv";
+    sha256 = "14qlm9zb9v22hxbbi833xaq2b7qsxnmh15s317200vz5f1305hhw";
   };
 
-  nativeBuildInputs = [ cmake pkgconfig perl ];
-  buildInputs = [ zlib ];
+  nativeBuildInputs = [ cmake pkgconfig perl installShellFiles ];
+  buildInputs = [ zlib ]
+  ++ stdenv.lib.optionals stdenv.isDarwin [
+    libiconv darwin.apple_sdk.frameworks.Security ]
+  ;
+
+  outputs = [ "out" "man" ];
+
+  postInstall = ''
+    installManPage contrib/man/exa.1
+    installShellCompletion \
+      --name exa contrib/completions.bash \
+      --name exa.fish contrib/completions.fish \
+      --name _exa contrib/completions.zsh
+  '';
 
   # Some tests fail, but Travis ensures a proper build
   doCheck = false;
-
-  cargoUpdateHook = ''
-    ${cargoPatch}
-  '';
-  cargoDepsHook = ''
-    pushd $sourceRoot
-    ${cargoPatch}
-    popd
-  '';
 
   meta = with stdenv.lib; {
     description = "Replacement for 'ls' written in Rust";
@@ -57,8 +46,8 @@ in buildRustPackage rec {
       for a directory, or recursing into directories with a tree view. exa is
       written in Rust, so it’s small, fast, and portable.
     '';
-    homepage = http://the.exa.website;
+    homepage = https://the.exa.website;
     license = licenses.mit;
-    maintainer = [ maintainers.ehegnes ];
+    maintainers = with maintainers; [ ehegnes lilyball globin ];
   };
 }

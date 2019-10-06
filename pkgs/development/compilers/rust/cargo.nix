@@ -1,27 +1,30 @@
-{ stdenv, fetchgit, file, curl, pkgconfig, python, openssl, cmake, zlib
+{ stdenv, file, curl, pkgconfig, python, openssl, cmake, zlib
 , makeWrapper, libiconv, cacert, rustPlatform, rustc, libgit2
-, version, srcRev, srcSha, depsSha256
-, patches ? []}:
+, CoreFoundation, Security
+}:
 
-rustPlatform.buildRustPackage rec {
-  name = "cargo-${version}";
-  inherit version;
+rustPlatform.buildRustPackage {
+  name = "cargo-${rustc.version}";
+  inherit (rustc) version src;
 
-  src = fetchgit {
-    url = "https://github.com/rust-lang/cargo";
-    rev = srcRev;
-    sha256 = srcSha;
-  };
-
-  inherit depsSha256;
-  inherit patches;
+  # the rust source tarball already has all the dependencies vendored, no need to fetch them again
+  cargoVendorDir = "vendor";
+  preBuild = "pushd src/tools/cargo";
+  postBuild = "popd";
 
   passthru.rustc = rustc;
 
-  buildInputs = [ file curl pkgconfig python openssl cmake zlib makeWrapper libgit2 ]
-    ++ stdenv.lib.optionals stdenv.isDarwin [ libiconv ];
+  # changes hash of vendor directory otherwise
+  dontUpdateAutotoolsGnuConfigScripts = true;
 
-  LIBGIT2_SYS_USE_PKG_CONFIG=1;
+  nativeBuildInputs = [ pkgconfig cmake makeWrapper ];
+  buildInputs = [ cacert file curl python openssl zlib libgit2 ]
+    ++ stdenv.lib.optionals stdenv.isDarwin [ CoreFoundation Security libiconv ];
+
+  LIBGIT2_SYS_USE_PKG_CONFIG = 1;
+
+  # fixes: the cargo feature `edition` requires a nightly version of Cargo, but this is the `stable` channel
+  RUSTC_BOOTSTRAP = 1;
 
   postInstall = ''
     # NOTE: We override the `http.cainfo` option usually specified in
@@ -31,13 +34,10 @@ rustPlatform.buildRustPackage rec {
     wrapProgram "$out/bin/cargo" \
       --suffix PATH : "${rustc}/bin" \
       --set CARGO_HTTP_CAINFO "${cacert}/etc/ssl/certs/ca-bundle.crt" \
-      --set SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
-      ${stdenv.lib.optionalString stdenv.isDarwin ''--suffix DYLD_LIBRARY_PATH : "${rustc}/lib"''}
+      --set SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt"
   '';
 
   checkPhase = ''
-    # Export SSL_CERT_FILE as without it one test fails with SSL verification error
-    export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
     # Disable cross compilation tests
     export CFG_DISABLE_CROSS_TESTS=1
     cargo test
@@ -47,10 +47,10 @@ rustPlatform.buildRustPackage rec {
   doCheck = false;
 
   meta = with stdenv.lib; {
-    homepage = http://crates.io;
+    homepage = https://crates.io;
     description = "Downloads your Rust project's dependencies and builds your project";
     maintainers = with maintainers; [ wizeman retrry ];
     license = [ licenses.mit licenses.asl20 ];
-    platforms = platforms.linux ++ platforms.darwin;
+    platforms = platforms.unix;
   };
 }

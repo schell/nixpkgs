@@ -1,34 +1,41 @@
-{ lib, buildFHSUserEnv, platformio, stdenv }:
+{ lib, buildFHSUserEnv }:
 
-buildFHSUserEnv {
+let
+  pio-pkgs = pkgs:
+    let
+      python = pkgs.python3.override {
+        packageOverrides = self: super: {
+          platformio = self.callPackage ./core.nix { };
+        };
+      };
+    in (with pkgs; [
+      zlib
+      git
+    ]) ++ (with python.pkgs; [
+      python
+      setuptools
+      pip
+      bottle
+      platformio
+    ]);
+
+in buildFHSUserEnv {
   name = "platformio";
 
-  targetPkgs = pkgs: (with pkgs;
-    [
-      python27Packages.python
-      python27Packages.setuptools
-      python27Packages.pip
-      python27Packages.bottle
-      python27Packages.platformio
-      zlib
-    ]);
-  multiPkgs = pkgs: (with pkgs;
-    [
-      python27Packages.python
-      python27Packages.setuptools
-      python27Packages.pip
-      python27Packages.bottle
-      zlib
-      python27Packages.platformio
-    ]);
+  targetPkgs = pio-pkgs;
+  multiPkgs = pio-pkgs;
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "An open source ecosystem for IoT development";
-    homepage = http://platformio.org;
+    homepage = "https://platformio.org";
     maintainers = with maintainers; [ mog ];
     license = licenses.asl20;
     platforms = with platforms; linux;
   };
+
+  extraInstallCommands = ''
+    ln -s $out/bin/platformio $out/bin/pio
+  '';
 
   runScript = "platformio";
 }

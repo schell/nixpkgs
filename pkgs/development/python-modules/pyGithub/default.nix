@@ -1,25 +1,22 @@
 { stdenv, fetchFromGitHub
-, cacert
-, buildPythonPackage, python-jose }:
+, buildPythonPackage, python-jose, pyjwt, requests, deprecated, httpretty }:
 
 buildPythonPackage rec {
-  name = "PyGithub-${version}";
-  version = "1.32";
+  pname = "PyGithub";
+  version = "1.43.8";
 
   src = fetchFromGitHub {
     owner = "PyGithub";
     repo = "PyGithub";
     rev = "v${version}";
-    sha256 = "15dr9ja63zdxax9lg6q2kcakqa82dpffyhgpjr13wq3sfkcy5pdw";
+    sha256 = "1625v558xga5mwhl9jqmibywy5qafmg1vqrirqz6zfq1la1d22mw";
   };
 
-  postPatch = ''
-    # requires network
-    echo "" > github/tests/Issue142.py
-  '';
-  propagatedBuildInputs = [ python-jose ];
+  propagatedBuildInputs = [ python-jose pyjwt requests deprecated httpretty ];
+  doCheck = false;
+
   meta = with stdenv.lib; {
-    homepage = "https://github.com/PyGithub/PyGithub";
+    homepage = https://github.com/PyGithub/PyGithub;
     description = "A Python (2 and 3) library to access the GitHub API v3";
     platforms = platforms.all;
     license = licenses.gpl3;

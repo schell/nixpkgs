@@ -1,7 +1,7 @@
-{ stdenv, lib, buildGoPackage, fetchFromGitHub }:
+{ stdenv, buildGoPackage, fetchFromGitHub }:
 
 buildGoPackage rec {
-  name = "gotty-${version}";
+  pname = "gotty";
   version = "0.0.13";
   rev = "v${version}";
 
@@ -18,8 +18,8 @@ buildGoPackage rec {
 
   meta = with stdenv.lib; {
     description = "Share your terminal as a web application";
-    homepage = "https://github.com/yudai/gotty";
-    maintainers = with maintainers; [ matthiasbeyer ];
+    homepage = https://github.com/yudai/gotty;
+    maintainers = with maintainers; [ ];
     license = licenses.mit;
   };
 }

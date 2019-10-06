@@ -7,7 +7,7 @@
 #
 pythonPackages.buildPythonApplication rec {
     version = "1.1.1";
-    name = "bugseverywhere-${version}";
+    pname = "bugseverywhere";
 
     src = fetchurl {
       url =
@@ -25,7 +25,7 @@ pythonPackages.buildPythonApplication rec {
 
     meta = with stdenv.lib; {
         description = "Bugtracker supporting distributed revision control";
-        homepage = "http://www.bugseverywhere.org/";
+        homepage = http://www.bugseverywhere.org/;
         license = licenses.gpl2Plus;
         platforms = platforms.all;
         maintainers = [ maintainers.matthiasbeyer ];

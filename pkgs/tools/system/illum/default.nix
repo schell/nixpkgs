@@ -1,8 +1,8 @@
 { stdenv, fetchgit, pkgconfig, ninja, libevdev, libev }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   version = "0.4";
-  name = "illum-${version}";
+  pname = "illum";
 
   src = fetchgit {
     url = "https://github.com/jmesmon/illum.git";
@@ -11,14 +11,11 @@ stdenv.mkDerivation rec {
     sha256 = "05v3hz7n6b1mlhc6zqijblh1vpl0ja1y8y0lafw7mjdz03wxhfdb";
   };
 
-  buildInputs = [ pkgconfig ninja libevdev libev ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ ninja libevdev libev ];
 
   configurePhase = ''
     bash ./configure
-  '';
-
-  buildPhase = ''
-    ninja
   '';
 
   installPhase = ''

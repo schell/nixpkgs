@@ -2,7 +2,7 @@
 */
 
 { # The platforms *from* which we cross compile.
-  supportedSystems ? [ "x86_64-linux" "x86_64-darwin" ]
+  supportedSystems ? [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" ]
 , # Strip most of attributes when evaluating to spare memory usage
   scrubJobs ? true
 }:
@@ -10,17 +10,28 @@
 with import ./release-lib.nix { inherit supportedSystems scrubJobs; };
 
 let
-  nativePlatforms = linux;
+  nativePlatforms = all;
+
+  embedded = {
+    buildPackages.binutils = nativePlatforms;
+    buildPackages.gcc = nativePlatforms;
+    libcCross = nativePlatforms;
+  };
 
   common = {
     buildPackages.binutils = nativePlatforms;
     gmp = nativePlatforms;
     libcCross = nativePlatforms;
+    nix = nativePlatforms;
+    nixUnstable = nativePlatforms;
+    mesa = nativePlatforms;
   };
 
   gnuCommon = lib.recursiveUpdate common {
-    buildPackages.gccCrossStageFinal = nativePlatforms;
+    buildPackages.gcc = nativePlatforms;
     coreutils = nativePlatforms;
+    haskell.packages.ghcHEAD.hello = nativePlatforms;
+    haskellPackages.hello = nativePlatforms;
   };
 
   linuxCommon = lib.recursiveUpdate gnuCommon {
@@ -41,12 +52,29 @@ let
     libtool = nativePlatforms;
     libunistring = nativePlatforms;
     windows.wxMSW = nativePlatforms;
+    windows.mingw_w64_pthreads = nativePlatforms;
+  };
+
+  wasiCommon = {
+    gmp = nativePlatforms;
+    boehmgc = nativePlatforms;
+    hello = nativePlatforms;
+    zlib = nativePlatforms;
   };
 
   darwinCommon = {
     buildPackages.binutils = darwin;
   };
 
+  rpiCommon = linuxCommon // {
+    vim = nativePlatforms;
+    unzip = nativePlatforms;
+    ddrescue = nativePlatforms;
+    lynx = nativePlatforms;
+    patchelf = nativePlatforms;
+    buildPackages.binutils = nativePlatforms;
+    mpg123 = nativePlatforms;
+  };
 in
 
 {
@@ -67,14 +95,14 @@ in
     # good idea lest there be some irrelevant pass-through debug attrs that
     # cause false negatives.
     testEqualOne = path: system: let
-      f = path: attrs: builtins.toString (lib.getAttrFromPath path (allPackages attrs));
+      f = path: crossSystem: system: builtins.toString (lib.getAttrFromPath path (pkgsForCross crossSystem system));
     in assertTrue (
-        f path { inherit system; }
+        f path null system
         ==
-        f (["buildPackages"] ++ path) { inherit system crossSystem; }
+        f (["buildPackages"] ++ path) crossSystem system
       );
 
-    testEqual = path: systems: forAllSupportedSystems systems (testEqualOne path);
+    testEqual = path: systems: forMatchingSystems systems (testEqualOne path);
 
     mapTestEqual = lib.mapAttrsRecursive testEqual;
 
@@ -108,21 +136,32 @@ in
   fuloongminipc = mapTestOnCross lib.systems.examples.fuloongminipc linuxCommon;
 
   /* Linux on Raspberrypi */
-  rpi = mapTestOnCross lib.systems.examples.raspberryPi (linuxCommon // {
-    vim = nativePlatforms;
-    unzip = nativePlatforms;
-    ddrescue = nativePlatforms;
-    lynx = nativePlatforms;
-    patchelf = nativePlatforms;
-    buildPackages.binutils = nativePlatforms;
-    mpg123 = nativePlatforms;
-  });
+  rpi = mapTestOnCross lib.systems.examples.raspberryPi rpiCommon;
+  rpi-musl = mapTestOnCross lib.systems.examples.muslpi rpiCommon;
 
+  aarch64-musl = mapTestOnCross lib.systems.examples.aarch64-multiplatform-musl linuxCommon;
+
+  x86_64-musl = mapTestOnCross lib.systems.examples.musl64 linuxCommon;
+
+  android64 = mapTestOnCross lib.systems.examples.aarch64-android-prebuilt linuxCommon;
+  android32 = mapTestOnCross lib.systems.examples.armv7a-android-prebuilt linuxCommon;
+
+  wasi32 = mapTestOnCross lib.systems.examples.wasi32 wasiCommon;
+
+  msp430 = mapTestOnCross lib.systems.examples.msp430 embedded;
+  avr = mapTestOnCross lib.systems.examples.avr embedded;
+  arm-embedded = mapTestOnCross lib.systems.examples.arm-embedded embedded;
+  powerpc-embedded = mapTestOnCross lib.systems.examples.ppc-embedded embedded;
+  aarch64-embedded = mapTestOnCross lib.systems.examples.aarch64-embedded embedded;
+  i686-embedded = mapTestOnCross lib.systems.examples.i686-embedded embedded;
+  x86_64-embedded = mapTestOnCross lib.systems.examples.x86_64-embedded embedded;
 
   /* Cross-built bootstrap tools for every supported platform */
   bootstrapTools = let
     tools = import ../stdenv/linux/make-bootstrap-tools-cross.nix { system = "x86_64-linux"; };
     maintainers = [ lib.maintainers.dezgeg ];
-    mkBootstrapToolsJob = drv: hydraJob' (lib.addMetaAttrs { inherit maintainers; } drv);
+    mkBootstrapToolsJob = drv:
+      assert lib.elem drv.system supportedSystems;
+      hydraJob' (lib.addMetaAttrs { inherit maintainers; } drv);
   in lib.mapAttrsRecursiveCond (as: !lib.isDerivation as) (name: mkBootstrapToolsJob) tools;
 }

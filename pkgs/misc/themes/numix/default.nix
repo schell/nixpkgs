@@ -1,21 +1,21 @@
-{ stdenv, fetchFromGitHub, sass, glib, libxml2, gdk_pixbuf
+{ stdenv, fetchFromGitHub, sass, glib, libxml2, gdk-pixbuf
 , gtk-engine-murrine
 }:
 
 stdenv.mkDerivation rec {
-  version = "2017-02-15";
-  name = "numix-gtk-theme-${version}";
+  version = "2.6.7";
+  pname = "numix-gtk-theme";
 
   src = fetchFromGitHub {
     repo = "numix-gtk-theme";
     owner = "numixproject";
-    rev = "f25d7e04353543e03fd155f4d9dfa80fc6b551f2";
-    sha256 = "0n57airi1kgg754099sdq40bb0mbp4my385fvslnsjv5d4h8jhvq";
+    rev = version;
+    sha256 = "12mw0kr0kkvg395qlbsvkvaqccr90cmxw5rrsl236zh43kj8grb7";
   };
 
-  nativeBuildInputs = [ sass glib libxml2 gdk_pixbuf ];
+  nativeBuildInputs = [ sass glib libxml2 gdk-pixbuf ];
 
-  buildInputs = [ gtk-engine-murrine ];
+  propagatedUserEnvPkgs = [ gtk-engine-murrine ];
 
   postPatch = ''
     substituteInPlace Makefile --replace '$(DESTDIR)'/usr $out
@@ -24,7 +24,7 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "Modern flat theme with a combination of light and dark elements (GNOME, Unity, Xfce and Openbox)";
-    homepage = https://numixproject.org;
+    homepage = https://numixproject.github.io;
     license = stdenv.lib.licenses.gpl3Plus;
     platforms = stdenv.lib.platforms.all;
     maintainers = [ stdenv.lib.maintainers.romildo ];

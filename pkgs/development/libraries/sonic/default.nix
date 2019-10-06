@@ -1,7 +1,7 @@
 { stdenv, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
-  name = "sonic-${version}";
+stdenv.mkDerivation {
+  pname = "sonic";
   version = "2016-03-01";
 
   src = fetchFromGitHub {
@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Simple library to speed up or slow down speech";
-    homepage = "https://github.com/waywardgeek/sonic";
+    homepage = https://github.com/waywardgeek/sonic;
     license = licenses.asl20;
     maintainers = with maintainers; [ aske ];
     platforms = platforms.linux;

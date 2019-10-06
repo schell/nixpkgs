@@ -33,8 +33,8 @@ in
 
       package = mkOption {
         type = types.package;
-        default = pkgs.pythonPackages.searx;
-        defaultText = "pkgs.pythonPackages.searx";
+        default = pkgs.searx;
+        defaultText = "pkgs.searx";
         description = "searx package to use.";
       };
 
@@ -47,14 +47,14 @@ in
 
   config = mkIf config.services.searx.enable {
 
-    users.extraUsers.searx =
+    users.users.searx =
       { uid = config.ids.uids.searx;
         description = "Searx user";
         createHome = true;
         home = "/var/lib/searx";
       };
 
-    users.extraGroups.searx =
+    users.groups.searx =
       { gid = config.ids.gids.searx;
       };
 

@@ -3,7 +3,12 @@
 with lib;
 
 let
-  cfg = config.programs.thefuck;
+  prg = config.programs;
+  cfg = prg.thefuck;
+
+  initScript = ''
+    eval $(${pkgs.thefuck}/bin/thefuck --alias ${cfg.alias})
+  '';
 in
   {
     options = {
@@ -12,7 +17,7 @@ in
 
         alias = mkOption {
           default = "fuck";
-          type = types.string;
+          type = types.str;
 
           description = ''
             `thefuck` needs an alias to be configured.
@@ -24,8 +29,11 @@ in
 
     config = mkIf cfg.enable {
       environment.systemPackages = with pkgs; [ thefuck ];
-      environment.shellInit = ''
-        eval $(${pkgs.thefuck}/bin/thefuck --alias ${cfg.alias})
+
+      programs.bash.interactiveShellInit = initScript;
+      programs.zsh.interactiveShellInit = mkIf prg.zsh.enable initScript;
+      programs.fish.interactiveShellInit = mkIf prg.fish.enable ''
+        ${pkgs.thefuck}/bin/thefuck --alias | source
       '';
     };
   }

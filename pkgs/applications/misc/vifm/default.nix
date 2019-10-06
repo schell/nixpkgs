@@ -5,12 +5,12 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "vifm-${version}";
-  version = "0.8.2";
+  pname = "vifm";
+  version = "0.10.1";
 
   src = fetchurl {
-    url = "mirror://sourceforge/project/vifm/vifm/${name}.tar.bz2";
-    sha256 = "07r15kq7kjl3a41sd11ncpsii866xxps4f90zh3lv8jqcrv6silb";
+    url = "https://github.com/vifm/vifm/releases/download/v${version}/vifm-${version}.tar.bz2";
+    sha256 = "0fyhxh7ndjn8fyjhj14ymkr3pjcs3k1xbs43g7xvvq85vdb6y04r";
   };
 
   nativeBuildInputs = [ pkgconfig ];
@@ -18,11 +18,11 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "A vi-like file manager";
-    maintainers = with maintainers; [ raskin garbas ];
-    platforms = platforms.linux;
+    maintainers = with maintainers; [ raskin ];
+    platforms = platforms.unix;
     license = licenses.gpl2;
-    downloadPage = "http://vifm.info/downloads.shtml";
-    homepage = "http://vifm.info/";
+    downloadPage = "https://vifm.info/downloads.shtml";
+    homepage = https://vifm.info/;
     inherit version;
     updateWalker = true;
   };

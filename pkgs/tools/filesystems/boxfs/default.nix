@@ -21,8 +21,8 @@ let
       owner = "vincenthz";
     };
   };
-in stdenv.mkDerivation rec {
-  name = "boxfs-${version}";
+in stdenv.mkDerivation {
+  pname = "boxfs";
   version = "2-20150109";
 
   src = srcs.boxfs2;
@@ -56,6 +56,5 @@ in stdenv.mkDerivation rec {
     homepage = https://github.com/drotiro/boxfs2;
     license = licenses.gpl3;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

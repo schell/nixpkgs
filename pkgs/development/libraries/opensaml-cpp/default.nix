@@ -1,17 +1,21 @@
-{ stdenv, fetchgit, autoreconfHook, boost, openssl, log4shib, xercesc, xml-security-c, xml-tooling-c, zlib }:
+{ stdenv, fetchgit, autoreconfHook, pkgconfig
+, boost, openssl, log4shib, xercesc, xml-security-c, xml-tooling-c, zlib
+}:
 
 stdenv.mkDerivation rec {
-  name = "opensaml-cpp-${version}";
-  version = "2.6.0";
+  pname = "opensaml-cpp";
+  version = "3.0.1";
 
   src = fetchgit {
     url = "https://git.shibboleth.net/git/cpp-opensaml.git";
-    rev = "61193de29e4c9f1ccff7ed7e1f42c2748c62be77";
-    sha256 = "1jlxa1f2qn0kd15fzjqp80apxn42v47wg3mx1vk424m31rhi00xr";
+    rev = version;
+    sha256 = "0ms3sqmwqkrqb92d7jy2hqwnz5yd7cbrz73n321jik0jilrwl5w8";
   };
 
-  buildInputs = [ boost openssl log4shib xercesc xml-security-c xml-tooling-c zlib ];
-  nativeBuildInputs = [ autoreconfHook ];
+  buildInputs = [
+    boost openssl log4shib xercesc xml-security-c xml-tooling-c zlib
+  ];
+  nativeBuildInputs = [ autoreconfHook pkgconfig ];
 
   configureFlags = [ "--with-xmltooling=${xml-tooling-c}" ];
 

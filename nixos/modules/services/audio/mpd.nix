@@ -12,8 +12,10 @@ let
 
   mpdConf = pkgs.writeText "mpd.conf" ''
     music_directory     "${cfg.musicDirectory}"
-    playlist_directory  "${cfg.dataDir}/playlists"
-    db_file             "${cfg.dbFile}"
+    playlist_directory  "${cfg.playlistDirectory}"
+    ${lib.optionalString (cfg.dbFile != null) ''
+      db_file             "${cfg.dbFile}"
+    ''}
     state_file          "${cfg.dataDir}/state"
     sticker_file        "${cfg.dataDir}/sticker.sql"
     log_file            "syslog"
@@ -42,11 +44,31 @@ in {
         '';
       };
 
-      musicDirectory = mkOption {
-        type = types.path;
-        default = "${cfg.dataDir}/music";
+      startWhenNeeded = mkOption {
+        type = types.bool;
+        default = false;
         description = ''
-          The directory where mpd reads music from.
+          If set, <command>mpd</command> is socket-activated; that
+          is, instead of having it permanently running as a daemon,
+          systemd will start it on the first incoming connection.
+        '';
+      };
+
+      musicDirectory = mkOption {
+        type = with types; either path (strMatching "(http|https|nfs|smb)://.+");
+        default = "${cfg.dataDir}/music";
+        defaultText = ''''${dataDir}/music'';
+        description = ''
+          The directory or NFS/SMB network share where mpd reads music from.
+        '';
+      };
+
+      playlistDirectory = mkOption {
+        type = types.path;
+        default = "${cfg.dataDir}/playlists";
+        defaultText = ''''${dataDir}/playlists'';
+        description = ''
+          The directory where mpd stores playlists.
         '';
       };
 
@@ -106,10 +128,12 @@ in {
       };
 
       dbFile = mkOption {
-        type = types.str;
+        type = types.nullOr types.str;
         default = "${cfg.dataDir}/tag_cache";
+        defaultText = ''''${dataDir}/tag_cache'';
         description = ''
-          The path to MPD's database.
+          The path to MPD's database. If set to <literal>null</literal> the
+          parameter is omitted from the configuration.
         '';
       };
     };
@@ -121,20 +145,46 @@ in {
 
   config = mkIf cfg.enable {
 
-    systemd.services.mpd = {
-      after = [ "network.target" "sound.target" ];
-      description = "Music Player Daemon";
-      wantedBy = [ "multi-user.target" ];
-
-      preStart = "mkdir -p ${cfg.dataDir} && chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}";
-      serviceConfig = {
-        User = "${cfg.user}";
-        PermissionsStartOnly = true;
-        ExecStart = "${pkgs.mpd}/bin/mpd --no-daemon ${mpdConf}";
+    systemd.sockets.mpd = mkIf cfg.startWhenNeeded {
+      description = "Music Player Daemon Socket";
+      wantedBy = [ "sockets.target" ];
+      listenStreams = [
+        "${optionalString (cfg.network.listenAddress != "any") "${cfg.network.listenAddress}:"}${toString cfg.network.port}"
+      ];
+      socketConfig = {
+        Backlog = 5;
+        KeepAlive = true;
+        PassCredentials = true;
       };
     };
 
-    users.extraUsers = optionalAttrs (cfg.user == name) (singleton {
+    systemd.tmpfiles.rules = [
+      "d '${cfg.dataDir}' - ${cfg.user} ${cfg.group} - -"
+      "d '${cfg.playlistDirectory}' - ${cfg.user} ${cfg.group} - -"
+    ];
+
+    systemd.services.mpd = {
+      after = [ "network.target" "sound.target" ];
+      description = "Music Player Daemon";
+      wantedBy = optional (!cfg.startWhenNeeded) "multi-user.target";
+
+      serviceConfig = {
+        User = "${cfg.user}";
+        ExecStart = "${pkgs.mpd}/bin/mpd --no-daemon ${mpdConf}";
+        Type = "notify";
+        LimitRTPRIO = 50;
+        LimitRTTIME = "infinity";
+        ProtectSystem = true;
+        NoNewPrivileges = true;
+        ProtectKernelTunables = true;
+        ProtectControlGroups = true;
+        ProtectKernelModules = true;
+        RestrictAddressFamilies = "AF_INET AF_INET6 AF_UNIX AF_NETLINK";
+        RestrictNamespaces = true;
+      };
+    };
+
+    users.users = optionalAttrs (cfg.user == name) (singleton {
       inherit uid;
       inherit name;
       group = cfg.group;
@@ -143,7 +193,7 @@ in {
       home = "${cfg.dataDir}";
     });
 
-    users.extraGroups = optionalAttrs (cfg.group == name) (singleton {
+    users.groups = optionalAttrs (cfg.group == name) (singleton {
       inherit name;
       gid = gid;
     });

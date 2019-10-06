@@ -1,5 +1,5 @@
 { stdenv, fetchurl, makeWrapper, pkgconfig, utillinux, which
-, procps, libcap_ng, openssl, python27, iproute , perl
+, procps, libcap_ng, openssl, python27 , perl
 , kernel ? null }:
 
 with stdenv.lib;
@@ -7,17 +7,18 @@ with stdenv.lib;
 let
   _kernel = kernel;
 in stdenv.mkDerivation rec {
-  version = "2.5.2";
-  name = "openvswitch-${version}";
+  version = "2.5.4";
+  pname = "openvswitch";
 
   src = fetchurl {
-    url = "http://openvswitch.org/releases/${name}.tar.gz";
-    sha256 = "0ifx758zl97dpad9vpd5i5dqj6i03k632mvgxs82hqkcsb3r6y7q";
+    url = "http://openvswitch.org/releases/${pname}-${version}.tar.gz";
+    sha256 = "1lji87wg953lqcdf02f1zv2m54vhd2x9jd03bb91lnlb4qlhifiv";
   };
 
   kernel = optional (_kernel != null) _kernel.dev;
 
-  buildInputs = [ makeWrapper pkgconfig utillinux openssl libcap_ng python27
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ makeWrapper utillinux openssl libcap_ng python27
                   perl procps which ];
 
   configureFlags = [
@@ -70,7 +71,7 @@ in stdenv.mkDerivation rec {
       support distribution across multiple physical servers similar
       to VMware's vNetwork distributed vswitch or Cisco's Nexus 1000V.
       '';
-    homepage = "http://openvswitch.org/";
+    homepage = http://openvswitch.org/;
     license = licenses.asl20;
   };
 }

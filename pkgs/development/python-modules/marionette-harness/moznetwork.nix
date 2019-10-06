@@ -1,5 +1,4 @@
 { lib
-, stdenv
 , buildPythonPackage
 , fetchPypi
 , mozlog
@@ -9,7 +8,6 @@
 buildPythonPackage rec {
   pname = "moznetwork";
   version = "0.27";
-  name = "${pname}-${version}";
 
   src = fetchPypi {
     inherit pname version;
@@ -20,7 +18,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "Network utilities for Mozilla testing";
-    homepage = "https://wiki.mozilla.org/Auto-tools/Projects/Mozbase";
+    homepage = https://wiki.mozilla.org/Auto-tools/Projects/Mozbase;
     license = lib.licenses.mpl20;
     maintainers = with lib.maintainers; [ raskin ];
   };

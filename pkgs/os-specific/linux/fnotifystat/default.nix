@@ -1,11 +1,11 @@
 { stdenv, lib, fetchurl }:
 
 stdenv.mkDerivation rec {
-  name = "fnotifystat-${version}";
-  version = "0.01.17";
+  pname = "fnotifystat";
+  version = "0.02.03";
   src = fetchurl {
-    url = "http://kernel.ubuntu.com/~cking/tarballs/fnotifystat/fnotifystat-${version}.tar.gz";
-    sha256 = "0ncfbrpyb3ak49nrdr4cb3w082n9s181lizfqx51zi9rdgkj1vm3";
+    url = "https://kernel.ubuntu.com/~cking/tarballs/fnotifystat/fnotifystat-${version}.tar.gz";
+    sha256 = "1b5s50dc8ag6k631nfp09chrqfpwai0r9ld822xqwp3qlszp0pv9";
   };
   installFlags = [ "DESTDIR=$(out)" ];
   postInstall = ''
@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
   '';
   meta = with lib; {
     description = "File activity monitoring tool";
-    homepage = http://kernel.ubuntu.com/~cking/fnotifystat/;
+    homepage = https://kernel.ubuntu.com/~cking/fnotifystat/;
     license = licenses.gpl2;
     platforms = platforms.linux;
     maintainers = with maintainers; [ womfoo ];
